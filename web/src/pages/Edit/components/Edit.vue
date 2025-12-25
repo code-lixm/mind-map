@@ -127,6 +127,10 @@ import NodeNoteSidebar from './NodeNoteSidebar.vue'
 import AiCreate from './AiCreate.vue'
 import AiChat from './AiChat.vue'
 
+const CUSTOM_NODE_CONTENT_STYLE_ID = 'mindmap-custom-node-children-badge-style'
+const CUSTOM_NODE_CONTENT_CLASS = 'mindmap-node-children-badge'
+const CUSTOM_NODE_CONTENT_DATA_KEY = '_customChildrenCount'
+
 // 注册插件
 MindMap.usePlugin(MiniMap)
   .usePlugin(Watermark)
@@ -195,7 +199,9 @@ export default {
       mindMapConfig: {},
       prevImg: '',
       storeConfigTimer: null,
-      showDragMask: false
+      showDragMask: false,
+      customContentExampleHandler: null,
+      useCustomContentExample: false
     }
   },
   computed: {
@@ -260,6 +266,7 @@ export default {
     this.$bus.$off('localStorageExceeded', this.onLocalStorageExceeded)
     window.removeEventListener('resize', this.handleResize)
     this.$bus.$off('showDownloadTip', this.showDownloadTip)
+    this.removeCustomContentExampleWatcher()
     this.mindMap.destroy()
   },
   methods: {
@@ -332,11 +339,125 @@ export default {
       storeData(this.mindMap.getData(true))
     },
 
+    // 官方教程：https://wanglin2.github.io/mind-map-docs/course/course33.html
+    createAddCustomContentToNodeExample() {
+      if (typeof document === 'undefined') return null
+      this.ensureCustomContentExampleStyle()
+      return {
+        create: node => {
+          const childrenLength = node?.nodeData?.children?.length || 0
+          if (childrenLength <= 0) return null
+          const el = document.createElement('div')
+          el.className = CUSTOM_NODE_CONTENT_CLASS
+          el.innerText = childrenLength
+          el.addEventListener('click', e => {
+            e.stopPropagation()
+            console.log('hello world')
+          })
+          return {
+            el,
+            width: 20,
+            height: 20
+          }
+        },
+        handle: ({ content, element, node }) => {
+          if (!element || !content || !node) return
+          const bringToFront = () => {
+            if (element && element.node && element.node.parentNode) {
+              element.front()
+            }
+          }
+          element
+            .x(node.width - content.width / 2)
+            .y(node.height / 2 - content.height / 2)
+          bringToFront()
+          setTimeout(bringToFront, 0)
+        },
+        mode: 'lazy',
+        // 自定义内容不影响节点尺寸，lazy模式下直接局部刷新即可
+        relayoutOnMount: false,
+        affectNodeSize: false,
+        events: {
+          mount: ['node_active', 'node_mouseenter'],
+          unmount: ['node_inactive', 'node_mouseleave']
+        }
+      }
+    },
+
+    ensureCustomContentExampleStyle() {
+      if (document.getElementById(CUSTOM_NODE_CONTENT_STYLE_ID)) return
+      const style = document.createElement('style')
+      style.id = CUSTOM_NODE_CONTENT_STYLE_ID
+      style.innerHTML = `
+        .${CUSTOM_NODE_CONTENT_CLASS} {
+          width: 20px;
+          height: 20px;
+          border-radius: 50%;
+          background: #f56c6c;
+          color: #fff;
+          font-size: 12px;
+          text-align: center;
+          line-height: 20px;
+          font-weight: 600;
+          box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+        }
+      `
+      document.head.appendChild(style)
+    },
+
+    bindCustomContentExampleWatcher() {
+      this.customContentExampleHandler = list => {
+        this.handleCustomContentExampleDataChange(list)
+      }
+      this.mindMap.on('data_change_detail', this.customContentExampleHandler)
+    },
+
+    removeCustomContentExampleWatcher() {
+      if (this.customContentExampleHandler && this.mindMap) {
+        this.mindMap.off('data_change_detail', this.customContentExampleHandler)
+        this.customContentExampleHandler = null
+      }
+    },
+
+    handleCustomContentExampleDataChange(list = []) {
+      if (!Array.isArray(list) || !this.mindMap?.renderer) return
+      list.forEach(item => {
+        if (
+          item.action !== 'update' ||
+          !item?.oldData ||
+          !item?.data ||
+          !Array.isArray(item.oldData.children) ||
+          !Array.isArray(item.data.children)
+        ) {
+          return
+        }
+        if (item.oldData.children.length === item.data.children.length) {
+          return
+        }
+        const nodeInstance = this.mindMap.renderer.findNodeByUid(
+          item.data.data.uid
+        )
+        if (nodeInstance) {
+          nodeInstance.setData({
+            [CUSTOM_NODE_CONTENT_DATA_KEY]: item.data.children.length
+          })
+        }
+      })
+    },
+
     // 初始化
     init() {
       let hasFileURL = this.hasFileURL()
       let { root, layout, theme, view } = this.mindMapData
       const config = this.mindMapConfig
+      const hasCustomAddContentOption =
+        config &&
+        Object.prototype.hasOwnProperty.call(config, 'addCustomContentToNode')
+      const addCustomContentToNode = hasCustomAddContentOption
+        ? config.addCustomContentToNode
+        : this.createAddCustomContentToNodeExample()
+      this.useCustomContentExample =
+        !hasCustomAddContentOption && !!addCustomContentToNode
       // 如果url中存在要打开的文件，那么思维导图数据、主题、布局都使用默认的
       if (hasFileURL) {
         root = {
@@ -373,6 +494,7 @@ export default {
           openBlankMode: false
         },
         ...(config || {}),
+        addCustomContentToNode,
         iconList: [...icon],
         useLeftKeySelectionRightKeyDrag: this.useLeftKeySelectionRightKeyDrag,
         customInnerElsAppendTo: null,
@@ -447,6 +569,9 @@ export default {
         }
       })
       this.loadPlugins()
+      if (this.useCustomContentExample) {
+        this.bindCustomContentExampleWatcher()
+      }
       this.mindMap.keyCommand.addShortcut('Control+s', () => {
         this.manualSave()
       })

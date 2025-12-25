@@ -138,6 +138,16 @@ function getNodeRect() {
       spaceCount++
     }
   })
+  if (
+    this._customContentAddToNodeAdd &&
+    this.customContentAffectNodeSize()
+  ) {
+    const customWidth = this._customContentAddToNodeAdd.width || 0
+    const customHeight = this._customContentAddToNodeAdd.height || 0
+    textContentWidth += customWidth
+    textContentHeight = Math.max(textContentHeight, customHeight)
+    spaceCount++
+  }
   textContentWidth += (spaceCount - 1) * textContentMargin
   // 文字内容部分的尺寸
   if (tagIsBottom && textContentWidth > 0 && tagContentHeight > 0) {
@@ -227,6 +237,7 @@ function layout() {
   if (!this.group) return
   // 清除之前的内容
   this.group.clear()
+  this._customContentElement = null
   const {
     openRealtimeRenderOnNodeTextEdit,
     textContentMargin,
@@ -323,6 +334,8 @@ function layout() {
         ? (textContentWidth - textContentWidthWithoutTag) / 2
         : 0
   }
+  let customContentElement = null
+  let customContentInline = false
   // 库前置内容
   this.mindMap.nodeInnerPrefixList.forEach(item => {
     const itemData = this[`_${item.name}Data`]
@@ -456,6 +469,25 @@ function layout() {
       textContentOffsetX += itemData.width + textContentMargin
     }
   })
+  if (
+    this._customContentAddToNodeAdd &&
+    this._customContentAddToNodeAdd.el
+  ) {
+    const foreignObject = createForeignObjectNode(
+      this._customContentAddToNodeAdd
+    )
+    customContentElement = foreignObject
+    if (this.customContentAffectNodeSize()) {
+      customContentInline = true
+      const customWidth = this._customContentAddToNodeAdd.width || 0
+      const customHeight = this._customContentAddToNodeAdd.height || 0
+      foreignObject
+        .x(textContentOffsetX)
+        .y((textContentHeight - customHeight) / 2)
+      textContentNested.add(foreignObject)
+      textContentOffsetX += customWidth + textContentMargin
+    }
+  }
   this.group.add(textContentNested)
   // 文字内容整体
   const { width: bboxWidth, height: bboxHeight } = textContentNested.bbox()
@@ -486,22 +518,21 @@ function layout() {
       break
   }
   textContentNested.translate(translateX, translateY)
+  if (customContentElement && !customContentInline) {
+    this.group.add(customContentElement)
+  }
+  this._customContentElement = customContentElement || null
   this.addHoverNode(width, height)
-  if (this._customContentAddToNodeAdd && this._customContentAddToNodeAdd.el) {
-    const foreignObject = createForeignObjectNode(
-      this._customContentAddToNodeAdd
-    )
-    this.group.add(foreignObject)
-    if (
-      addCustomContentToNode &&
-      typeof addCustomContentToNode.handle === 'function'
-    ) {
-      addCustomContentToNode.handle({
-        content: this._customContentAddToNodeAdd,
-        element: foreignObject,
-        node: this
-      })
-    }
+  if (
+    customContentElement &&
+    addCustomContentToNode &&
+    typeof addCustomContentToNode.handle === 'function'
+  ) {
+    addCustomContentToNode.handle({
+      content: this._customContentAddToNodeAdd,
+      element: customContentElement,
+      node: this
+    })
   }
   this.mindMap.emit('node_layout_end', this)
 }

@@ -317,10 +317,31 @@ export const defaultOpt = {
       // 处理生成的@svgdotjs/svg.js库的ForeignObject节点实例，可以设置其在节点内的位置
       handle: ({ content, element, node }) => {
         
-      }
+      },
+      // 自定义内容挂载模式：eager（默认，始终渲染）或 lazy（按事件挂载）
+      mode: 'eager',
+      // lazy 模式下挂载/卸载所依赖的事件
+      events: {
+        mount: ['node_active'],
+        unmount: ['node_inactive']
+      },
+      // lazy 模式下内容挂载或卸载后是否触发重新布局，默认为 true
+      relayoutOnMount: true,
+      // 自定义内容是否参与节点尺寸计算（默认false，与旧行为保持一致）
+      affectNodeSize: false
     }
   */
-  addCustomContentToNode: null,
+  addCustomContentToNode: {
+    create: null,
+    handle: null,
+    mode: 'eager',
+    events: {
+      mount: ['node_active'],
+      unmount: ['node_inactive']
+    },
+    relayoutOnMount: true,
+    affectNodeSize: false
+  },
   // 节点连线样式是否允许继承祖先的连线样式
   enableInheritAncestorLineStyle: true,
 

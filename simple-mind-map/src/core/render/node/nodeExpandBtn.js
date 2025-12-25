@@ -140,6 +140,9 @@ function renderExpandBtn() {
   this._showExpandBtn = true
   this.updateExpandBtnNode()
   this.updateExpandBtnPos()
+  if (typeof this.bringCustomContentToFront === 'function') {
+    this.bringCustomContentToFront()
+  }
 }
 
 //  移除展开收缩按钮

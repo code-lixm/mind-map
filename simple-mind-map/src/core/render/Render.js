@@ -467,6 +467,14 @@ class Render {
     }, 0)
   }
 
+  emitNodeInactiveEvent(
+    node,
+    activeNodeList = [...this.activeNodeList]
+  ) {
+    if (!node) return
+    this.mindMap.emit('node_inactive', node, activeNodeList)
+  }
+
   // 鼠标点击画布时清空当前激活节点列表
   clearActiveNodeListOnDrawClick(e, eventType) {
     if (this.activeNodeList.length <= 0) return
@@ -646,10 +654,13 @@ class Render {
 
   //  清除当前激活的节点列表
   clearActiveNodeList() {
-    this.activeNodeList.forEach(item => {
-      this.mindMap.execCommand('SET_NODE_ACTIVE', item, false)
+    if (this.activeNodeList.length <= 0) {
+      return
+    }
+    const list = [...this.activeNodeList]
+    list.forEach(node => {
+      this.removeNodeFromActiveList(node)
     })
-    this.activeNodeList = []
   }
 
   // 添加节点到激活列表里
@@ -677,6 +688,7 @@ class Render {
     }
     this.mindMap.execCommand('SET_NODE_ACTIVE', node, false)
     this.activeNodeList.splice(index, 1)
+    this.emitNodeInactiveEvent(node, this.activeNodeList)
   }
 
   // 手动激活多个节点，激活单个节点请直接调用节点实例的active()方法

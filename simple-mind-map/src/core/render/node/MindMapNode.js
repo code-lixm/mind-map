@@ -100,6 +100,11 @@ class MindMapNode {
     this._unVisibleRectRegionNode = null
     this._isMouseenter = false
     this._customContentAddToNodeAdd = null
+    this._customContentElement = null
+    const customContentOpt = this.mindMap.opt.addCustomContentToNode
+    const customMode =
+      (customContentOpt && customContentOpt.mode) || 'eager'
+    this._customContentMounted = customMode !== 'lazy'
     // 尺寸信息
     this._rectInfo = {
       textContentWidth: 0,
@@ -209,6 +214,60 @@ class MindMapNode {
     return data
   }
 
+  isLazyCustomContentMode() {
+    const { addCustomContentToNode } = this.mindMap.opt
+    return (
+      addCustomContentToNode &&
+      addCustomContentToNode.mode === 'lazy' &&
+      typeof addCustomContentToNode.create === 'function'
+    )
+  }
+
+  shouldRenderCustomContent() {
+    const { addCustomContentToNode } = this.mindMap.opt
+    if (
+      !addCustomContentToNode ||
+      typeof addCustomContentToNode.create !== 'function'
+    ) {
+      return false
+    }
+    if (addCustomContentToNode.mode === 'lazy') {
+      return !!this._customContentMounted
+    }
+    return true
+  }
+
+  setCustomContentMounted(val) {
+    if (!this.isLazyCustomContentMode()) {
+      return false
+    }
+    if (this._customContentMounted === val) {
+      return false
+    }
+    this._customContentMounted = val
+    if (!val) {
+      this._customContentAddToNodeAdd = null
+      this._customContentElement = null
+    }
+    return true
+  }
+
+  customContentAffectNodeSize() {
+    const { addCustomContentToNode } = this.mindMap.opt
+    if (!addCustomContentToNode) return false
+    if (addCustomContentToNode.affectNodeSize === false) return false
+    return true
+  }
+
+  bringCustomContentToFront() {
+    if (
+      this._customContentElement &&
+      typeof this._customContentElement.front === 'function'
+    ) {
+      this._customContentElement.front()
+    }
+  }
+
   //  创建节点的各个内容对象数据
   // recreateTypes：[] custom、image、icon、text、hyperlink、tag、note、attachment、numbers、prefix、postfix、checkbox
   createNodeData(recreateTypes) {
@@ -299,10 +358,7 @@ class MindMapNode {
         this[`_${item.name}Data`] = item.createContent(this)
       }
     })
-    if (
-      addCustomContentToNode &&
-      typeof addCustomContentToNode.create === 'function'
-    ) {
+    if (this.shouldRenderCustomContent()) {
       this._customContentAddToNodeAdd = addCustomContentToNode.create(this)
       if (
         this._customContentAddToNodeAdd &&
@@ -310,6 +366,8 @@ class MindMapNode {
       ) {
         addXmlns(this._customContentAddToNodeAdd.el)
       }
+    } else {
+      this._customContentAddToNodeAdd = null
     }
   }
 

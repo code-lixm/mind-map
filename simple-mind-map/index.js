@@ -99,6 +99,7 @@ class MindMap {
       }
     */
     this.extendShapeList = []
+    this._customContentLifecycle = null
 
     // 画布
     this.initContainer()
@@ -121,6 +122,9 @@ class MindMap {
     // 事件类
     this.event = new Event({
       mindMap: this
+    })
+    this.on('beforeDestroy', () => {
+      this.teardownCustomContentLifecycle()
     })
 
     // 按键类
@@ -154,6 +158,11 @@ class MindMap {
       .forEach(plugin => {
         this.initPlugin(plugin)
       })
+
+    this.initCustomContentLifecycle()
+    this.on('after_update_config', () => {
+      this.initCustomContentLifecycle()
+    })
 
     // 添加必要的css样式
     this.addCss()
@@ -850,6 +859,88 @@ class MindMap {
       mindMap: this,
       pluginOpt: plugin.pluginOpt
     })
+  }
+
+  initCustomContentLifecycle() {
+    this.teardownCustomContentLifecycle()
+    const opt = this.opt.addCustomContentToNode
+    if (
+      !opt ||
+      typeof opt.create !== 'function' ||
+      opt.mode !== 'lazy'
+    ) {
+      return
+    }
+    const mountEvents =
+      (opt.events && Array.isArray(opt.events.mount) && opt.events.mount) ||
+      ['node_active']
+    const unmountEvents =
+      (opt.events &&
+        Array.isArray(opt.events.unmount) &&
+        opt.events.unmount) ||
+      ['node_inactive']
+    const lifecycle = {
+      mountEvents,
+      unmountEvents,
+      renderTimer: null
+    }
+    const requestUpdate = node => {
+      if (opt.relayoutOnMount === false) {
+        if (!node || typeof node.reRender !== 'function' || !node.group) {
+          this.render()
+          return
+        }
+        node.reRender()
+        return
+      }
+      if (lifecycle.renderTimer) return
+      lifecycle.renderTimer = setTimeout(() => {
+        lifecycle.renderTimer = null
+        this.render()
+      }, 0)
+    }
+    lifecycle.mountHandler = node => {
+      if (!node || typeof node.setCustomContentMounted !== 'function') return
+      const changed = node.setCustomContentMounted(true)
+      if (changed) {
+        requestUpdate(node)
+      }
+    }
+    lifecycle.unmountHandler = node => {
+      if (!node || typeof node.setCustomContentMounted !== 'function') return
+      const changed = node.setCustomContentMounted(false)
+      if (changed) {
+        requestUpdate(node)
+      }
+    }
+    mountEvents.forEach(event => {
+      this.on(event, lifecycle.mountHandler)
+    })
+    unmountEvents.forEach(event => {
+      this.on(event, lifecycle.unmountHandler)
+    })
+    this._customContentLifecycle = lifecycle
+  }
+
+  teardownCustomContentLifecycle() {
+    if (!this._customContentLifecycle) return
+    const {
+      mountEvents,
+      unmountEvents,
+      mountHandler,
+      unmountHandler,
+      renderTimer
+    } = this._customContentLifecycle
+    mountEvents.forEach(event => {
+      this.off(event, mountHandler)
+    })
+    unmountEvents.forEach(event => {
+      this.off(event, unmountHandler)
+    })
+    if (renderTimer) {
+      clearTimeout(renderTimer)
+    }
+    this._customContentLifecycle = null
   }
 
   // 销毁
