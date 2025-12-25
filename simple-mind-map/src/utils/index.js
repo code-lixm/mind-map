@@ -305,7 +305,7 @@ export const debounce = (fn, wait = 300, ctx) => {
 }
 
 //  异步执行任务队列
-export const asyncRun = (taskList, callback = () => {}) => {
+export const asyncRun = (taskList, callback = () => { }) => {
   let index = 0
   let len = taskList.length
   if (len <= 0) {
@@ -361,9 +361,8 @@ export const measureText = (text, { italic, bold, fontSize, fontFamily }) => {
 
 // 拼接font字符串
 export const joinFontStr = ({ italic, bold, fontSize, fontFamily }) => {
-  return `${italic ? 'italic ' : ''} ${
-    bold ? 'bold ' : ''
-  } ${fontSize}px ${fontFamily} `
+  return `${italic ? 'italic ' : ''} ${bold ? 'bold ' : ''
+    } ${fontSize}px ${fontFamily} `
 }
 
 //  在下一个事件循环里执行任务
@@ -561,7 +560,7 @@ export const checkIsRichText = str => {
     checkIsRichTextEl = document.createElement('div')
   }
   checkIsRichTextEl.innerHTML = str
-  for (let c = checkIsRichTextEl.childNodes, i = c.length; i--; ) {
+  for (let c = checkIsRichTextEl.childNodes, i = c.length; i--;) {
     if (c[i].nodeType == 1) return true
   }
   return false
@@ -1041,8 +1040,8 @@ export const formatDataToArray = data => {
 export const getNodeDataIndex = node => {
   return node.parent
     ? node.parent.nodeData.children.findIndex(item => {
-        return item.data.uid === node.uid
-      })
+      return item.data.uid === node.uid
+    })
     : 0
 }
 
@@ -1069,13 +1068,19 @@ export const generateColorByContent = str => {
 
 //  html转义
 export const htmlEscape = str => {
-  [
-    ['&', '&amp;'],
-    ['<', '&lt;'],
-    ['>', '&gt;']
-  ].forEach(item => {
-    str = str.replace(new RegExp(item[0], 'g'), item[1])
-  })
+  // 防御性检查：处理 undefined、null 等边界情况
+  if (str === undefined || str === null) {
+    return ''
+  }
+  // 确保 str 是字符串类型
+  str = String(str)
+    ;[
+      ['&', '&amp;'],
+      ['<', '&lt;'],
+      ['>', '&gt;']
+    ].forEach(item => {
+      str = str.replace(new RegExp(item[0], 'g'), item[1])
+    })
   return str
 }
 
@@ -1130,6 +1135,39 @@ export const checkClipboardReadEnable = () => {
   return navigator.clipboard && typeof navigator.clipboard.read === 'function'
 }
 
+const supportClipboardImageMimeList = ['image/png', 'image/jpeg', 'image/jpg']
+const supportClipboardImageExtReg = /(\.png|\.jpe?g)(\?.*)?$/i
+
+export const isSupportedClipboardImageMime = type => {
+  if (!type) return false
+  const lowerType = type.toLowerCase()
+  return supportClipboardImageMimeList.includes(lowerType)
+}
+
+export const isSupportedClipboardFileText = text => {
+  if (!text) return false
+  const trimmed = String(text).trim()
+  if (!trimmed) return false
+  const firstLine =
+    trimmed
+      .split(/\r?\n/)
+      .map(item => item.trim())
+      .find(item => item)
+  if (!firstLine) return false
+  let candidate = firstLine
+  const isQuoted =
+    (candidate.startsWith('"') && candidate.endsWith('"')) ||
+    (candidate.startsWith("'") && candidate.endsWith("'"))
+  if (isQuoted) {
+    candidate = candidate.slice(1, -1)
+  }
+  candidate = candidate.replace(/^file:\/\//i, '').trim()
+  if (!isQuoted && /\s/.test(candidate)) {
+    return false
+  }
+  return supportClipboardImageExtReg.test(candidate)
+}
+
 // 将数据设置到用户剪切板中
 export const setDataToClipboard = data => {
   if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -1141,24 +1179,43 @@ export const setDataToClipboard = data => {
 export const getDataFromClipboard = async () => {
   let text = null
   let img = null
+  let imgMimeType = ''
+  let unsupportedImageType = ''
   if (checkClipboardReadEnable()) {
     const items = await navigator.clipboard.read()
     if (items && items.length > 0) {
       for (const clipboardItem of items) {
-        for (const type of clipboardItem.types) {
-          if (/^image\//.test(type)) {
+        const types = clipboardItem.types || []
+        for (const type of types) {
+          const lowerType = type.toLowerCase()
+          if (!img && isSupportedClipboardImageMime(lowerType)) {
             img = await clipboardItem.getType(type)
-          } else if (type === 'text/plain') {
+            imgMimeType = lowerType
+          } else if (
+            !img &&
+            !unsupportedImageType &&
+            /^image\//.test(lowerType)
+          ) {
+            unsupportedImageType = lowerType
+          } else if (!text && lowerType === 'text/plain') {
             const blob = await clipboardItem.getType(type)
             text = await blob.text()
           }
+          if (img && text) {
+            break
+          }
+        }
+        if (img && text) {
+          break
         }
       }
     }
   }
   return {
     text,
-    img
+    img,
+    imgMimeType,
+    unsupportedImageType
   }
 }
 
@@ -1206,33 +1263,43 @@ export const getChromeVersion = () => {
 }
 
 // 创建smm粘贴的粘贴数据
-export const createSmmFormatData = data => {
+export const createSmmFormatData = (data, imgMap = {}) => {
   return {
     simpleMindMap: true,
-    data
+    data,
+    imgMap
   }
 }
 
 // 检查是否是smm粘贴格式的数据
 export const checkSmmFormatData = data => {
   let smmData = null
+  let imgMap = {}
   // 如果是字符串，则尝试解析为对象
   if (typeof data === 'string') {
-    try {
-      const parsedData = JSON.parse(data)
-      // 判断是否是对象，且存在属性标志
-      if (typeof parsedData === 'object' && parsedData.simpleMindMap) {
-        smmData = parsedData.data
+    const str = data.trim()
+    if (str && ['{', '['].includes(str[0])) {
+      try {
+        const parsedData = JSON.parse(str)
+        // 判断是否是对象，且存在属性标志
+        if (typeof parsedData === 'object' && parsedData.simpleMindMap) {
+          smmData = parsedData.data
+          imgMap = parsedData.imgMap || {}
+        }
+      } catch (error) {
+        console.error(error)
       }
-    } catch (error) {}
+    }
   } else if (typeof data === 'object' && data.simpleMindMap) {
     // 否则如果是对象，则检查属性标志
     smmData = data.data
+    imgMap = data.imgMap || {}
   }
   const isSmm = !!smmData
   return {
     isSmm,
-    data: isSmm ? smmData : String(data)
+    data: isSmm ? smmData : String(data),
+    imgMap: isSmm ? imgMap : {}
   }
 }
 
@@ -1481,7 +1548,9 @@ export const getNodeTreeBoundingRect = (
         if (y + height > maxY) {
           maxY = y + height
         }
-      } catch (e) {}
+      } catch (e) {
+        console.error(e)
+      }
     }
     if (!excludeGeneralization && root._generalizationList.length > 0) {
       root._generalizationList.forEach(item => {
@@ -1500,6 +1569,70 @@ export const getNodeTreeBoundingRect = (
   minY = minY - y + paddingY
   maxX = maxX - x + paddingX
   maxY = maxY - y + paddingY
+
+  return {
+    left: minX,
+    top: minY,
+    width: maxX - minX,
+    height: maxY - minY
+  }
+}
+
+// 通过节点数据计算边界（不依赖DOM，适用于DOM隐藏场景）
+// 返回的是节点在思维导图坐标系中的原始位置和尺寸
+export const getNodeTreeBoundingRectByNodeData = (
+  node,
+  excludeSelf = false,
+  excludeGeneralization = false
+) => {
+  let minX = Infinity
+  let maxX = -Infinity
+  let minY = Infinity
+  let maxY = -Infinity
+  const walk = (root, isRoot) => {
+    // 使用节点的位置和尺寸数据，而非DOM的rbox
+    if (!(isRoot && excludeSelf) && root.width > 0 && root.height > 0) {
+      const x = root.left
+      const y = root.top
+      const width = root.width
+      const height = root.height
+      if (x < minX) {
+        minX = x
+      }
+      if (x + width > maxX) {
+        maxX = x + width
+      }
+      if (y < minY) {
+        minY = y
+      }
+      if (y + height > maxY) {
+        maxY = y + height
+      }
+    }
+    // 处理概要节点
+    if (!excludeGeneralization && root._generalizationList && root._generalizationList.length > 0) {
+      root._generalizationList.forEach(item => {
+        if (item.generalizationNode) {
+          walk(item.generalizationNode)
+        }
+      })
+    }
+    // 递归处理子节点
+    if (root.children && root.children.length > 0) {
+      root.children.forEach(item => {
+        walk(item)
+      })
+    }
+  }
+  walk(node, true)
+
+  // 处理边界情况
+  if (minX === Infinity) {
+    minX = 0
+    maxX = 0
+    minY = 0
+    maxY = 0
+  }
 
   return {
     left: minX,

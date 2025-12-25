@@ -37,7 +37,7 @@ class Base {
   }
 
   //  概要节点
-  renderGeneralization() {}
+  renderGeneralization() { }
 
   // 通过uid缓存节点
   cacheNode(uid, node) {
@@ -451,6 +451,98 @@ class Base {
     }
     return `M ${x1},${y1} C ${cx1},${cy1} ${cx2},${cy2} ${x2},${y2}`
   }
+
+  //  圆弧路径（二次贝塞尔曲线）
+  arcPath(x1, y1, x2, y2) {
+    // 如果y轴坐标相同，直接画直线
+    if (y1 === y2) {
+      return `M ${x1},${y1} L ${x2},${y2}`
+    }
+
+    // 计算两点之间的距离
+    const dx = x2 - x1
+    const dy = y2 - y1
+
+    // 控制点偏移量，使用垂直距离的固定比例以保持一致的弧度
+    // 使用 dy 的绝对值的 10% 作为偏移量
+    const offset = Math.abs(dy) * 0.6
+
+    // 计算控制点位置
+    let cx, cy
+
+    // 根据节点位置决定曲线弯曲方向
+    if (dx > 0) {
+      // 子节点在右侧
+      if (dy > 0) {
+        // 子节点在右下方，控制点向下偏移
+        cx = x1
+        cy = y1 + offset
+      } else {
+        // 子节点在右上方，控制点向上偏移
+        cx = x1
+        cy = y1 - offset
+      }
+    } else {
+      // 子节点在左侧
+      if (dy > 0) {
+        // 子节点在左下方，控制点向下偏移
+        cx = x1
+        cy = y1 + offset
+      } else {
+        // 子节点在左上方，控制点向上偏移
+        cx = x1
+        cy = y1 - offset
+      }
+    }
+
+    return `M ${x1},${y1} Q ${cx},${cy} ${x2},${y2}`
+  }
+
+  //  括号路径（使用二次贝塞尔曲线创建括号形状）
+  bracePath(x1, y1, x2, y2) {
+    // 如果y轴坐标相同，直接画直线
+    if (y1 === y2) {
+      return `M ${x1},${y1} L ${x2},${y2}`
+    }
+
+    // 计算两点之间的距离
+    const dx = x2 - x1
+    const dy = y2 - y1
+    const midY = y1 + dy / 2
+
+    // 括号的弯曲程度，使用水平距离的比例
+    const curveOffset = Math.abs(dx) * 0.15
+
+    // 根据方向决定括号的开口方向
+    let direction = dx > 0 ? 1 : -1
+
+    // 括号的控制点
+    // 顶部曲线的控制点
+    const topCurveX = x1 - curveOffset * direction
+
+    // 中间点（括号最凸出的位置）
+    const midX = x1 - curveOffset * direction * 1.5
+
+    // 底部曲线的控制点
+    const bottomCurveX = x1 - curveOffset * direction
+
+    // 构建括号路径
+    // 从起点开始，先向内弯曲到顶部
+    let path = `M ${x1},${y1} Q ${topCurveX},${y1} ${topCurveX},${y1 + dy * 0.15}`
+    // 垂直线到中间位置附近
+    path += ` L ${topCurveX},${midY - dy * 0.15}`
+    // 弯曲到中间最凸出的点
+    path += ` Q ${topCurveX},${midY} ${midX},${midY}`
+    // 从中间点弯曲回来
+    path += ` Q ${bottomCurveX},${midY} ${bottomCurveX},${midY + dy * 0.15}`
+    // 垂直线到底部附近
+    path += ` L ${bottomCurveX},${y2 - dy * 0.15}`
+    // 弯曲到终点
+    path += ` Q ${bottomCurveX},${y2} ${x2},${y2}`
+
+    return path
+  }
+
 
   // 根据a,b两个点的位置，计算去除圆角大小后的新的b点
   computeNewPoint(a, b, radius = 0) {

@@ -35,7 +35,8 @@ import {
   throttle,
   debounce,
   checkClipboardReadEnable,
-  isNodeNotNeedRenderData
+  isNodeNotNeedRenderData,
+  isSupportedClipboardFileText
 } from '../../utils'
 import { shapeList } from './node/Shape'
 import { lineStyleProps } from '../../theme/default'
@@ -1217,7 +1218,9 @@ class Render {
     const clipboardData =
       event.clipboardData || event.originalEvent.clipboardData
     const items = clipboardData.items
+    // eslint-disable-next-line no-unused-vars
     let img = null
+    // eslint-disable-next-line no-unused-vars
     let text = ''
     Array.from(items).forEach(item => {
       if (item.type.indexOf('image') > -1) {
@@ -1245,6 +1248,19 @@ class Render {
         const res = await getDataFromClipboard()
         let text = res.text || ''
         let img = res.img || null
+        const { unsupportedImageType } = res
+        const clipboardTextLooksLikeImage = isSupportedClipboardFileText(text)
+        if (clipboardTextLooksLikeImage && (img || unsupportedImageType)) {
+          text = ''
+        }
+        if (unsupportedImageType) {
+          errorHandler(
+            ERROR_TYPES.LOAD_CLIPBOARD_IMAGE_ERROR,
+            new Error(
+              `Clipboard image type ${unsupportedImageType} is not supported`
+            )
+          )
+        }
         // 存在文本，则创建子节点
         if (text) {
           // 判断粘贴的是否是simple-mind-map的数据
@@ -1291,6 +1307,7 @@ class Render {
               text = htmlEscape(text)
             }
             const textArr = text
+              // eslint-disable-next-line no-control-regex
               .split(new RegExp('\r?\n|(?<!\n)\r', 'g'))
               .filter(item => {
                 return !!item
@@ -1963,7 +1980,7 @@ class Render {
   }
 
   // 定位到指定节点
-  goTargetNode(node, callback = () => {}) {
+  goTargetNode(node, callback = () => { }) {
     let uid = typeof node === 'string' ? node : node.getData('uid')
     if (!uid) return
     this.expandToNodeUid(uid, () => {
@@ -2039,7 +2056,7 @@ class Render {
   }
 
   // 展开到指定uid的节点
-  expandToNodeUid(uid, callback = () => {}) {
+  expandToNodeUid(uid, callback = () => { }) {
     if (!this.renderTree) {
       callback()
       return
@@ -2101,19 +2118,18 @@ class Render {
       }
       // 概要节点
       let isGeneralization = false
-      ;(node._generalizationList || []).forEach(item => {
-        if (item.generalizationNode.getData('uid') === uid) {
-          res = item.generalizationNode
-          isGeneralization = true
-        }
-      })
+        ; (node._generalizationList || []).forEach(item => {
+          if (item.generalizationNode.getData('uid') === uid) {
+            res = item.generalizationNode
+            isGeneralization = true
+          }
+        })
       if (isGeneralization) {
         return true
       }
     })
     return res
   }
-
   // 高亮节点或子节点
   highlightNode(node, range, style) {
     // 如果当前正在渲染，那么不进行高亮，因为节点位置可能不正确

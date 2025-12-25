@@ -63,8 +63,8 @@ class MindMap extends Base {
           newNode.left =
             newNode.dir === CONSTANTS.LAYOUT_GROW_DIR.RIGHT
               ? parent._node.left +
-                parent._node.width +
-                this.getMarginX(layerIndex)
+              parent._node.width +
+              this.getMarginX(layerIndex)
               : parent._node.left - this.getMarginX(layerIndex) - newNode.width
         }
         if (!cur.data.expand) {
@@ -102,7 +102,7 @@ class MindMap extends Base {
         // 如果存在概要，则和概要的高度取最大值
         let generalizationNodeHeight = cur._node.checkHasGeneralization()
           ? cur._node._generalizationNodeHeight +
-            this.getMarginY(layerIndex + 1)
+          this.getMarginY(layerIndex + 1)
           : 0
         cur._node.leftChildrenAreaHeight2 = Math.max(
           cur._node.leftChildrenAreaHeight,
@@ -208,6 +208,10 @@ class MindMap extends Base {
   renderLine(node, lines, style, lineStyle) {
     if (lineStyle === 'curve') {
       this.renderLineCurve(node, lines, style)
+    } else if (lineStyle === 'curve2') {
+      this.renderLineCurve2(node, lines, style)
+    } else if (lineStyle === 'brace') {
+      this.renderLineBrace(node, lines, style)
     } else if (lineStyle === 'direct') {
       this.renderLineDirect(node, lines, style)
     } else {
@@ -323,8 +327,8 @@ class MindMap extends Base {
         node.layerIndex === 0 && !rootLineStartPositionKeepSameInCurve
           ? left + width / 2
           : item.dir === CONSTANTS.LAYOUT_GROW_DIR.LEFT
-          ? left - expandBtnSize
-          : left + width + expandBtnSize
+            ? left - expandBtnSize
+            : left + width + expandBtnSize
       let y1 = top + height / 2
       let x2 =
         item.dir === CONSTANTS.LAYOUT_GROW_DIR.LEFT
@@ -334,7 +338,7 @@ class MindMap extends Base {
       let path = ''
       y1 = nodeUseLineStyle && !node.isRoot ? y1 + height / 2 : y1
       y2 = nodeUseLineStyle ? y2 + item.height / 2 : y2
-      // 节点使用横线风格，需要额外渲染横线
+      // 节点使用横线风格,需要额外渲染横线
       let nodeUseLineStylePath = ''
       if (nodeUseLineStyle) {
         if (item.dir === CONSTANTS.LAYOUT_GROW_DIR.LEFT) {
@@ -350,6 +354,185 @@ class MindMap extends Base {
       }
       this.setLineStyle(style, lines[index], path, item)
     })
+  }
+
+  //  圆弧风格连线
+  renderLineCurve2(node, lines, style) {
+    if (node.children.length <= 0) {
+      return []
+    }
+    let { left, top, width, height, expandBtnSize } = node
+    const { alwaysShowExpandBtn, notShowExpandBtn } = this.mindMap.opt
+    if (!alwaysShowExpandBtn || notShowExpandBtn) {
+      expandBtnSize = 0
+    }
+    const { nodeUseLineStyle } = this.mindMap.themeConfig
+    node.children.forEach((item, index) => {
+      if (node.layerIndex === 0) {
+        expandBtnSize = 0
+      }
+      // 起点从节点边缘开始，而不是节点中心
+      let x1 =
+        item.dir === CONSTANTS.LAYOUT_GROW_DIR.LEFT
+          ? left - expandBtnSize
+          : left + width + expandBtnSize
+      let y1 = top + height / 2
+      let x2 =
+        item.dir === CONSTANTS.LAYOUT_GROW_DIR.LEFT
+          ? item.left + item.width
+          : item.left
+      let y2 = item.top + item.height / 2
+      let path = ''
+      y1 = nodeUseLineStyle && !node.isRoot ? y1 + height / 2 : y1
+      y2 = nodeUseLineStyle ? y2 + item.height / 2 : y2
+      // 节点使用横线风格,需要额外渲染横线
+      let nodeUseLineStylePath = ''
+      if (nodeUseLineStyle) {
+        if (item.dir === CONSTANTS.LAYOUT_GROW_DIR.LEFT) {
+          nodeUseLineStylePath = ` L ${item.left},${y2}`
+        } else {
+          nodeUseLineStylePath = ` L ${item.left + item.width},${y2}`
+        }
+      }
+
+      // 始终先绘制一段直线再连接圆弧
+      // 直线长度为节点与子节点距离的 20%
+      const straightLineLength = Math.abs(x2 - x1) * 0.20
+      let x1_end
+      if (item.dir === CONSTANTS.LAYOUT_GROW_DIR.LEFT) {
+        x1_end = x1 - straightLineLength
+      } else {
+        x1_end = x1 + straightLineLength
+      }
+      // 先画直线，再从直线终点画圆弧到目标点
+      path = `M ${x1},${y1} L ${x1_end},${y1} ` + this.arcPath(x1_end, y1, x2, y2) + nodeUseLineStylePath
+      this.setLineStyle(style, lines[index], path, item)
+    })
+  }
+
+  //  括号风格连线
+  renderLineBrace(node, lines, style) {
+    if (node.children.length <= 0) {
+      return []
+    }
+
+    // 将子节点按方向分组
+    const leftChildren = node.children.filter(item => item.dir === CONSTANTS.LAYOUT_GROW_DIR.LEFT)
+    const rightChildren = node.children.filter(item => item.dir === CONSTANTS.LAYOUT_GROW_DIR.RIGHT)
+
+    let { left, top, width, height, expandBtnSize } = node
+    const { alwaysShowExpandBtn, notShowExpandBtn } = this.mindMap.opt
+    if (!alwaysShowExpandBtn || notShowExpandBtn) {
+      expandBtnSize = 0
+    }
+    if (node.layerIndex === 0) {
+      expandBtnSize = 0
+    }
+    const { nodeUseLineStyle } = this.mindMap.themeConfig
+
+    let lineIndex = 0
+
+    // 处理左侧子节点
+    if (leftChildren.length > 0) {
+      lineIndex = this.renderBraceForDirection(node, leftChildren, lines, style, lineIndex, true, left, top, width, height, expandBtnSize, nodeUseLineStyle)
+    }
+
+    // 处理右侧子节点
+    if (rightChildren.length > 0) {
+      this.renderBraceForDirection(node, rightChildren, lines, style, lineIndex, false, left, top, width, height, expandBtnSize, nodeUseLineStyle)
+    }
+  }
+
+  // 为特定方向的子节点渲染括号连线
+  renderBraceForDirection(node, children, lines, style, startLineIndex, isLeft, left, top, width, height, expandBtnSize) {
+    if (children.length === 0) return startLineIndex
+
+    // 只有一个子节点时，直接连接
+    if (children.length === 1) {
+      const item = children[0]
+      let x1 = isLeft ? left - expandBtnSize : left + width + expandBtnSize
+      let y1 = top + height / 2
+      let x2 = isLeft ? item.left + item.width : item.left
+      let y2 = item.top + item.height / 2
+
+      // brace 样式不使用 nodeUseLineStyle
+      let path = `M ${x1},${y1} L ${x2},${y2}`
+      // 找到这个子节点在所有子节点中的索引
+      const childIndex = node.children.indexOf(item)
+      this.setLineStyle(style, lines[childIndex], path, item)
+      return startLineIndex + 1
+    }
+
+    // 多个子节点时，绘制括号
+    const firstChild = children[0]
+    const lastChild = children[children.length - 1]
+
+    // 父节点的起点
+    let x1 = isLeft ? left - expandBtnSize : left + width + expandBtnSize
+    let y1 = top + height / 2
+
+    // 第一个子节点的位置
+    let firstY = firstChild.top + firstChild.height / 2
+
+    // 最后一个子节点的位置
+    let lastY = lastChild.top + lastChild.height / 2
+
+    // 括号的中点Y坐标
+    let midY = y1
+    if (midY < firstY) midY = firstY
+    if (midY > lastY) midY = lastY
+
+    // 计算括号的X位置（在父节点和子节点之间）
+    const firstChildX = isLeft ? firstChild.left + firstChild.width : firstChild.left
+    const braceX = x1 + (firstChildX - x1) * 0.6
+
+    // 括号的弯曲程度
+    const curveOffset = Math.abs(firstChildX - x1) * 0.15
+    const direction = isLeft ? -1 : 1
+
+    // 父节点到括号中点的连线
+    const mainPath = ``
+    const firstChildIndex = node.children.indexOf(firstChild)
+    this.setLineStyle(style, lines[firstChildIndex], mainPath, firstChild)
+
+    // 绘制括号路径（使用最后一个子节点的 line）
+    const topCurveX = braceX - curveOffset * direction
+    const midX = braceX - curveOffset * direction * 1.5
+    const bottomCurveX = braceX - curveOffset * direction
+
+    const topDy = midY - firstY
+    const bottomDy = lastY - midY
+    const topOffset = topDy * 0.3
+    const bottomOffset = bottomDy * 0.3
+
+    let bracePath = `M ${braceX},${firstY} Q ${topCurveX},${firstY} ${topCurveX},${firstY + topOffset}`
+    bracePath += ` L ${topCurveX},${midY - topOffset}`
+    bracePath += ` Q ${topCurveX},${midY} ${midX},${midY}`
+    bracePath += ` Q ${bottomCurveX},${midY} ${bottomCurveX},${midY + bottomOffset}`
+    bracePath += ` L ${bottomCurveX},${lastY - bottomOffset}`
+    bracePath += ` Q ${bottomCurveX},${lastY} ${braceX},${lastY}`
+
+    const lastChildIndex = node.children.indexOf(lastChild)
+    if (lines[lastChildIndex]) {
+      this.setLineStyle(style, lines[lastChildIndex], bracePath, lastChild)
+    }
+
+    // 每个子节点不绘制连线
+    children.forEach((item) => {
+      const childIndex = node.children.indexOf(item)
+      // 跳过第一个节点（已用于主连线）和最后一个节点（已用于括号）
+      if (childIndex === firstChildIndex || childIndex === lastChildIndex) {
+        return
+      }
+
+      // brace 样式不使用 nodeUseLineStyle，直接连接
+      const childPath = ``
+      if (lines[childIndex]) {
+        this.setLineStyle(style, lines[childIndex], childPath, item)
+      }
+    })
+
+    return startLineIndex + children.length
   }
 
   //  渲染按钮

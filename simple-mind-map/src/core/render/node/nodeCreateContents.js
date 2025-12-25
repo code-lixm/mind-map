@@ -41,7 +41,7 @@ function getImageUrl() {
 
 //  创建图片节点
 function createImgNode() {
-  const img = this.getImageUrl()
+  let img = this.getImageUrl()
   if (!img) {
     return
   }
@@ -60,6 +60,8 @@ function createImgNode() {
   if (this.getData('imageTitle')) {
     node.attr('title', this.getData('imageTitle'))
   }
+  // 在 SVG 图片节点上挂载 getImageUrl 方法，方便在事件回调中使用
+  node.getImageUrl = this.getImageUrl.bind(this)
   node.on('click', e => {
     this.mindMap.emit('node_img_click', this, node, e)
   })

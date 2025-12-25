@@ -110,6 +110,38 @@ class Export {
           }
         }
       }
+      // 导出时移除悬停提示、展开按钮和快速创建按钮，避免出现在导出图片中
+      try {
+        const hoverNodes = svg.find('.smm-hover-node')
+        if (hoverNodes.length > 0) {
+          hoverNodes.map(item => {
+            try {
+              item.remove()
+            } catch (e) { /* empty */ }
+          })
+          svgIsChange = true
+        }
+        const expandBtns = svg.find('.smm-expand-btn')
+        if (expandBtns.length > 0) {
+          expandBtns.map(item => {
+            try {
+              item.remove()
+            } catch (e) { /* empty */ }
+          })
+          svgIsChange = true
+        }
+        const quickCreateBtns = svg.find('.smm-quick-create-child-btn')
+        if (quickCreateBtns.length > 0) {
+          quickCreateBtns.map(item => {
+            try {
+              item.remove()
+            } catch (e) { /* empty */ }
+          })
+          svgIsChange = true
+        }
+      } catch (e) {
+        // 忽略任何在查找/移除时的异常，导出流程继续
+      }
     }
     // 自定义处理svg的方法
     if (typeof handleBeingExportSvg === 'function') {
@@ -309,6 +341,7 @@ class Export {
 
   //  在svg上绘制思维导图背景
   drawBackgroundToSvg(svg) {
+    // eslint-disable-next-line no-async-promise-executor
     return new Promise(async resolve => {
       const {
         backgroundColor = '#fff',
@@ -363,12 +396,47 @@ class Export {
 
   // 导出指定节点，如果该节点是激活状态，那么取消激活和隐藏展开收起按钮
   handleNodeExport(node) {
-    if (node && node.getData('isActive')) {
-      node.deactivate()
-      const { alwaysShowExpandBtn, notShowExpandBtn } = this.mindMap.opt
-      if (!alwaysShowExpandBtn && !notShowExpandBtn && node.getData('expand')) {
-        node.removeExpandBtn()
+    if (!node) return
+    try {
+      let isActive = false
+      let expand = false
+
+      const hasGetData = node && typeof node.getData === 'function'
+      if (hasGetData) {
+        try {
+          isActive = Boolean(node.getData('isActive'))
+        } catch (e) {
+          isActive = false
+        }
+        try {
+          expand = Boolean(node.getData('expand'))
+        } catch (e) {
+          expand = false
+        }
+      } else if (node && typeof node === 'object') {
+        if ('isActive' in node) {
+          isActive = Boolean(node.isActive || (node.data && node.data.isActive))
+        } else if (node.data && 'isActive' in node.data) {
+          isActive = Boolean(node.data.isActive)
+        }
+        if ('expand' in node) {
+          expand = Boolean(node.expand || (node.data && node.data.expand))
+        } else if (node.data && 'expand' in node.data) {
+          expand = Boolean(node.data.expand)
+        }
       }
+
+      if (!isActive) return
+
+      if (typeof node.deactivate === 'function') node.deactivate()
+      const { alwaysShowExpandBtn, notShowExpandBtn } = this.mindMap.opt || {}
+      if (!alwaysShowExpandBtn && !notShowExpandBtn) {
+        if (expand && typeof node.removeExpandBtn === 'function') {
+          node.removeExpandBtn()
+        }
+      }
+    } catch (e) {
+      // 若调用过程中仍有异常，捕获并忽略，导出流程继续
     }
   }
 

@@ -1,5 +1,6 @@
 import JSZip from 'jszip'
 import xmlConvert from 'xml-js'
+import { v4 as uuid } from 'uuid'
 import { getTextFromHtml, isUndef } from '../utils/index'
 import {
   getSummaryText,
@@ -11,7 +12,10 @@ import {
   handleNodeImageFromXmind,
   handleNodeImageToXmind,
   getXmindContentXmlData,
-  parseNodeGeneralizationToXmind
+  parseNodeGeneralizationToXmind,
+  buildXmindStyleMap,
+  applyXmindStyleToNodeData,
+  createTopicStyleFromNodeData
 } from '../utils/xmind'
 
 //  解析.xmind文件
@@ -47,6 +51,91 @@ const parseXmindFile = (file, handleMultiCanvas) => {
   })
 }
 
+const buildAssociativeLineRelationships = nodeDataList => {
+  if (!Array.isArray(nodeDataList) || nodeDataList.length === 0) {
+    return []
+  }
+  const existingIds = new Set()
+  nodeDataList.forEach(item => {
+    if (item && item.uid) {
+      existingIds.add(item.uid)
+    }
+  })
+  const relationships = []
+  nodeDataList.forEach(item => {
+    if (!item || !item.uid) return
+    const targets = Array.isArray(item.associativeLineTargets)
+      ? item.associativeLineTargets
+      : []
+    if (targets.length === 0) return
+    const textMap =
+      item.associativeLineText && typeof item.associativeLineText === 'object'
+        ? item.associativeLineText
+        : {}
+    const appendedTargets = new Set()
+    targets.forEach(targetId => {
+      if (
+        !targetId ||
+        targetId === item.uid ||
+        appendedTargets.has(targetId) ||
+        !existingIds.has(targetId)
+      ) {
+        return
+      }
+      appendedTargets.add(targetId)
+      const textValue = textMap[targetId]
+      const hasEditedText =
+        typeof textValue === 'string' && textValue.trim() !== ''
+      const relationship = {
+        id: uuid(),
+        end1Id: item.uid,
+        end2Id: targetId,
+        titleUnedited: !hasEditedText
+      }
+      if (hasEditedText) {
+        relationship.title = textValue
+      }
+      relationships.push(relationship)
+    })
+  })
+  return relationships
+}
+
+const applyRelationshipsFromXmind = (relationships, idToNode) => {
+  if (!Array.isArray(relationships) || relationships.length === 0) return
+  relationships.forEach(item => {
+    if (!item || !item.end1Id || !item.end2Id) return
+    const fromNode = idToNode.get(item.end1Id)
+    const toNode = idToNode.get(item.end2Id)
+    if (
+      !fromNode ||
+      !toNode ||
+      !fromNode.data ||
+      !toNode.data ||
+      !fromNode.data.uid ||
+      !toNode.data.uid ||
+      fromNode.data.uid === toNode.data.uid
+    ) {
+      return
+    }
+    if (!Array.isArray(fromNode.data.associativeLineTargets)) {
+      fromNode.data.associativeLineTargets = []
+    }
+    const targetUid = toNode.data.uid
+    if (!fromNode.data.associativeLineTargets.includes(targetUid)) {
+      fromNode.data.associativeLineTargets.push(targetUid)
+    }
+    const hasCustomTitle =
+      typeof item.title === 'string' && item.title.trim() && !item.titleUnedited
+    if (hasCustomTitle) {
+      if (!fromNode.data.associativeLineText) {
+        fromNode.data.associativeLineText = {}
+      }
+      fromNode.data.associativeLineText[targetUid] = item.title.trim()
+    }
+  })
+}
+
 //  转换xmind数据
 const transformXmind = async (content, files, handleMultiCanvas) => {
   content = JSON.parse(content)
@@ -58,12 +147,16 @@ const transformXmind = async (content, files, handleMultiCanvas) => {
     data = content[0]
   }
   const nodeTree = data.rootTopic
+  const stylesMap = buildXmindStyleMap(data.styles)
   const newTree = {}
+  const idToNode = new Map()
   const waitLoadImageList = []
   const walk = async (node, newNode) => {
+    const nodeId = node.id || node.topicId
     newNode.data = {
       // 节点内容
-      text: isUndef(node.title) ? '' : node.title
+      text: isUndef(node.title) ? '' : node.title,
+      uid: nodeId
     }
     // 节点备注
     if (node.notes) {
@@ -80,6 +173,11 @@ const transformXmind = async (content, files, handleMultiCanvas) => {
     }
     // 图片
     handleNodeImageFromXmind(node, newNode, waitLoadImageList, files)
+    // 样式
+    applyXmindStyleToNodeData(node, newNode.data, stylesMap)
+    if (nodeId) {
+      idToNode.set(nodeId, newNode)
+    }
     // 概要
     const selfSummary = []
     const childrenSummary = []
@@ -118,6 +216,7 @@ const transformXmind = async (content, files, handleMultiCanvas) => {
   }
   walk(nodeTree, newTree)
   await Promise.all(waitLoadImageList)
+  applyRelationshipsFromXmind(data.relationships, idToNode)
   return newTree
 }
 
@@ -227,7 +326,11 @@ const transformToXmind = async (data, name) => {
   // 转换核心数据
   let newTree = {}
   let waitLoadImageList = []
+  const nodeDataList = []
   let walk = async (node, newNode, isRoot) => {
+    if (node && node.data) {
+      nodeDataList.push(node.data)
+    }
     let newData = {
       id: node.data.uid,
       structureClass: 'org.xmind.ui.logic.right',
@@ -260,7 +363,12 @@ const transformToXmind = async (data, name) => {
     // 图片
     handleNodeImageToXmind(node, newNode, waitLoadImageList, imageList)
     // 样式
-    // 暂时不考虑样式
+    const topicStyle = createTopicStyleFromNodeData(node.data)
+    if (topicStyle && topicStyle.properties) {
+      newData.style = {
+        properties: topicStyle.properties
+      }
+    }
     if (isRoot) {
       newData.class = 'topic'
       newNode.id = id
@@ -270,7 +378,9 @@ const transformToXmind = async (data, name) => {
       newNode.topicPositioning = 'fixed'
       newNode.topicOverlapping = 'overlap'
       newNode.coreVersion = '2.100.0'
-      newNode.rootTopic = newData
+      newNode.rootTopic = {
+        ...newData
+      }
     } else {
       Object.keys(newData).forEach(key => {
         newNode[key] = newData[key]
@@ -300,6 +410,7 @@ const transformToXmind = async (data, name) => {
   }
   walk(data, newTree, true)
   await Promise.all(waitLoadImageList)
+  newTree.relationships = buildAssociativeLineRelationships(nodeDataList)
   const contentData = [newTree]
   // 创建压缩包
   const zip = new JSZip()

@@ -104,6 +104,7 @@ export default {
     copyNode: '复制节点',
     cutNode: '剪切节点',
     pasteNode: '粘贴节点',
+    copyNodeToMarkdown: '复制节点为Markdown',
     backCenter: '回到根节点',
     expandAll: '展开所有',
     unExpandAll: '收起所有',
@@ -123,6 +124,7 @@ export default {
     removeCustomStyles: '一键去除自定义样式',
     removeAllNodeCustomStyles: '一键去除所有节点自定义样式',
     exportNodeToPng: '导出该节点为图片',
+    copyNodeToPng: '复制该节点为图片',
     copyToClipboard: '复制到剪贴板',
     copyToSmm: 'SMM',
     copyToJson: 'JSON',
@@ -139,9 +141,11 @@ export default {
     aiCreate: 'AI续写',
     modifyNodeLink: '修改节点链接',
     linkToNode: '链接到指定节点',
-    removeNodeLink: '删除节点链接'
+    removeNodeLink: '删除节点链接',
+    setAsRootNode: '设置为根节点'
   },
   count: {
+    saved: '保存于',
     words: '字数',
     nodes: '节点'
   },
@@ -235,7 +239,14 @@ export default {
     title: '大纲',
     nodeDefaultText: '分支节点',
     print: '打印',
-    fullscreen: '全屏'
+    fullscreen: '全屏',
+    copyToMarkdown: '复制为Markdown',
+    pasteFromMarkdown: "粘贴为Markdown",
+    clipboardNotSupported: '浏览器不支持剪贴板读取',
+    clipboardReadFail: '读取剪贴板失败',
+    clipboardEmpty: '剪贴板为空或未包含 Markdown 列表',
+    importSuccess: '导入成功',
+    importFail: '导入失败'
   },
   scale: {
     zoomIn: '放大',
@@ -290,7 +301,8 @@ export default {
     bottom: '下',
     left: '左',
     right: '右',
-    tag: '标签'
+    tag: '标签',
+    hyperlink: '超链接'
   },
   theme: {
     title: '主题',
@@ -342,8 +354,13 @@ export default {
     directory: '目录',
     newFileTip: '新建文件前请先导出当前编辑的文件，谨防内容丢失',
     openFileTip: '打开文件前请先导出当前编辑的文件，谨防内容丢失',
-    ai: 'AI'
+    ai: 'AI',
+    pasteMarkdown: '粘贴Markdown',
+    noteToMindmap: '笔记转导图',
+    refreshFromBlock: '刷新',
+    refreshFromBlockTip: '从绑定的块刷新导图内容'
   },
+  noteToMindmap: {},
   edit: {
     newFeatureNoticeTitle: '新特性提醒',
     newFeatureNoticeMessage:
@@ -399,7 +416,13 @@ export default {
     color: '字体颜色',
     backgroundColor: '背景颜色',
     removeFormat: '清除样式',
-    textAlign: '对齐方式'
+    textAlign: '对齐方式',
+    hyperlink: '超链接',
+    linkText: '链接文本',
+    linkTextPlaceholder: '请输入链接文本',
+    linkUrl: '链接地址',
+    linkPlaceholder: '请输入链接地址',
+    removeLink: '移除链接'
   },
   other: {
     loading: '正在加载，请稍后...'

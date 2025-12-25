@@ -60,9 +60,9 @@ class OrganizationStructure extends Base {
         let len = cur.data.expand === false ? 0 : cur._node.children.length
         cur._node.childrenAreaWidth = len
           ? cur._node.children.reduce((h, item) => {
-              return h + item.width
-            }, 0) +
-            (len + 1) * this.getMarginY(layerIndex + 1)
+            return h + item.width
+          }, 0) +
+          (len + 1) * this.getMarginY(layerIndex + 1)
           : 0
 
         // 如果存在概要，则和概要的高度取最大值
@@ -157,6 +157,8 @@ class OrganizationStructure extends Base {
   renderLine(node, lines, style, lineStyle) {
     if (lineStyle === 'curve') {
       this.renderLineCurve(node, lines, style)
+    } else if (lineStyle === 'curve2') {
+      this.renderLineCurve2(node, lines, style)
     } else if (lineStyle === 'direct') {
       this.renderLineDirect(node, lines, style)
     } else {
@@ -191,7 +193,7 @@ class OrganizationStructure extends Base {
       let x2 = item.left + item.width / 2
       let y2 = item.top
       let path = ''
-      // 节点使用横线风格，需要额外渲染横线
+      // 节点使用横线风格,需要额外渲染横线
       let nodeUseLineStylePath = nodeUseLineStyle
         ? ` L ${item.left},${y2} L ${item.left + item.width},${y2}`
         : ''
@@ -201,6 +203,42 @@ class OrganizationStructure extends Base {
       } else {
         path = this.cubicBezierPath(x1, y1, x2, y2, true) + nodeUseLineStylePath
       }
+      this.setLineStyle(style, lines[index], path, item)
+    })
+  }
+
+  //  圆弧风格连线
+  renderLineCurve2(node, lines, style) {
+    if (node.children.length <= 0) {
+      return []
+    }
+    let { left, top, width, height, expandBtnSize } = node
+    const { alwaysShowExpandBtn, notShowExpandBtn } = this.mindMap.opt
+    if (!alwaysShowExpandBtn || notShowExpandBtn) {
+      expandBtnSize = 0
+    }
+    const { nodeUseLineStyle } = this.mindMap.themeConfig
+    node.children.forEach((item, index) => {
+      if (node.layerIndex === 0) {
+        expandBtnSize = 0
+      }
+      let x1 = left + width / 2
+      // 起点从节点底部边缘开始，而不是节点中心
+      let y1 = top + height + expandBtnSize
+      let x2 = item.left + item.width / 2
+      let y2 = item.top
+      let path = ''
+      // 节点使用横线风格,需要额外渲染横线
+      let nodeUseLineStylePath = nodeUseLineStyle
+        ? ` L ${item.left},${y2} L ${item.left + item.width},${y2}`
+        : ''
+
+      // 始终先绘制一段垂直直线再连接圆弧
+      // 直线长度为节点与子节点距离的 20%
+      const straightLineLength = Math.abs(y2 - y1) * 0.20
+      const y1_end = y1 + straightLineLength
+      // 先画垂直直线，再从直线终点画圆弧到目标点
+      path = `M ${x1},${y1} L ${x1},${y1_end} ` + this.arcPath(x1, y1_end, x2, y2) + nodeUseLineStylePath
       this.setLineStyle(style, lines[index], path, item)
     })
   }
@@ -315,7 +353,7 @@ class OrganizationStructure extends Base {
   }
 
   // 渲染展开收起按钮的隐藏占位元素
-  renderExpandBtnRect(rect, expandBtnSize, width, height, node) {
+  renderExpandBtnRect(rect, expandBtnSize, width, height) {
     rect.size(width, expandBtnSize).x(0).y(height)
   }
 }

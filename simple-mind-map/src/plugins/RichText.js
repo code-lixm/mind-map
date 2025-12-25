@@ -10,7 +10,6 @@ import {
   nodeRichTextToTextWithWrap,
   getNodeRichTextStyles,
   htmlEscape,
-  compareVersion
 } from '../utils'
 import { richTextSupportStyleList } from '../constants/constant'
 import MindMapNode from '../core/render/node/MindMapNode'
@@ -112,6 +111,11 @@ class RichText {
 
       .smm-richtext-node-wrap .ql-align-center {
         text-align: center;
+      }
+
+      .smm-richtext-node-wrap a {
+        color: #0066cc;
+        text-decoration: underline;
       }
       `
     )
@@ -224,11 +228,31 @@ class RichText {
     this.mindMap.renderer.textEdit.registerTmpShortcut()
     // 原始宽高
     let g = node._textData.node
-    let originWidth = g.attr('data-width')
-    let originHeight = g.attr('data-height')
-    // 缩放值
-    const scaleX = Math.ceil(rect.width) / originWidth
-    const scaleY = Math.ceil(rect.height) / originHeight
+    // 确保 data-width/data-height 是数字
+    let originWidth = parseFloat(g.attr('data-width'))
+    let originHeight = parseFloat(g.attr('data-height'))
+    if (!isFinite(originWidth)) originWidth = 0
+    if (!isFinite(originHeight)) originHeight = 0
+    // 缩放值，使用向上取整的目标尺寸进行计算
+    const rectW = Math.max(0, Math.ceil(rect.width))
+    const rectH = Math.max(0, Math.ceil(rect.height))
+    const rawScaleX = originWidth > 0 ? rectW / originWidth : NaN
+    const rawScaleY = originHeight > 0 ? rectH / originHeight : NaN
+    let scaleX, scaleY
+    if (!isFinite(rawScaleX) && !isFinite(rawScaleY)) {
+      // 两个都无效时回退为 1（不缩放）
+      scaleX = scaleY = 1
+    } else if (!isFinite(rawScaleX)) {
+      // X 无效时使用 Y
+      scaleX = scaleY = rawScaleY
+    } else if (!isFinite(rawScaleY)) {
+      // Y 无效时使用 X
+      scaleX = scaleY = rawScaleX
+    } else {
+      // 两者有效时使用统一缩放，避免单轴为 1 导致文字变形
+      const uniform = Math.min(rawScaleX, rawScaleY)
+      scaleX = scaleY = uniform
+    }
     // 内边距
     let paddingX = this.textNodePaddingX
     let paddingY = this.textNodePaddingY
@@ -238,10 +262,9 @@ class RichText {
       this.textEditNode.style.cssText = `
         position:fixed;
         box-sizing: border-box;
-        ${
-          openRealtimeRenderOnNodeTextEdit
-            ? ''
-            : 'box-shadow: 0 0 20px rgba(0,0,0,.5);'
+        ${openRealtimeRenderOnNodeTextEdit
+          ? ''
+          : 'box-shadow: 0 0 20px rgba(0,0,0,.5);'
         }
         outline: none;
         word-break: break-all;
@@ -317,8 +340,8 @@ class RichText {
     this.textEditNode.style.background = openRealtimeRenderOnNodeTextEdit
       ? 'transparent'
       : this.node
-      ? this.mindMap.renderer.textEdit.getBackground(this.node)
-      : ''
+        ? this.mindMap.renderer.textEdit.getBackground(this.node)
+        : ''
     this.textEditNode.style.boxShadow = openRealtimeRenderOnNodeTextEdit
       ? 'none'
       : '0 0 20px rgba(0,0,0,.5)'
@@ -470,7 +493,8 @@ class RichText {
         'font',
         'size',
         'formula',
-        'align'
+        'align',
+        'link'
       ], // 明确指定允许的格式，不包含有序列表，无序列表等
       theme: 'snow'
     })
@@ -527,6 +551,8 @@ class RichText {
       }
     })
     this.quill.on('text-change', () => {
+      // 如果节点不存在，跳过事件触发
+      if (!this.node) return
       this.mindMap.emit('node_text_edit_change', {
         node: this.node,
         text: this.getEditText(),
@@ -666,6 +692,36 @@ class RichText {
   // 清除当前选中文本的样式
   removeFormat() {
     this.formatText({}, true)
+  }
+
+  // 为选中的文本添加/移除超链接
+  formatLink(url) {
+    if (!this.range && !this.lastRange) return
+    const rangeLost = !this.range
+    const range = rangeLost ? this.lastRange : this.range
+    if (url) {
+      this.quill.formatText(range.index, range.length, 'link', url)
+    } else {
+      this.quill.formatText(range.index, range.length, 'link', false)
+    }
+    if (rangeLost) {
+      this.quill.setSelection(this.lastRange.index, this.lastRange.length)
+    }
+  }
+
+  // 获取当前选中文本的链接
+  getSelectionLink() {
+    if (!this.range && !this.lastRange) return null
+    const range = this.range || this.lastRange
+    const format = this.quill.getFormat(range.index, range.length)
+    return format.link || null
+  }
+
+  // 获取当前选中的文本内容
+  getSelectionText() {
+    if (!this.range && !this.lastRange) return ''
+    const range = this.range || this.lastRange
+    return this.quill.getText(range.index, range.length)
   }
 
   // 格式化指定范围的文本
@@ -838,7 +894,7 @@ class RichText {
     if (!data) return
     // 短期处理，为了兼容老数据，长期会去除
     const isOldRichTextVersion =
-      !data.smmVersion || compareVersion(data.smmVersion, '0.13.0') === '<'
+      false
     const walk = root => {
       if (root.data && (!root.data.richText || isOldRichTextVersion)) {
         this.handleDataToRichText(root.data)

@@ -75,11 +75,11 @@ class VerticalTimeline extends Base {
             newNode.left =
               newNode.dir === CONSTANTS.LAYOUT_GROW_DIR.RIGHT
                 ? parent._node.left +
-                  parent._node.width +
-                  this.getMarginX(layerIndex)
+                parent._node.width +
+                this.getMarginX(layerIndex)
                 : parent._node.left -
-                  this.getMarginX(layerIndex) -
-                  newNode.width
+                this.getMarginX(layerIndex) -
+                newNode.width
           }
         }
         if (!cur.data.expand) {
@@ -94,9 +94,9 @@ class VerticalTimeline extends Base {
         let len = cur.data.expand === false ? 0 : cur._node.children.length
         cur._node.childrenAreaHeight = len
           ? cur._node.children.reduce((h, item) => {
-              return h + item.height
-            }, 0) +
-            (len + 1) * this.getMarginY(layerIndex + 1)
+            return h + item.height
+          }, 0) +
+          (len + 1) * this.getMarginY(layerIndex + 1)
           : 0
       },
       true,
@@ -109,7 +109,7 @@ class VerticalTimeline extends Base {
     walk(
       this.root,
       null,
-      (node, parent, isRoot, layerIndex, index) => {
+      (node, parent, isRoot, layerIndex) => {
         if (node.getData('expand') && node.children && node.children.length) {
           let marginY = this.getMarginY(layerIndex + 1)
           // 定位二级节点的top
@@ -234,6 +234,8 @@ class VerticalTimeline extends Base {
   renderLine(node, lines, style, lineStyle) {
     if (lineStyle === 'curve') {
       this.renderLineCurve(node, lines, style)
+    } else if (lineStyle === 'curve2') {
+      this.renderLineCurve2(node, lines, style)
     } else if (lineStyle === 'direct') {
       this.renderLineDirect(node, lines, style)
     } else {
@@ -374,6 +376,46 @@ class VerticalTimeline extends Base {
             : item.left
         let y2 = item.top + item.height / 2
         let path = this.cubicBezierPath(x1, y1, x2, y2)
+        this.setLineStyle(style, lines[index], path, item)
+      }
+    })
+  }
+
+  //  圆弧风格连线
+  renderLineCurve2(node, lines, style) {
+    if (node.children.length <= 0) {
+      return []
+    }
+    let { left, top, width, height, expandBtnSize } = node
+    const { alwaysShowExpandBtn, notShowExpandBtn } = this.mindMap.opt
+    if (!alwaysShowExpandBtn || notShowExpandBtn) {
+      expandBtnSize = 0
+    }
+    node.children.forEach((item, index) => {
+      if (node.isRoot) {
+        let prevBother = node
+        // 根节点的子节点是和根节点同一水平线排列
+        node.children.forEach((item, index) => {
+          let y1 = prevBother.top + prevBother.height
+          let y2 = item.top
+          let x = node.left + node.width / 2
+          let path = `M ${x},${y1} L ${x},${y2}`
+          this.setLineStyle(style, lines[index], path, item)
+          prevBother = item
+        })
+      } else {
+        let x1 =
+          item.dir === CONSTANTS.LAYOUT_GROW_DIR.LEFT
+            ? left - expandBtnSize
+            : left + width + expandBtnSize
+        let y1 = top + height / 2
+        let x2 =
+          item.dir === CONSTANTS.LAYOUT_GROW_DIR.LEFT
+            ? item.left + item.width
+            : item.left
+        let y2 = item.top + item.height / 2
+        // 使用圆弧路径
+        let path = this.arcPath(x1, y1, x2, y2)
         this.setLineStyle(style, lines[index], path, item)
       }
     })

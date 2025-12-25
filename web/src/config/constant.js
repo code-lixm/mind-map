@@ -49,12 +49,24 @@ export const supportLineStyleLayoutsMap = {
     'verticalTimeline',
     'organizationStructure'
   ],
+  curve2: [
+    'logicalStructure',
+    'logicalStructureLeft',
+    'mindMap',
+    'verticalTimeline',
+    'organizationStructure'
+  ],
   direct: [
     'logicalStructure',
     'logicalStructureLeft',
     'mindMap',
     'organizationStructure',
     'verticalTimeline'
+  ],
+  brace: [
+    'logicalStructure',
+    'logicalStructureLeft',
+    'mindMap'
   ]
 }
 

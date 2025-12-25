@@ -1,18 +1,111 @@
 import { fromMarkdown } from 'mdast-util-from-markdown'
+import { gfm } from 'micromark-extension-gfm'
+import { gfmFromMarkdown } from 'mdast-util-gfm'
 
-const getNodeText = node => {
-  if (node.type === 'list') return ''
-  let textStr = ''
+// HTML 转义函数
+const escapeHtml = (s) => {
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+}
 
-  ;(node.children || []).forEach(item => {
-    if (['inlineCode', 'text'].includes(item.type)) {
-      textStr += item.value || ''
-    } else {
-      textStr += getNodeText(item)
+// 从节点中提取链接信息(仅当节点只包含一个链接时)
+const getNodeLink = node => {
+  if (!node.children) return null
+
+  // 检查是否只有一个子节点且为链接
+  const children = node.children.filter(item => item.type !== 'text' || (item.value && item.value.trim()))
+
+  if (children.length === 1 && children[0].type === 'link') {
+    const linkNode = children[0]
+    // 获取链接文本
+    let linkText = ''
+    if (linkNode.children) {
+      linkNode.children.forEach(child => {
+        if (child.type === 'text') {
+          linkText += child.value || ''
+        }
+      })
     }
-  })
+    return {
+      url: linkNode.url,
+      title: linkText || linkNode.title || ''
+    }
+  }
 
-  return textStr
+  return null
+}
+
+// 从节点中提取文本,支持行内样式(emphasis, strong, delete, link)
+// skipLink: 是否跳过链接生成(当节点已被识别为节点链接时使用)
+const getNodeText = (node, skipLink = false) => {
+  if (node.type === 'list') return { text: '', hasRichText: false }
+
+  let textStr = ''
+  let hasRichText = false
+
+    ; (node.children || []).forEach(item => {
+      if (item.type === 'text') {
+        // 普通文本,需要转义
+        textStr += escapeHtml(item.value || '')
+      } else if (item.type === 'inlineCode') {
+        // 行内代码
+        textStr += escapeHtml(item.value || '')
+      } else if (item.type === 'link') {
+        const childResult = getNodeText(item, skipLink)
+        if (skipLink) {
+          // 如果跳过链接,只提取链接文本,不生成 <a> 标签
+          textStr += childResult.text
+        } else {
+          // 行内链接: 生成 <a> 标签保留超链接
+          hasRichText = true
+          const linkUrl = item.url || ''
+          textStr += `<a href="${escapeHtml(linkUrl)}" target="_blank">${childResult.text}</a>`
+        }
+      } else if (item.type === 'emphasis') {
+        // 斜体 *text*
+        hasRichText = true
+        const childResult = getNodeText(item, skipLink)
+        textStr += `<em>${childResult.text}</em>`
+      } else if (item.type === 'strong') {
+        // 加粗 **text**
+        hasRichText = true
+        const childResult = getNodeText(item, skipLink)
+        textStr += `<strong>${childResult.text}</strong>`
+      } else if (item.type === 'delete') {
+        // 删除线 ~~text~~
+        hasRichText = true
+        const childResult = getNodeText(item, skipLink)
+        textStr += `<del>${childResult.text}</del>`
+      } else {
+        // 其他类型,递归处理
+        const childResult = getNodeText(item, skipLink)
+        textStr += childResult.text
+        if (childResult.hasRichText) hasRichText = true
+      }
+    })
+
+  return { text: textStr, hasRichText }
+}
+
+// 从节点中提取图片信息
+const getNodeImage = node => {
+  if (!node.children) return null
+
+  for (let item of node.children) {
+    if (item.type === 'image') {
+      return {
+        url: item.url,
+        alt: item.alt || ''
+      }
+    }
+    // 递归查找
+    const childImage = getNodeImage(item)
+    if (childImage) return childImage
+  }
+
+  return null
 }
 
 // 处理list的情况
@@ -22,17 +115,73 @@ const handleList = node => {
     for (let i = 0; i < arr.length; i++) {
       let cur = arr[i]
       let node = {}
-      node.data = {
-        // 节点内容
-        text: getNodeText(cur)
+
+      // 首先检查是否包含思源块引用(在提取文本之前)
+      let blockRefInfo = null
+      if (cur.children.length > 0 && cur.children[0].type === 'paragraph') {
+        const linkInfo = getNodeLink(cur.children[0])
+        if (linkInfo) {
+          blockRefInfo = linkInfo
+        }
       }
+
+      // 获取节点文本和富文本标记
+      // 如果检测到节点链接,跳过生成行内链接
+      const textResult = getNodeText(cur, !!blockRefInfo)
+      node.data = {
+        text: textResult.text
+      }
+
+      // 如果包含富文本样式,需要包裹在 <p><span> 中
+      if (textResult.hasRichText) {
+        node.data.richText = true
+        node.data.text = `<p><span>${textResult.text}</span></p>`
+      } else {
+        node.data.richText = false
+      }
+
       node.children = []
       newArr.push(node)
+
+      // 检查第一个子节点是否包含图片或链接
+      if (cur.children.length > 0 && cur.children[0].type === 'paragraph') {
+        const imageInfo = getNodeImage(cur.children[0])
+        if (imageInfo) {
+          console.log('Found image in list (first child):', imageInfo.url)
+          node.data.image = imageInfo.url
+          node.data.imageTitle = imageInfo.alt
+          node.data.imageSize = { width: 100, height: 100 }
+        }
+
+        // 设置节点链接(如果之前检测到)
+        if (blockRefInfo) {
+          node.data.hyperlink = blockRefInfo.url
+          node.data.hyperlinkTitle = blockRefInfo.title
+          // 如果节点文本为空或与链接标题相同,使用链接标题作为节点文本
+          if (!node.data.text || node.data.text === escapeHtml(blockRefInfo.title)) {
+            node.data.text = escapeHtml(blockRefInfo.title)
+            node.data.richText = false
+          }
+        }
+      }
+
+      // 处理子节点
       if (cur.children.length > 1) {
         for (let j = 1; j < cur.children.length; j++) {
           let cur2 = cur.children[j]
           if (cur2.type === 'list') {
             walk(cur2.children, node.children)
+          } else if (cur2.type === 'paragraph') {
+            // 检查段落中是否有图片(如果第一个子节点还没有设置图片)
+            if (!node.data.image) {
+              const imageInfo = getNodeImage(cur2)
+              if (imageInfo) {
+                console.log('Found image in list (subsequent child):', imageInfo.url)
+                node.data.image = imageInfo.url
+                node.data.imageTitle = imageInfo.alt
+                node.data.imageSize = { width: 100, height: 100 }
+              }
+            }
           }
         }
       }
@@ -44,7 +193,10 @@ const handleList = node => {
 
 // 将markdown转换成节点树
 export const transformMarkdownTo = md => {
-  const tree = fromMarkdown(md)
+  const tree = fromMarkdown(md, {
+    extensions: [gfm()],
+    mdastExtensions: [...gfmFromMarkdown]
+  })
   let root = {
     children: []
   }
@@ -58,10 +210,36 @@ export const transformMarkdownTo = md => {
       if (!cur.children[0]) continue
       // 创建新节点
       let node = {}
+
+      // 检查是否只包含一个链接
+      const linkInfo = getNodeLink(cur)
+
+      // 获取节点文本和富文本标记
+      // 如果检测到节点链接,跳过生成行内链接
+      const textResult = getNodeText(cur, !!linkInfo)
       node.data = {
-        // 节点内容
-        text: getNodeText(cur)
+        text: textResult.text
       }
+
+      // 如果包含富文本样式,需要包裹在 <p><span> 中
+      if (textResult.hasRichText) {
+        node.data.richText = true
+        node.data.text = `<p><span>${textResult.text}</span></p>`
+      } else {
+        node.data.richText = false
+      }
+
+      // 设置节点链接(如果检测到)
+      if (linkInfo) {
+        node.data.hyperlink = linkInfo.url
+        node.data.hyperlinkTitle = linkInfo.title
+        // 如果节点文本为空或与链接标题相同,使用链接标题作为节点文本
+        if (!node.data.text || node.data.text === escapeHtml(linkInfo.title)) {
+          node.data.text = escapeHtml(linkInfo.title)
+          node.data.richText = false
+        }
+      }
+
       node.children = []
       // 如果当前的层级大于上一个节点的层级，那么是其子节点
       if (cur.depth > currentDepth) {
@@ -107,7 +285,47 @@ export const transformMarkdownTo = md => {
       }
     } else if (cur.type === 'list') {
       currentChildren.push(...handleList(cur))
+    } else if (cur.type === 'paragraph') {
+      // 处理段落: 把段落作为单独的节点加入当前层级
+      if (!cur.children || !cur.children.length) continue
+
+      // 首先检查是否包含思源块引用(在提取文本之前)
+      const blockRefInfo = getNodeLink(cur)
+
+      let node = {}
+      // 如果检测到节点链接,跳过生成行内链接
+      const textResult = getNodeText(cur, !!blockRefInfo)
+      node.data = {
+        text: textResult.text
+      }
+      if (textResult.hasRichText) {
+        node.data.richText = true
+        node.data.text = `<p><span>${textResult.text}</span></p>`
+      } else {
+        node.data.richText = false
+      }
+      node.children = []
+      // 检查段落中是否包含图片
+      const imageInfo = getNodeImage(cur)
+      if (imageInfo) {
+        node.data.image = imageInfo.url
+        node.data.imageTitle = imageInfo.alt
+        node.data.imageSize = { width: 100, height: 100 }
+      }
+      // 设置节点链接(如果检测到)
+      if (blockRefInfo) {
+        node.data.hyperlink = blockRefInfo.url
+        node.data.hyperlinkTitle = blockRefInfo.title
+        // 如果节点文本为空或与链接标题相同,使用链接标题作为节点文本
+        if (!node.data.text || node.data.text === escapeHtml(blockRefInfo.title)) {
+          node.data.text = escapeHtml(blockRefInfo.title)
+          node.data.richText = false
+        }
+      }
+      currentChildren.push(node)
     }
   }
-  return root.children[0]
+  // 返回 root 对象,包含所有顶级节点
+  return root
 }
+

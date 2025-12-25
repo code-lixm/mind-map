@@ -7,6 +7,86 @@ import {
 } from './index'
 import { formatGetNodeGeneralization } from '../utils/index'
 
+const xmindStyleKeyMap = {
+  'svg:fill': 'fillColor',
+  'fo:color': 'color',
+  'border-line-color': 'borderColor'
+}
+
+const nodeStyleKeyMap = {
+  fillColor: 'svg:fill',
+  color: 'fo:color',
+  borderColor: 'border-line-color'
+}
+
+export const buildXmindStyleMap = styles => {
+  if (!styles) return null
+  const list = []
+  if (Array.isArray(styles)) {
+    list.push(...styles)
+  } else if (typeof styles === 'object') {
+    Object.keys(styles).forEach(key => {
+      const value = styles[key]
+      if (Array.isArray(value)) {
+        list.push(...value)
+      } else if (value && typeof value === 'object') {
+        list.push(value)
+      }
+    })
+  }
+  if (list.length <= 0) return null
+  const map = new Map()
+  list.forEach(item => {
+    if (item && item.id) {
+      map.set(item.id, item)
+    }
+  })
+  return map.size > 0 ? map : null
+}
+
+const getTopicStyleProperties = (topic, styleMap) => {
+  if (topic && topic.style && topic.style.properties) {
+    return topic.style.properties
+  }
+  if (topic && topic.styleId && styleMap && styleMap.has(topic.styleId)) {
+    const style = styleMap.get(topic.styleId)
+    if (style && style.properties) {
+      return style.properties
+    }
+  }
+  return null
+}
+
+export const applyXmindStyleToNodeData = (topic, nodeData, styleMap) => {
+  if (!topic || !nodeData) return
+  const properties = getTopicStyleProperties(topic, styleMap)
+  if (!properties) return
+  Object.keys(xmindStyleKeyMap).forEach(key => {
+    if (properties[key] !== undefined) {
+      const targetKey = xmindStyleKeyMap[key]
+      nodeData[targetKey] = properties[key]
+    }
+  })
+}
+
+export const createTopicStyleFromNodeData = nodeData => {
+  if (!nodeData) return null
+  const properties = {}
+  Object.keys(nodeStyleKeyMap).forEach(key => {
+    const value = nodeData[key]
+    if (value !== undefined && value !== null && value !== '') {
+      properties[nodeStyleKeyMap[key]] = value
+    }
+  })
+  if (Object.keys(properties).length <= 0) {
+    return null
+  }
+  return {
+    id: createUid(),
+    properties
+  }
+}
+
 // 解析出新xmind的概要文本
 export const getSummaryText = (node, topicId) => {
   if (node.children.summary && node.children.summary.length > 0) {
@@ -66,9 +146,14 @@ export const getItemByName = (arr, name) => {
 
 // 解析旧版xmind数据，从一个数组中根据attributes.type找出该项
 export const getElementsByType = (arr, type) => {
-  return arr.find(el => {
-    return el.attributes.type === type
-  }).elements
+  if (!Array.isArray(arr)) return []
+  const target = arr.find(el => {
+    return el.attributes && el.attributes.type === type
+  })
+  if (!target || !Array.isArray(target.elements)) {
+    return []
+  }
+  return target.elements
 }
 
 // 解析xmind数据，将概要转换为smm支持的结构
@@ -229,13 +314,13 @@ export const parseNodeGeneralizationToXmind = node => {
     collectSummary(item, item.range[0], item.range[1])
   })
 
-  // 遍历子节点，找出子节点自身的概要
-  ;(node.children || []).forEach((child, childIndex) => {
-    const list = getSelfGeneralization(child.data)
-    list.forEach(item => {
-      collectSummary(item, childIndex, childIndex)
+    // 遍历子节点，找出子节点自身的概要
+    ; (node.children || []).forEach((child, childIndex) => {
+      const list = getSelfGeneralization(child.data)
+      list.forEach(item => {
+        collectSummary(item, childIndex, childIndex)
+      })
     })
-  })
 
   return {
     summary,

@@ -285,23 +285,55 @@ export const nodeIconList = [
 ]
 
 //  获取nodeIconList icon内容
-const getNodeIconListIcon = (name, extendIconList = []) => {
-  let arr = name.split('_')
+const inlineSvgReg = /^<svg[\s\S]*><\/svg>$/i
+const dataUrlReg = /^data:/i
+const httpUrlReg = /^(https?:)?\/\//i
+const relativePathReg = /^(\.\.\/|\.\/|\/|[\w-]+\/)/
+const fileNameReg = /\.[a-zA-Z]{2,5}(\?.*)?$/
+
+const isDirectIconSource = icon => {
+  if (typeof icon !== 'string') return false
+  const value = icon.trim()
+  if (!value) return false
+  if (inlineSvgReg.test(value)) return true
+  if (dataUrlReg.test(value)) return true
+  if (httpUrlReg.test(value)) return true
+  if (relativePathReg.test(value)) return true
+  if (fileNameReg.test(value)) return true
+  return false
+}
+
+const getIconFromList = (type, iconName, extendIconList) => {
   const iconList = mergerIconList([...nodeIconList, ...extendIconList])
-  let typeData = iconList.find(item => {
-    return item.type === arr[0]
-  })
-  if (typeData) {
-    let typeName = typeData.list.find(item => {
-      return item.name === arr[1]
-    })
-    if (typeName) {
-      return typeName.icon
+  const typeData = iconList.find(item => item.type === type)
+  if (!typeData) return ''
+  const typeName = typeData.list.find(item => item.name === iconName)
+  return typeName ? typeName.icon : ''
+}
+
+const getNodeIconListIcon = (name, extendIconList = []) => {
+  if (!name) return ''
+  if (isDirectIconSource(name)) {
+    return name
+  }
+  if (typeof name === 'object') {
+    const { icon, type, name: itemName } = name
+    if (isDirectIconSource(icon)) {
+      return icon
+    }
+    if (type && itemName) {
+      return getIconFromList(type, itemName, extendIconList) || icon || ''
+    }
+    if (typeof icon === 'string') {
+      return icon
     }
     return ''
-  } else {
-    return ''
   }
+  const arr = typeof name === 'string' ? name.split('_') : []
+  if (arr.length < 2) {
+    return typeof name === 'string' ? name : ''
+  }
+  return getIconFromList(arr[0], arr[1], extendIconList)
 }
 
 export default {
