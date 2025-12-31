@@ -1,0 +1,256 @@
+{
+  "layout": "logicalStructure",
+  "root": {
+    "data": {
+      "text": "<p>推理方式</p>",
+      "uid": "0538346e-d548-49e2-822b-0d3157499dbc",
+      "generalization": [],
+      "expand": true,
+      "richText": true,
+      "isActive": false,
+      "imgMap": {}
+    },
+    "children": [
+      {
+        "data": {
+          "text": "<p>二级节点</p>",
+          "uid": "d4c77707-d069-4167-884a-e4a9e549f02a",
+          "expand": true,
+          "richText": true,
+          "isActive": false
+        },
+        "children": []
+      },
+      {
+        "data": {
+          "text": "<p>二级节点</p>",
+          "expand": true,
+          "richText": true,
+          "isActive": false,
+          "uid": "026a5f06-ec08-460a-ae14-419acca1ef43",
+          "generalization": [
+            {
+              "text": "<p>概要</p>",
+              "range": null,
+              "uid": "d488cad6-a7b0-4e35-8dfc-5654c10c9560",
+              "richText": true,
+              "isActive": false,
+              "expand": true,
+              "fontFamily": "宋体, SimSun, Songti SC",
+              "fontSize": 16,
+              "textAlign": "center",
+              "color": "#FB9E00",
+              "fontWeight": "bold",
+              "fontStyle": "italic",
+              "fillColor": "#73D8FF",
+              "gradientStyle": true,
+              "endColor": "#FA28FF",
+              "startDir": [
+                1,
+                0
+              ],
+              "endDir": [
+                0,
+                0
+              ],
+              "shape": "diamond"
+            }
+          ],
+          "fontFamily": "宋体, SimSun, Songti SC",
+          "fontSize": 16,
+          "textAlign": "center",
+          "borderColor": "#D33115",
+          "borderDasharray": "5,5",
+          "borderRadius": 4,
+          "fillColor": "#16A5A5",
+          "gradientStyle": true,
+          "endColor": "#009CE0",
+          "startDir": [
+            1,
+            0
+          ],
+          "endDir": [
+            0,
+            0
+          ],
+          "shape": "parallelogram",
+          "lineDasharray": "10,10",
+          "lineWidth": 1,
+          "lineMarkerDir": "end",
+          "paddingX": 28,
+          "paddingY": 26
+        },
+        "children": []
+      },
+      {
+        "data": {
+          "text": "<p>二级节点</p>",
+          "expand": true,
+          "richText": true,
+          "isActive": false,
+          "uid": "c07da81e-5b2f-43a1-b3b2-318e0b1ad4d9",
+          "outerFrame": {
+            "groupId": "f88262eb-de2e-4b58-91b8-2296bef7ed1f",
+            "strokeColor": "#A4DD00",
+            "strokeWidth": 1,
+            "strokeDasharray": "10,10",
+            "radius": 6,
+            "lineHeight": 1,
+            "fontFamily": "宋体, SimSun, Songti SC",
+            "color": "#FE9200",
+            "fontWeight": "bold",
+            "fontStyle": "italic",
+            "fontSize": 16,
+            "textFillRadius": 4,
+            "textFillPadding": [
+              23,
+              7,
+              23,
+              7
+            ]
+          }
+        },
+        "children": [
+          {
+            "data": {
+              "text": "<p>分支主题</p>",
+              "uid": "996915b2-153d-4b06-abdb-6b3a5c17a988",
+              "expand": true,
+              "richText": true,
+              "isActive": false
+            },
+            "children": [
+              {
+                "data": {
+                  "text": "<p>分支主题</p>",
+                  "uid": "ed78b966-3d9c-48b9-bc2e-9d7aeb744bcf",
+                  "expand": true,
+                  "richText": true,
+                  "isActive": false,
+                  "associativeLineTargets": [
+                    "d4c77707-d069-4167-884a-e4a9e549f02a"
+                  ],
+                  "associativeLineTargetControlOffsets": [
+                    [
+                      {
+                        "x": 136.90041515687471,
+                        "y": -116.57750108992337
+                      },
+                      {
+                        "x": 306.8553141223956,
+                        "y": -46.664475085606284
+                      }
+                    ]
+                  ],
+                  "associativeLinePoint": [
+                    {
+                      "startPoint": {
+                        "x": 1555.954898965521,
+                        "y": 550.5,
+                        "dir": "top",
+                        "range": -19.454898965520837
+                      },
+                      "endPoint": {
+                        "x": 1298,
+                        "y": 403.5869739956829,
+                        "dir": "right",
+                        "range": 7.913026004317074
+                      }
+                    }
+                  ],
+                  "associativeLineText": {
+                    "d4c77707-d069-4167-884a-e4a9e549f02a": "关联线"
+                  },
+                  "associativeLineStyle": {
+                    "d4c77707-d069-4167-884a-e4a9e549f02a": {
+                      "associativeLineColor": "#ffd613",
+                      "associativeLineWidth": 2,
+                      "associativeLineActiveWidth": 8,
+                      "associativeLineDasharray": "6,4",
+                      "associativeLineActiveColor": "#d1ebf8",
+                      "associativeLineTextFontSize": 16,
+                      "associativeLineTextColor": "#FCDC00",
+                      "associativeLineTextFontFamily": "微软雅黑, Microsoft YaHei"
+                    }
+                  }
+                },
+                "children": []
+              },
+              {
+                "data": {
+                  "text": "<p>分支主题</p>",
+                  "expand": true,
+                  "richText": true,
+                  "isActive": false,
+                  "uid": "b9a4a80a-5db2-46cb-8cc7-9e11b4c56e0e"
+                },
+                "children": []
+              }
+            ]
+          },
+          {
+            "data": {
+              "text": "<p>分支主题</p>",
+              "expand": true,
+              "richText": true,
+              "isActive": false,
+              "uid": "4f35fa58-aca8-4d70-852f-a16ee171b7de"
+            },
+            "children": []
+          }
+        ]
+      }
+    ]
+  },
+  "theme": {
+    "template": "classic13",
+    "config": {
+      "lineColor": "#DBDF00",
+      "lineWidth": 3,
+      "lineRadius": 2,
+      "backgroundColor": "#73D8FF",
+      "showLineMarker": true,
+      "generalizationLineColor": "#73D8FF",
+      "generalizationLineWidth": 5,
+      "associativeLineDasharray": "5,5",
+      "associativeLineTextFontFamily": "宋体, SimSun, Songti SC",
+      "associativeLineTextFontSize": 18,
+      "associativeLineTextColor": "#653294",
+      "iconSize": 17,
+      "node": {
+        "marginX": 103,
+        "marginY": 52
+      },
+      "second": {
+        "marginX": 33,
+        "marginY": 29
+      },
+      "nodeUseLineStyle": true
+    }
+  },
+  "view": {
+    "transform": {
+      "scaleX": 1,
+      "scaleY": 1,
+      "shear": 0,
+      "rotate": 0,
+      "translateX": -205.85531412239573,
+      "translateY": -105.92249891007663,
+      "originX": 0,
+      "originY": 0,
+      "a": 1,
+      "b": 0,
+      "c": 0,
+      "d": 1,
+      "e": -205.85531412239573,
+      "f": -105.92249891007663
+    },
+    "state": {
+      "scale": 1,
+      "x": -205.85531412239573,
+      "y": -105.92249891007663,
+      "sx": -205.85531412239573,
+      "sy": -105.92249891007663
+    }
+  }
+}

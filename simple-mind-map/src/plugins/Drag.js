@@ -563,12 +563,12 @@ class Drag extends Base {
               y =
                 dir === TOP
                   ? lastNodeRect.originTop -
-                    this.placeholderHeight -
-                    this.minOffset +
-                    halfPlaceholderHeight
+                  this.placeholderHeight -
+                  this.minOffset +
+                  halfPlaceholderHeight
                   : lastNodeRect.originBottom +
-                    this.minOffset -
-                    halfPlaceholderHeight
+                  this.minOffset -
+                  halfPlaceholderHeight
             } else {
               y =
                 lastNodeRect.originBottom +
@@ -608,12 +608,12 @@ class Drag extends Base {
             y =
               dir === TOP
                 ? lastNodeRect.originBottom +
-                  this.minOffset -
-                  halfPlaceholderHeight
+                this.minOffset -
+                halfPlaceholderHeight
                 : lastNodeRect.originTop -
-                  this.placeholderHeight -
-                  this.minOffset +
-                  halfPlaceholderHeight
+                this.placeholderHeight -
+                this.minOffset +
+                halfPlaceholderHeight
           }
           break
         default:
@@ -701,9 +701,9 @@ class Drag extends Base {
             y =
               dir === BOTTOM
                 ? nodeRect.originTop -
-                  this.placeholderHeight -
-                  this.minOffset +
-                  halfPlaceholderHeight
+                this.placeholderHeight -
+                this.minOffset +
+                halfPlaceholderHeight
                 : nodeRect.originBottom + this.minOffset - halfPlaceholderHeight
           }
           break
@@ -792,15 +792,15 @@ class Drag extends Base {
         let checkIsPrevNode =
           nextBrotherOffset > 0 // 距离下一个兄弟节点的距离大于0
             ? mouseMoveY > nodeRect.bottom &&
-              mouseMoveY <= nodeRect.bottom + nextBrotherOffset // 那么在当前节点外底部判断
+            mouseMoveY <= nodeRect.bottom + nextBrotherOffset // 那么在当前节点外底部判断
             : mouseMoveY >= nodeRect.bottom - oneFourthHeight &&
-              mouseMoveY <= nodeRect.bottom // 否则在当前节点内底部1/4区间判断
+            mouseMoveY <= nodeRect.bottom // 否则在当前节点内底部1/4区间判断
         let checkIsNextNode =
           prevBrotherOffset > 0 // 距离上一个兄弟节点的距离大于0
             ? mouseMoveY < nodeRect.top &&
-              mouseMoveY >= nodeRect.top - prevBrotherOffset // 那么在当前节点外底部判断
+            mouseMoveY >= nodeRect.top - prevBrotherOffset // 那么在当前节点外底部判断
             : mouseMoveY >= nodeRect.top &&
-              mouseMoveY <= nodeRect.top + oneFourthHeight
+            mouseMoveY <= nodeRect.top + oneFourthHeight
 
         const { scaleY } = this.drawTransform
         let x =
@@ -934,15 +934,15 @@ class Drag extends Base {
         let checkIsPrevNode =
           nextBrotherOffset > 0 // 距离下一个兄弟节点的距离大于0
             ? mouseMoveX < nodeRect.right + nextBrotherOffset &&
-              mouseMoveX >= nodeRect.right // 那么在当前节点外底部判断
+            mouseMoveX >= nodeRect.right // 那么在当前节点外底部判断
             : mouseMoveX <= nodeRect.right &&
-              mouseMoveX >= nodeRect.right - oneFourthWidth // 否则在当前节点内底部1/4区间判断
+            mouseMoveX >= nodeRect.right - oneFourthWidth // 否则在当前节点内底部1/4区间判断
         let checkIsNextNode =
           prevBrotherOffset > 0 // 距离上一个兄弟节点的距离大于0
             ? mouseMoveX > nodeRect.left - prevBrotherOffset &&
-              mouseMoveX <= nodeRect.left // 那么在当前节点外底部判断
+            mouseMoveX <= nodeRect.left // 那么在当前节点外底部判断
             : mouseMoveX <= nodeRect.left + oneFourthWidth &&
-              mouseMoveX >= nodeRect.left
+            mouseMoveX >= nodeRect.left
         const { scaleX } = this.drawTransform
         const layerIndex = node.layerIndex
         let y = nodeRect.originTop
@@ -1101,7 +1101,7 @@ class Drag extends Base {
     this.mindMap.renderer.layout.renderLine(
       parent,
       [this.placeHolderLine],
-      (...args) => {
+      () => {
         // node.styleLine(...args)
       },
       node.style.getStyle('lineStyle', true)
@@ -1151,12 +1151,12 @@ class Drag extends Base {
   handleMindMap(node) {
     const checkList = node.parent
       ? node.parent.children.filter(item => {
-          let sameDir = true
-          if (node.layerIndex === 1) {
-            sameDir = item.dir === node.dir
-          }
-          return sameDir && !this.checkIsInBeingDragNodeList(item)
-        })
+        let sameDir = true
+        if (node.layerIndex === 1) {
+          sameDir = item.dir === node.dir
+        }
+        return sameDir && !this.checkIsInBeingDragNodeList(item)
+      })
       : []
     this.handleVerticalCheck(node, checkList)
   }
@@ -1206,8 +1206,8 @@ class Drag extends Base {
   handleFishbone(node) {
     let checkList = node.parent
       ? node.parent.children.filter(item => {
-          return item.layerIndex > 1 && !this.checkIsInBeingDragNodeList(item)
-        })
+        return item.layerIndex > 1 && !this.checkIsInBeingDragNodeList(item)
+      })
       : []
     if (node.layerIndex === 1) {
       this.handleHorizontalCheck(node, checkList)
@@ -1229,8 +1229,8 @@ class Drag extends Base {
   commonGetNodeCheckList(node) {
     return node.parent
       ? [...node.parent.children].filter(item => {
-          return !this.checkIsInBeingDragNodeList(item)
-        })
+        return !this.checkIsInBeingDragNodeList(item)
+      })
       : []
   }
 

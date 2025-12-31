@@ -86,7 +86,19 @@ function createImgNode() {
 
 //  获取图片显示宽高
 function getImgShowSize() {
-  const { custom, width, height } = this.getData('imageSize')
+  const imageSize = this.getData('imageSize') || {}
+  const {
+    custom = false,
+    width,
+    height
+  } = imageSize
+  // 如果数据里没有宽高信息，兜底使用主题里配置的最大值，避免报错
+  if (!width || !height) {
+    return [
+      this.mindMap.themeConfig.imgMaxWidth,
+      this.mindMap.themeConfig.imgMaxHeight
+    ]
+  }
   // 如果是自定义了图片的宽高，那么不受最大宽高限制
   if (custom) return [width, height]
   return resizeImgSize(

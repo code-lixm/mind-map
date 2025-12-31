@@ -46,6 +46,7 @@ class View {
       }
       if (this.firstDrag) {
         this.firstDrag = false
+        this.mindMap.el.style.cursor = 'grabbing'
         // 清除激活节点
         if (this.mindMap.renderer.activeNodeList.length > 0) {
           this.mindMap.execCommand('CLEAR_ACTIVE_NODE')
@@ -56,6 +57,7 @@ class View {
       this.transform()
     })
     this.mindMap.event.on('mouseup', () => {
+      this.mindMap.el.style.cursor = ''
       this.firstDrag = true
     })
     // 放大缩小视图
