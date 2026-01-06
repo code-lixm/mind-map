@@ -36,7 +36,24 @@ const defaultTagStyle = {
 // 因为如果注册了NodeBase64ImageStorage插件，那么节点图片字段保存的实际是一个id，所以如果要获取图片真实的url可以通过该方法
 function getImageUrl() {
   const img = this.getData('image')
-  return (this.mindMap.renderer.renderTree.data.imgMap || {})[img] || img
+  let imgUrl = (this.mindMap.renderer.renderTree.data.imgMap || {})[img] || img
+  if (
+    imgUrl &&
+    this.mindMap.opt.imgBaseUrl &&
+    !/^(data:|https?:\/\/|\/\/|\/)/.test(imgUrl)
+  ) {
+    let baseUrl = this.mindMap.opt.imgBaseUrl
+    // 确保baseUrl以斜杠结尾，以便与相对路径正确拼接
+    if (!baseUrl.endsWith('/')) {
+      baseUrl += '/'
+    }
+    // 移除imgUrl开头的'./'，使路径更简洁
+    if (imgUrl.startsWith('./')) {
+      imgUrl = imgUrl.substring(2)
+    }
+    imgUrl = baseUrl + imgUrl
+  }
+  return imgUrl
 }
 
 //  创建图片节点
@@ -87,11 +104,7 @@ function createImgNode() {
 //  获取图片显示宽高
 function getImgShowSize() {
   const imageSize = this.getData('imageSize') || {}
-  const {
-    custom = false,
-    width,
-    height
-  } = imageSize
+  const { custom = false, width, height } = imageSize
   // 如果数据里没有宽高信息，兜底使用主题里配置的最大值，避免报错
   if (!width || !height) {
     return [

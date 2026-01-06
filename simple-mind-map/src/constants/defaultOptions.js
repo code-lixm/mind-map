@@ -39,6 +39,8 @@ export const defaultOpt = {
   expandBtnSize: 20,
   // 节点里图片和文字的间距
   imgTextMargin: 5,
+  // 图片基地址
+  imgBaseUrl: '',
   // 节点里各种文字信息的间距，如图标和文字的间距
   textContentMargin: 2,
   // 自定义节点备注内容显示
