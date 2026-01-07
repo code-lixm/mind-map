@@ -207,6 +207,15 @@ class MindMapNode {
 
   //  处理数据
   handleData(data) {
+    // 如果配置了 beforeNodeDataHandle 函数，则在处理数据前先调用它格式化数据
+    // 注意：此时 this.mindMap 可能还未初始化，所以通过 this.opt.mindMap 访问
+    const mindMap = this.mindMap || this.opt.mindMap
+    if (mindMap && mindMap.opt && mindMap.opt.beforeNodeDataHandle) {
+      const { beforeNodeDataHandle } = mindMap.opt
+      if (typeof beforeNodeDataHandle === 'function') {
+        data = beforeNodeDataHandle(data) || data
+      }
+    }
     data.data.expand = data.data.expand === false ? false : true
     data.data.isActive = data.data.isActive === true ? true : false
     data.children = data.children || []
