@@ -634,7 +634,8 @@ class MindMap {
     // 内边距
     const fixHeight = 0
     const contentWidth = rect.width + paddingX * 2
-    const contentHeight = rect.height + paddingY * 2 + fixHeight + headerHeight + footerHeight
+    const contentHeight =
+      rect.height + paddingY * 2 + fixHeight + headerHeight + footerHeight
 
     // 如果DOM隐藏，使用viewBox方式导出
     if (isRboxInvalid) {
@@ -864,21 +865,15 @@ class MindMap {
   initCustomContentLifecycle() {
     this.teardownCustomContentLifecycle()
     const opt = this.opt.addCustomContentToNode
-    if (
-      !opt ||
-      typeof opt.create !== 'function' ||
-      opt.mode !== 'lazy'
-    ) {
+    if (!opt || typeof opt.create !== 'function' || opt.mode !== 'lazy') {
       return
     }
-    const mountEvents =
-      (opt.events && Array.isArray(opt.events.mount) && opt.events.mount) ||
-      ['node_active']
-    const unmountEvents =
-      (opt.events &&
-        Array.isArray(opt.events.unmount) &&
-        opt.events.unmount) ||
-      ['node_inactive']
+    const mountEvents = (opt.events &&
+      Array.isArray(opt.events.mount) &&
+      opt.events.mount) || ['node_active']
+    const unmountEvents = (opt.events &&
+      Array.isArray(opt.events.unmount) &&
+      opt.events.unmount) || ['node_inactive']
     const lifecycle = {
       mountEvents,
       unmountEvents,

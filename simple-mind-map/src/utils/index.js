@@ -305,7 +305,7 @@ export const debounce = (fn, wait = 300, ctx) => {
 }
 
 //  异步执行任务队列
-export const asyncRun = (taskList, callback = () => { }) => {
+export const asyncRun = (taskList, callback = () => {}) => {
   let index = 0
   let len = taskList.length
   if (len <= 0) {
@@ -361,8 +361,9 @@ export const measureText = (text, { italic, bold, fontSize, fontFamily }) => {
 
 // 拼接font字符串
 export const joinFontStr = ({ italic, bold, fontSize, fontFamily }) => {
-  return `${italic ? 'italic ' : ''} ${bold ? 'bold ' : ''
-    } ${fontSize}px ${fontFamily} `
+  return `${italic ? 'italic ' : ''} ${
+    bold ? 'bold ' : ''
+  } ${fontSize}px ${fontFamily} `
 }
 
 //  在下一个事件循环里执行任务
@@ -507,7 +508,7 @@ export const loadImage = imgFile => {
 
 // 移除字符串中的html实体
 export const removeHTMLEntities = str => {
-  [['&nbsp;', '&#160;']].forEach(item => {
+  ;[['&nbsp;', '&#160;']].forEach(item => {
     str = str.replace(new RegExp(item[0], 'g'), item[1])
   })
   return str
@@ -560,7 +561,7 @@ export const checkIsRichText = str => {
     checkIsRichTextEl = document.createElement('div')
   }
   checkIsRichTextEl.innerHTML = str
-  for (let c = checkIsRichTextEl.childNodes, i = c.length; i--;) {
+  for (let c = checkIsRichTextEl.childNodes, i = c.length; i--; ) {
     if (c[i].nodeType == 1) return true
   }
   return false
@@ -1040,8 +1041,8 @@ export const formatDataToArray = data => {
 export const getNodeDataIndex = node => {
   return node.parent
     ? node.parent.nodeData.children.findIndex(item => {
-      return item.data.uid === node.uid
-    })
+        return item.data.uid === node.uid
+      })
     : 0
 }
 
@@ -1074,13 +1075,13 @@ export const htmlEscape = str => {
   }
   // 确保 str 是字符串类型
   str = String(str)
-    ;[
-      ['&', '&amp;'],
-      ['<', '&lt;'],
-      ['>', '&gt;']
-    ].forEach(item => {
-      str = str.replace(new RegExp(item[0], 'g'), item[1])
-    })
+  ;[
+    ['&', '&amp;'],
+    ['<', '&lt;'],
+    ['>', '&gt;']
+  ].forEach(item => {
+    str = str.replace(new RegExp(item[0], 'g'), item[1])
+  })
   return str
 }
 
@@ -1148,11 +1149,10 @@ export const isSupportedClipboardFileText = text => {
   if (!text) return false
   const trimmed = String(text).trim()
   if (!trimmed) return false
-  const firstLine =
-    trimmed
-      .split(/\r?\n/)
-      .map(item => item.trim())
-      .find(item => item)
+  const firstLine = trimmed
+    .split(/\r?\n/)
+    .map(item => item.trim())
+    .find(item => item)
   if (!firstLine) return false
   let candidate = firstLine
   const isQuoted =
@@ -1610,7 +1610,11 @@ export const getNodeTreeBoundingRectByNodeData = (
       }
     }
     // 处理概要节点
-    if (!excludeGeneralization && root._generalizationList && root._generalizationList.length > 0) {
+    if (
+      !excludeGeneralization &&
+      root._generalizationList &&
+      root._generalizationList.length > 0
+    ) {
       root._generalizationList.forEach(item => {
         if (item.generalizationNode) {
           walk(item.generalizationNode)

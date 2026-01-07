@@ -117,7 +117,9 @@ class Export {
           hoverNodes.map(item => {
             try {
               item.remove()
-            } catch (e) { /* empty */ }
+            } catch (e) {
+              /* empty */
+            }
           })
           svgIsChange = true
         }
@@ -126,7 +128,9 @@ class Export {
           expandBtns.map(item => {
             try {
               item.remove()
-            } catch (e) { /* empty */ }
+            } catch (e) {
+              /* empty */
+            }
           })
           svgIsChange = true
         }
@@ -135,7 +139,9 @@ class Export {
           quickCreateBtns.map(item => {
             try {
               item.remove()
-            } catch (e) { /* empty */ }
+            } catch (e) {
+              /* empty */
+            }
           })
           svgIsChange = true
         }

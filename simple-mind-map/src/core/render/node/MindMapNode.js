@@ -102,8 +102,7 @@ class MindMapNode {
     this._customContentAddToNodeAdd = null
     this._customContentElement = null
     const customContentOpt = this.mindMap.opt.addCustomContentToNode
-    const customMode =
-      (customContentOpt && customContentOpt.mode) || 'eager'
+    const customMode = (customContentOpt && customContentOpt.mode) || 'eager'
     this._customContentMounted = customMode !== 'lazy'
     // 尺寸信息
     this._rectInfo = {

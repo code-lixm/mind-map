@@ -138,10 +138,7 @@ function getNodeRect() {
       spaceCount++
     }
   })
-  if (
-    this._customContentAddToNodeAdd &&
-    this.customContentAffectNodeSize()
-  ) {
+  if (this._customContentAddToNodeAdd && this.customContentAffectNodeSize()) {
     const customWidth = this._customContentAddToNodeAdd.width || 0
     const customHeight = this._customContentAddToNodeAdd.height || 0
     textContentWidth += customWidth
@@ -469,10 +466,7 @@ function layout() {
       textContentOffsetX += itemData.width + textContentMargin
     }
   })
-  if (
-    this._customContentAddToNodeAdd &&
-    this._customContentAddToNodeAdd.el
-  ) {
+  if (this._customContentAddToNodeAdd && this._customContentAddToNodeAdd.el) {
     const foreignObject = createForeignObjectNode(
       this._customContentAddToNodeAdd
     )

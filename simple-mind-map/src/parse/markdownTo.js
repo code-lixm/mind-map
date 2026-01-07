@@ -3,7 +3,7 @@ import { gfm } from 'micromark-extension-gfm'
 import { gfmFromMarkdown } from 'mdast-util-gfm'
 
 // HTML 转义函数
-const escapeHtml = (s) => {
+const escapeHtml = s => {
   return String(s)
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
@@ -15,7 +15,9 @@ const getNodeLink = node => {
   if (!node.children) return null
 
   // 检查是否只有一个子节点且为链接
-  const children = node.children.filter(item => item.type !== 'text' || (item.value && item.value.trim()))
+  const children = node.children.filter(
+    item => item.type !== 'text' || (item.value && item.value.trim())
+  )
 
   if (children.length === 1 && children[0].type === 'link') {
     const linkNode = children[0]
@@ -45,46 +47,48 @@ const getNodeText = (node, skipLink = false) => {
   let textStr = ''
   let hasRichText = false
 
-    ; (node.children || []).forEach(item => {
-      if (item.type === 'text') {
-        // 普通文本,需要转义
-        textStr += escapeHtml(item.value || '')
-      } else if (item.type === 'inlineCode') {
-        // 行内代码
-        textStr += escapeHtml(item.value || '')
-      } else if (item.type === 'link') {
-        const childResult = getNodeText(item, skipLink)
-        if (skipLink) {
-          // 如果跳过链接,只提取链接文本,不生成 <a> 标签
-          textStr += childResult.text
-        } else {
-          // 行内链接: 生成 <a> 标签保留超链接
-          hasRichText = true
-          const linkUrl = item.url || ''
-          textStr += `<a href="${escapeHtml(linkUrl)}" target="_blank">${childResult.text}</a>`
-        }
-      } else if (item.type === 'emphasis') {
-        // 斜体 *text*
-        hasRichText = true
-        const childResult = getNodeText(item, skipLink)
-        textStr += `<em>${childResult.text}</em>`
-      } else if (item.type === 'strong') {
-        // 加粗 **text**
-        hasRichText = true
-        const childResult = getNodeText(item, skipLink)
-        textStr += `<strong>${childResult.text}</strong>`
-      } else if (item.type === 'delete') {
-        // 删除线 ~~text~~
-        hasRichText = true
-        const childResult = getNodeText(item, skipLink)
-        textStr += `<del>${childResult.text}</del>`
-      } else {
-        // 其他类型,递归处理
-        const childResult = getNodeText(item, skipLink)
+  ;(node.children || []).forEach(item => {
+    if (item.type === 'text') {
+      // 普通文本,需要转义
+      textStr += escapeHtml(item.value || '')
+    } else if (item.type === 'inlineCode') {
+      // 行内代码
+      textStr += escapeHtml(item.value || '')
+    } else if (item.type === 'link') {
+      const childResult = getNodeText(item, skipLink)
+      if (skipLink) {
+        // 如果跳过链接,只提取链接文本,不生成 <a> 标签
         textStr += childResult.text
-        if (childResult.hasRichText) hasRichText = true
+      } else {
+        // 行内链接: 生成 <a> 标签保留超链接
+        hasRichText = true
+        const linkUrl = item.url || ''
+        textStr += `<a href="${escapeHtml(linkUrl)}" target="_blank">${
+          childResult.text
+        }</a>`
       }
-    })
+    } else if (item.type === 'emphasis') {
+      // 斜体 *text*
+      hasRichText = true
+      const childResult = getNodeText(item, skipLink)
+      textStr += `<em>${childResult.text}</em>`
+    } else if (item.type === 'strong') {
+      // 加粗 **text**
+      hasRichText = true
+      const childResult = getNodeText(item, skipLink)
+      textStr += `<strong>${childResult.text}</strong>`
+    } else if (item.type === 'delete') {
+      // 删除线 ~~text~~
+      hasRichText = true
+      const childResult = getNodeText(item, skipLink)
+      textStr += `<del>${childResult.text}</del>`
+    } else {
+      // 其他类型,递归处理
+      const childResult = getNodeText(item, skipLink)
+      textStr += childResult.text
+      if (childResult.hasRichText) hasRichText = true
+    }
+  })
 
   return { text: textStr, hasRichText }
 }
@@ -158,7 +162,10 @@ const handleList = node => {
           node.data.hyperlink = blockRefInfo.url
           node.data.hyperlinkTitle = blockRefInfo.title
           // 如果节点文本为空或与链接标题相同,使用链接标题作为节点文本
-          if (!node.data.text || node.data.text === escapeHtml(blockRefInfo.title)) {
+          if (
+            !node.data.text ||
+            node.data.text === escapeHtml(blockRefInfo.title)
+          ) {
             node.data.text = escapeHtml(blockRefInfo.title)
             node.data.richText = false
           }
@@ -176,7 +183,10 @@ const handleList = node => {
             if (!node.data.image) {
               const imageInfo = getNodeImage(cur2)
               if (imageInfo) {
-                console.log('Found image in list (subsequent child):', imageInfo.url)
+                console.log(
+                  'Found image in list (subsequent child):',
+                  imageInfo.url
+                )
                 node.data.image = imageInfo.url
                 node.data.imageTitle = imageInfo.alt
                 node.data.imageSize = { width: 100, height: 100 }
@@ -317,7 +327,10 @@ export const transformMarkdownTo = md => {
         node.data.hyperlink = blockRefInfo.url
         node.data.hyperlinkTitle = blockRefInfo.title
         // 如果节点文本为空或与链接标题相同,使用链接标题作为节点文本
-        if (!node.data.text || node.data.text === escapeHtml(blockRefInfo.title)) {
+        if (
+          !node.data.text ||
+          node.data.text === escapeHtml(blockRefInfo.title)
+        ) {
           node.data.text = escapeHtml(blockRefInfo.title)
           node.data.richText = false
         }
@@ -328,4 +341,3 @@ export const transformMarkdownTo = md => {
   // 返回 root 对象,包含所有顶级节点
   return root
 }
-

@@ -60,9 +60,9 @@ class OrganizationStructure extends Base {
         let len = cur.data.expand === false ? 0 : cur._node.children.length
         cur._node.childrenAreaWidth = len
           ? cur._node.children.reduce((h, item) => {
-            return h + item.width
-          }, 0) +
-          (len + 1) * this.getMarginY(layerIndex + 1)
+              return h + item.width
+            }, 0) +
+            (len + 1) * this.getMarginY(layerIndex + 1)
           : 0
 
         // 如果存在概要，则和概要的高度取最大值
@@ -235,10 +235,13 @@ class OrganizationStructure extends Base {
 
       // 始终先绘制一段垂直直线再连接圆弧
       // 直线长度为节点与子节点距离的 20%
-      const straightLineLength = Math.abs(y2 - y1) * 0.20
+      const straightLineLength = Math.abs(y2 - y1) * 0.2
       const y1_end = y1 + straightLineLength
       // 先画垂直直线，再从直线终点画圆弧到目标点
-      path = `M ${x1},${y1} L ${x1},${y1_end} ` + this.arcPath(x1, y1_end, x2, y2) + nodeUseLineStylePath
+      path =
+        `M ${x1},${y1} L ${x1},${y1_end} ` +
+        this.arcPath(x1, y1_end, x2, y2) +
+        nodeUseLineStylePath
       this.setLineStyle(style, lines[index], path, item)
     })
   }

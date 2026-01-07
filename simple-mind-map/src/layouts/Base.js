@@ -37,7 +37,7 @@ class Base {
   }
 
   //  概要节点
-  renderGeneralization() { }
+  renderGeneralization() {}
 
   // 通过uid缓存节点
   cacheNode(uid, node) {
@@ -528,7 +528,9 @@ class Base {
 
     // 构建括号路径
     // 从起点开始，先向内弯曲到顶部
-    let path = `M ${x1},${y1} Q ${topCurveX},${y1} ${topCurveX},${y1 + dy * 0.15}`
+    let path = `M ${x1},${y1} Q ${topCurveX},${y1} ${topCurveX},${
+      y1 + dy * 0.15
+    }`
     // 垂直线到中间位置附近
     path += ` L ${topCurveX},${midY - dy * 0.15}`
     // 弯曲到中间最凸出的点
@@ -542,7 +544,6 @@ class Base {
 
     return path
   }
-
 
   // 根据a,b两个点的位置，计算去除圆角大小后的新的b点
   computeNewPoint(a, b, radius = 0) {

@@ -36,7 +36,14 @@ class LogicalStructure extends Base {
       this.renderer.renderTree,
       null,
       (cur, parent, isRoot, layerIndex, index, ancestors) => {
-        let newNode = this.createNode(cur, parent, isRoot, layerIndex, index, ancestors)
+        let newNode = this.createNode(
+          cur,
+          parent,
+          isRoot,
+          layerIndex,
+          index,
+          ancestors
+        )
         newNode.sortIndex = sortIndex
         sortIndex++
         // 根节点定位在画布中心位置
@@ -64,14 +71,14 @@ class LogicalStructure extends Base {
         let len = cur.data.expand === false ? 0 : cur._node.children.length
         cur._node.childrenAreaHeight = len
           ? cur._node.children.reduce((h, item) => {
-            return h + item.height
-          }, 0) +
-          (len + 1) * this.getMarginY(layerIndex + 1)
+              return h + item.height
+            }, 0) +
+            (len + 1) * this.getMarginY(layerIndex + 1)
           : 0
         // 如果存在概要，则和概要的高度取最大值
         let generalizationNodeHeight = cur._node.checkHasGeneralization()
           ? cur._node._generalizationNodeHeight +
-          this.getMarginY(layerIndex + 1)
+            this.getMarginY(layerIndex + 1)
           : 0
         cur._node.childrenAreaHeight2 = Math.max(
           cur._node.childrenAreaHeight,
@@ -317,7 +324,9 @@ class LogicalStructure extends Base {
         expandBtnSize = 0
       }
       // 起点从节点边缘开始，而不是节点中心
-      let x1 = this.isUseLeft ? left - expandBtnSize : left + width + expandBtnSize
+      let x1 = this.isUseLeft
+        ? left - expandBtnSize
+        : left + width + expandBtnSize
       let y1 = top + height / 2
       let x2 = this.isUseLeft ? item.left + item.width : item.left
       let y2 = item.top + item.height / 2
@@ -336,7 +345,7 @@ class LogicalStructure extends Base {
 
       // 始终先绘制一段直线再连接圆弧
       // 直线长度为节点与子节点距离的 20%
-      const straightLineLength = Math.abs(x2 - x1) * 0.20
+      const straightLineLength = Math.abs(x2 - x1) * 0.2
       let x1_end
       if (this.isUseLeft) {
         x1_end = x1 - straightLineLength
@@ -344,7 +353,10 @@ class LogicalStructure extends Base {
         x1_end = x1 + straightLineLength
       }
       // 先画直线，再从直线终点画圆弧到目标点
-      path = `M ${x1},${y1} L ${x1_end},${y1} ` + this.arcPath(x1_end, y1, x2, y2) + nodeUseLineStylePath
+      path =
+        `M ${x1},${y1} L ${x1_end},${y1} ` +
+        this.arcPath(x1_end, y1, x2, y2) +
+        nodeUseLineStylePath
       this.setLineStyle(style, lines[index], path, item)
     })
   }
@@ -366,7 +378,9 @@ class LogicalStructure extends Base {
         expandBtnSize = 0
       }
       const item = node.children[0]
-      let x1 = this.isUseLeft ? left - expandBtnSize : left + width + expandBtnSize
+      let x1 = this.isUseLeft
+        ? left - expandBtnSize
+        : left + width + expandBtnSize
       let y1 = top + height / 2
       let x2 = this.isUseLeft ? item.left + item.width : item.left
       let y2 = item.top + item.height / 2
@@ -391,7 +405,9 @@ class LogicalStructure extends Base {
     const lastChild = node.children[node.children.length - 1]
 
     // 父节点的起点
-    let x1 = this.isUseLeft ? left - expandBtnSize : left + width + expandBtnSize
+    let x1 = this.isUseLeft
+      ? left - expandBtnSize
+      : left + width + expandBtnSize
     let y1 = top + height / 2
 
     // 第一个子节点的位置
@@ -406,7 +422,9 @@ class LogicalStructure extends Base {
     if (midY > lastY) midY = lastY
 
     // 计算括号的X位置（在父节点和子节点之间）
-    const firstChildX = this.isUseLeft ? firstChild.left + firstChild.width : firstChild.left
+    const firstChildX = this.isUseLeft
+      ? firstChild.left + firstChild.width
+      : firstChild.left
     const braceX = x1 + (firstChildX - x1) * 0.6
 
     // 括号的弯曲程度
@@ -427,10 +445,14 @@ class LogicalStructure extends Base {
     const topOffset = topDy * 0.3
     const bottomOffset = bottomDy * 0.3
 
-    let bracePath = `M ${braceX},${firstY} Q ${topCurveX},${firstY} ${topCurveX},${firstY + topOffset}`
+    let bracePath = `M ${braceX},${firstY} Q ${topCurveX},${firstY} ${topCurveX},${
+      firstY + topOffset
+    }`
     bracePath += ` L ${topCurveX},${midY - topOffset}`
     bracePath += ` Q ${topCurveX},${midY} ${midX},${midY}`
-    bracePath += ` Q ${bottomCurveX},${midY} ${bottomCurveX},${midY + bottomOffset}`
+    bracePath += ` Q ${bottomCurveX},${midY} ${bottomCurveX},${
+      midY + bottomOffset
+    }`
     bracePath += ` L ${bottomCurveX},${lastY - bottomOffset}`
     bracePath += ` Q ${bottomCurveX},${lastY} ${braceX},${lastY}`
 
