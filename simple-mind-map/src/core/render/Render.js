@@ -2132,9 +2132,29 @@ class Render {
 
   //  更新节点数据
   setNodeData(node, data) {
-    Object.keys(data).forEach(key => {
-      node.nodeData.data[key] = data[key]
-    })
+    // 如果配置了 beforeNodeDataHandle 函数，则在更新数据前先调用它格式化数据
+    const { beforeNodeDataHandle } = this.mindMap.opt
+    if (beforeNodeDataHandle && typeof beforeNodeDataHandle === 'function') {
+      // 构造完整的节点数据对象，用于 beforeNodeDataHandle 处理
+      const fullNodeData = {
+        data: {
+          ...node.nodeData.data,
+          ...data
+        },
+        children: node.nodeData.children || []
+      }
+      // 调用 beforeNodeDataHandle 处理数据
+      const processedData = beforeNodeDataHandle(fullNodeData) || fullNodeData
+      // 使用处理后的数据更新节点
+      Object.keys(data).forEach(key => {
+        node.nodeData.data[key] = processedData.data[key]
+      })
+    } else {
+      // 如果没有配置 beforeNodeDataHandle，直接更新数据
+      Object.keys(data).forEach(key => {
+        node.nodeData.data[key] = data[key]
+      })
+    }
   }
 
   //  设置节点数据，并判断是否渲染
