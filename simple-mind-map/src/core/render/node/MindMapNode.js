@@ -496,9 +496,9 @@ class MindMapNode {
     })
     // 右键菜单事件
     this.group.on('contextmenu', e => {
-      const { readonly, useLeftKeySelectionRightKeyDrag } = this.mindMap.opt
+      const { useLeftKeySelectionRightKeyDrag } = this.mindMap.opt
       // Mac上按住ctrl键点击鼠标左键不知为何触发的是contextmenu事件
-      if (readonly || e.ctrlKey) {
+      if (e.ctrlKey) {
         return
       }
       e.stopPropagation()

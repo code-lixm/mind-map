@@ -261,16 +261,7 @@ class Render {
     this.mindMap.command.add('INSERT_CHILD_NODE', this.insertChildNode)
     // 插入多个子节点
     this.insertMultiChildNode = this.insertMultiChildNode.bind(this)
-    this.mindMap.command.add(
-      'INSERT_MULTI_CHILD_NODE',
-      this.insertMultiChildNode
-    )
-    // 插入或更新子节点
-    this.insertChildNodeByPath = this.insertChildNodeByPath.bind(this)
-    this.mindMap.command.add(
-      'INSERT_CHILD_NODE_BY_PATH',
-      this.insertChildNodeByPath
-    )
+    this.mindMap.command.add( 'INSERT_MULTI_CHILD_NODE', this.insertMultiChildNode )
     // 插入父节点
     this.insertParentNode = this.insertParentNode.bind(this)
     this.mindMap.command.add('INSERT_PARENT_NODE', this.insertParentNode)
@@ -1013,128 +1004,6 @@ class Render {
         expand: true
       })
     })
-    if (focusNewNode) {
-      this.clearActiveNodeList()
-    }
-    this.mindMap.render()
-  }
-
-  // 插入或更新子节点
-  insertChildNodeByPath(
-    openEdit = true,
-    appointNodes = [],
-    path,
-    value,
-    appointData = null,
-    appointChildren = []
-  ) {
-    if (!path || value === undefined) {
-      return
-    }
-
-    const getValueByPath = (obj, path) => {
-      return path.split('.').reduce((o, k) => (o || {})[k], obj)
-    }
-
-    const setValueByPath = (obj, path, value) => {
-      const pathArr = path.split('.')
-      let current = obj
-      for (let i = 0; i < pathArr.length - 1; i++) {
-        const key = pathArr[i]
-        if (current[key] === undefined) {
-          current[key] = {}
-        }
-        current = current[key]
-      }
-      current[pathArr[pathArr.length - 1]] = value
-    }
-
-    appointNodes = formatDataToArray(appointNodes)
-    if (this.activeNodeList.length <= 0 && appointNodes.length <= 0) {
-      return
-    }
-    this.textEdit.hideEditTextBox()
-    const list = appointNodes.length > 0 ? appointNodes : this.activeNodeList
-    const handleMultiNodes = list.length > 1
-    const isRichText = this.hasRichTextPlugin()
-    const { focusNewNode, inserting } = this.getNewNodeBehavior(
-      openEdit,
-      handleMultiNodes
-    )
-
-    list.forEach(node => {
-      if (node.isGeneralization) {
-        return
-      }
-
-      let childToUpdate = null
-      if (node.children && node.children.length > 0) {
-        childToUpdate = node.children.find(child => {
-          return getValueByPath(child.getData(), path) === value
-        })
-      }
-
-      if (childToUpdate) {
-        // 更新现有节点
-        if (appointData) {
-          this.setNodeData(childToUpdate, appointData)
-        }
-        if (appointChildren) {
-          childToUpdate.nodeData.children = createUidForAppointNodes(
-            simpleDeepClone(appointChildren),
-            false
-          )
-        }
-      } else {
-        // 插入新节点
-        const {
-          defaultInsertSecondLevelNodeText,
-          defaultInsertBelowSecondLevelNodeText
-        } = this.mindMap.opt
-
-        if (!node.nodeData.children) {
-          node.nodeData.children = []
-        }
-        const text = node.isRoot
-          ? defaultInsertSecondLevelNodeText
-          : defaultInsertBelowSecondLevelNodeText
-
-        let createNewId = false
-        const newNodeData = {
-          inserting,
-          data: {
-            text: text,
-            uid: createUid(),
-            expand: true,
-            richText: isRichText,
-            isActive: focusNewNode,
-            ...appointData
-          },
-          children: [
-            ...createUidForAppointNodes(
-              simpleDeepClone(appointChildren),
-              createNewId
-            )
-          ]
-        }
-        setValueByPath(newNodeData.data, path, value)
-
-        if (
-          isRichText &&
-          !newNodeData.data.richText &&
-          appointData &&
-          !appointData.richText
-        ) {
-          newNodeData.data.resetRichText = true
-        }
-
-        node.nodeData.children.push(newNodeData)
-        node.setData({
-          expand: true
-        })
-      }
-    })
-
     if (focusNewNode) {
       this.clearActiveNodeList()
     }
