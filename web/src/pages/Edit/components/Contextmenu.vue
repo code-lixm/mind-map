@@ -42,6 +42,14 @@
       <div class="splitLine"></div>
       <div
         class="item"
+        @click="convertToFreedom"
+        :class="{ disabled: isGeneralization }"
+      >
+        <span class="name">{{ $t('contextmenu.convertToFreedom') }}</span>
+      </div>
+      <div class="splitLine"></div>
+      <div
+        class="item"
         @click="exec('UP_NODE')"
         :class="{ disabled: upNodeBtnDisabled }"
       >
@@ -512,6 +520,13 @@ export default {
     // AI续写
     aiCreate() {
       this.$bus.$emit('ai_create_part', this.node)
+      this.hide()
+    },
+
+    // 转换为自由节点
+    convertToFreedom() {
+      if (!this.node) return
+      this.mindMap.execCommand('CONVERT_TO_FREEDOM', this.node)
       this.hide()
     }
   }

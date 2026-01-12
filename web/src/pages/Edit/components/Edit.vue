@@ -87,6 +87,7 @@ import Demonstrate from 'simple-mind-map/src/plugins/Demonstrate.js'
 import OuterFrame from 'simple-mind-map/src/plugins/OuterFrame.js'
 import MindMapLayoutPro from 'simple-mind-map/src/plugins/MindMapLayoutPro.js'
 import NodeBase64ImageStorage from 'simple-mind-map/src/plugins/NodeBase64ImageStorage.js'
+import FreedomNode from 'simple-mind-map/src/plugins/FreedomNode.js'
 import Themes from 'simple-mind-map-plugin-themes'
 // 协同编辑插件
 // import Cooperate from 'simple-mind-map/src/plugins/Cooperate.js'
@@ -151,6 +152,7 @@ MindMap.usePlugin(MiniMap)
   .usePlugin(OuterFrame)
   .usePlugin(MindMapLayoutPro)
   .usePlugin(NodeBase64ImageStorage)
+  .usePlugin(FreedomNode)
 // .usePlugin(Cooperate) // 协同插件
 
 // 注册主题
@@ -475,6 +477,14 @@ export default {
         data: root,
         fit: false,
         layout: layout,
+        enableFreedomNode: true,
+        freedomNodeConfig: {
+          dragToBlankConvertSafeDistance: 150,
+          snapToTreeDistance: 100,
+          dblclickBlankCreateFreedom: true,
+          defaultFreedomNodeText: '自由节点',
+          enableFreedomNodeDrag: true
+        },
         theme: theme.template,
         themeConfig: theme.config,
         viewData: view,
@@ -574,6 +584,12 @@ export default {
       }
       this.mindMap.keyCommand.addShortcut('Control+s', () => {
         this.manualSave()
+      })
+      // 注册自由节点快捷键
+      this.mindMap.keyCommand.addShortcut('Control+Shift+f', () => {
+        this.mindMap.execCommand('CREATE_FREEDOM_NODE', {
+          text: this.$t('toolbar.defaultFreedomNodeText')
+        })
       })
       // 转发事件
       ;[

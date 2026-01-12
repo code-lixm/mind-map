@@ -239,6 +239,11 @@ export const shortcutKeyList = [
         value: `${ctrl} + G`
       },
       {
+        icon: 'iconjiedian',
+        name: '建立自由節點',
+        value: `${ctrl} + Shift + F`
+      },
+      {
         icon: 'iconzhankai',
         name: '展開／收合節點',
         value: '/'

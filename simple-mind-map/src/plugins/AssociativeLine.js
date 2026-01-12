@@ -220,6 +220,8 @@ class AssociativeLine {
     if (!tree) return
     let idToNode = new Map()
     let nodeToIds = new Map()
+
+    // 收集主树节点
     walk(
       tree,
       null,
@@ -240,6 +242,33 @@ class AssociativeLine {
       true,
       0
     )
+
+    // 【扩展】收集自由节点（支持跨树连接）
+    if (this.mindMap.freeNode && this.mindMap.freeNode.freeRootList) {
+      this.mindMap.freeNode.freeRootList.forEach(freeRoot => {
+        walk(
+          freeRoot,
+          null,
+          cur => {
+            if (!cur) return
+            let data = cur.getData()
+            if (
+              data.associativeLineTargets &&
+              data.associativeLineTargets.length > 0
+            ) {
+              nodeToIds.set(cur, data.associativeLineTargets)
+            }
+            if (data.uid) {
+              idToNode.set(data.uid, cur)
+            }
+          },
+          () => {},
+          true,
+          0
+        )
+      })
+    }
+
     nodeToIds.forEach((ids, node) => {
       ids.forEach((uid, index) => {
         let toNode = idToNode.get(uid)
@@ -540,6 +569,8 @@ class AssociativeLine {
   // 检测当前移动到的目标节点
   checkOverlapNode(x, y) {
     this.overlapNode = null
+
+    // 检查主树节点
     bfsWalk(this.mindMap.renderer.root, node => {
       if (node.getData('isActive')) {
         this.mindMap.execCommand('SET_NODE_ACTIVE', node, false)
@@ -554,6 +585,28 @@ class AssociativeLine {
         this.overlapNode = node
       }
     })
+
+    // 【扩展】检查自由节点（支持跨树连接）
+    if (!this.overlapNode && this.mindMap.freeNode && this.mindMap.freeNode.freeRootList) {
+      this.mindMap.freeNode.freeRootList.forEach(freeRoot => {
+        if (this.overlapNode) return
+        bfsWalk(freeRoot, node => {
+          if (node.getData('isActive')) {
+            this.mindMap.execCommand('SET_NODE_ACTIVE', node, false)
+          }
+          if (node.uid === this.creatingStartNode.uid || this.overlapNode) {
+            return
+          }
+          let { left, top, width, height } = node
+          let right = left + width
+          let bottom = top + height
+          if (x >= left && x <= right && y >= top && y <= bottom) {
+            this.overlapNode = node
+          }
+        })
+      })
+    }
+
     if (this.overlapNode && !this.overlapNode.getData('isActive')) {
       this.mindMap.execCommand('SET_NODE_ACTIVE', this.overlapNode, true)
     }

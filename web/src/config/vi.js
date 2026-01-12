@@ -243,6 +243,11 @@ export const shortcutKeyList = [
         value: `${ctrl} + G`
       },
       {
+        icon: 'iconjiedian',
+        name: 'Tạo nút tự do',
+        value: `${ctrl} + Shift + F`
+      },
+      {
         icon: 'iconzhankai',
         name: 'Mở rộng/thu gọn các nút',
         value: '/'

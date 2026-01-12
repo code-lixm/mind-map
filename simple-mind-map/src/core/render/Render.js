@@ -593,6 +593,8 @@ class Render {
       return
     }
     this.mindMap.emit('node_tree_render_start')
+    // 【FreedomNode Hook】渲染前钩子
+    this.mindMap.emit('before_node_render')
     // 计算布局
     this.root = null
     this.layout.doLayout(root => {
@@ -610,6 +612,8 @@ class Render {
       this.root = root
       // 渲染节点
       this.root.render(() => {
+        // 【FreedomNode Hook】渲染后钩子，用于渲染自由节点
+        this.mindMap.emit('after_node_render')
         this.isRendering = false
         if (this.hasWaitRendering) {
           this.hasWaitRendering = false
@@ -2123,6 +2127,8 @@ class Render {
   findNodeByUid(uid) {
     if (!this.root) return
     let res = null
+
+    // 在主树中查找
     walk(this.root, null, node => {
       if (node.getData('uid') === uid) {
         res = node
@@ -2140,6 +2146,29 @@ class Render {
         return true
       }
     })
+
+    // 【扩展】在自由节点中查找
+    if (!res && this.mindMap.freeNode && this.mindMap.freeNode.freeRootList) {
+      for (const freeRoot of this.mindMap.freeNode.freeRootList) {
+        walk(freeRoot, null, node => {
+          if (node.getData('uid') === uid) {
+            res = node
+            return true
+          }
+          // 概要节点
+          const generalizationList = node._generalizationList || []
+          for (const item of generalizationList) {
+            if (item.generalizationNode.getData('uid') === uid) {
+              res = item.generalizationNode
+              return true
+            }
+          }
+        })
+        // 找到后立即退出
+        if (res) break
+      }
+    }
+
     return res
   }
   // 高亮节点或子节点

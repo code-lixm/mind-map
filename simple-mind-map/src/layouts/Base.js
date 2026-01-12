@@ -108,6 +108,9 @@ class Base {
 
   //  创建节点实例
   createNode(data, parent, isRoot, layerIndex, index, ancestors) {
+    // 【FreedomNode Hook】跳过自由节点的父子关系绑定
+    const isFreedomNode = data.data && data.data.isFreedomNode
+
     // 创建节点
     // 库前置内容数据
     const nodeInnerPrefixData = {}
@@ -151,7 +154,8 @@ class Base {
       newNode.layerIndex = layerIndex
       if (isRoot) {
         newNode.isRoot = true
-      } else {
+      } else if (!isFreedomNode) {
+        // 【FreedomNode Hook】自由节点不设置父节点引用
         newNode.parent = parent._node
       }
       this.cacheNode(data._node.uid, newNode)
@@ -204,7 +208,8 @@ class Base {
       newNode.layerIndex = layerIndex
       if (isRoot) {
         newNode.isRoot = true
-      } else {
+      } else if (!isFreedomNode) {
+        // 【FreedomNode Hook】自由节点不设置父节点引用
         newNode.parent = parent._node
       }
       this.cacheNode(uid, newNode)
@@ -245,7 +250,8 @@ class Base {
         draw: this.draw,
         layerIndex,
         isRoot,
-        parent: !isRoot ? parent._node : null,
+        // 【FreedomNode Hook】自由节点不设置父节点引用
+        parent: !isRoot && !isFreedomNode ? parent._node : null,
         ...nodeInnerPrefixData
       })
       // uid保存到数据上，为了节点复用
@@ -267,8 +273,8 @@ class Base {
     // 根节点
     if (isRoot) {
       this.root = newNode
-    } else {
-      // 互相收集
+    } else if (!isFreedomNode) {
+      // 【FreedomNode Hook】自由节点不加入父节点的子节点列表
       parent._node.addChildren(newNode)
     }
     return newNode

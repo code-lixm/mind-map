@@ -345,6 +345,41 @@ export const defaultOpt = {
   // 节点连线样式是否允许继承祖先的连线样式
   enableInheritAncestorLineStyle: true,
 
+  // ========== 【FreedomNode 插件配置】 ==========
+  // 是否启用自由节点功能（需安装并注册 FreedomNode 插件）
+  enableFreedomNode: false,
+
+  // 自由节点详细配置项
+  freedomNodeConfig: {
+    // 拖拽转换的安全距离（单位：像素）
+    // 当节点拖拽超过此距离时，会自动转换为自由节点
+    dragToBlankConvertSafeDistance: 150,
+
+    // 自由节点吸附回树的安全距离（单位：像素）
+    // 当自由节点拖拽到树形节点此距离内时，会自动吸附
+    snapToTreeDistance: 100,
+
+    // 是否允许双击空白画布创建自由节点
+    dblclickBlankCreateFreedom: true,
+
+    // 自由节点的默认文本内容
+    defaultFreedomNodeText: '自由节点',
+
+    // 自由节点的默认布局类型（null 表示继承主树布局）
+    defaultFreedomNodeLayout: null,
+
+    // 是否允许拖拽移动自由节点
+    enableFreedomNodeDrag: true,
+
+    // 拖拽转换时的子节点处理模式
+    // 'currentOnly': 仅转换当前节点及其子树
+    // 'includeFollowing': 包含当前节点及其后续所有兄弟节点
+    convertToFreedomIncludeMode: 'currentOnly',
+
+    // 是否在导出时包含自由节点数据
+    exportIncludeFreedomNodes: true
+  },
+
   // 【Select插件】
   // 多选节点时鼠标移动到边缘时的画布移动偏移量
   selectTranslateStep: 3,

@@ -239,6 +239,11 @@ export const shortcutKeyList = [
         value: `${ctrl} + G`
       },
       {
+        icon: 'iconjiedian',
+        name: 'Create freedom node',
+        value: `${ctrl} + Shift + F`
+      },
+      {
         icon: 'iconzhankai',
         name: 'Expand/UnExpand node',
         value: '/'

@@ -58,6 +58,14 @@
         <span class="text">{{ $t('toolbar.insertChildNode') }}</span>
       </div>
       <div
+        v-if="item === 'freedomNode'"
+        class="toolbarBtn"
+        @click="createFreedomNode"
+      >
+        <span class="icon iconfont iconjiedian"></span>
+        <span class="text">{{ $t('toolbar.freedomNode') }}</span>
+      </div>
+      <div
         v-if="item === 'deleteNode'"
         class="toolbarBtn"
         :class="{
@@ -312,6 +320,13 @@ export default {
     // AI生成整体
     aiCrate() {
       this.$bus.$emit('ai_create_all')
+    },
+
+    // 创建自由节点
+    createFreedomNode() {
+      this.$bus.$emit('execCommand', 'CREATE_FREEDOM_NODE', {
+        text: this.$t('toolbar.defaultFreedomNodeText')
+      })
     }
   }
 }

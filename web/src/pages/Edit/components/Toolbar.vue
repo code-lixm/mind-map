@@ -165,6 +165,7 @@ const defaultBtnList = [
   'painter',
   'siblingNode',
   'childNode',
+  'freedomNode',
   'deleteNode',
   'image',
   'icon',

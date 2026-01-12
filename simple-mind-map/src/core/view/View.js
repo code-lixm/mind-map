@@ -299,13 +299,68 @@ class View {
     this.emitEvent('scale')
   }
 
+  // 【扩展】获取自由节点包围盒
+  getFreeNodesBoundingRect() {
+    const freeNodePlugin = this.mindMap.freeNode
+    if (
+      !freeNodePlugin ||
+      typeof freeNodePlugin.getFreeNodesBoundingRect !== 'function'
+    ) {
+      return null
+    }
+    const bounds = freeNodePlugin.getFreeNodesBoundingRect()
+    if (!bounds) {
+      return null
+    }
+
+    return {
+      x: bounds.left,
+      y: bounds.top,
+      width: bounds.width,
+      height: bounds.height,
+      x2: bounds.right,
+      y2: bounds.bottom,
+      ratio: bounds.height === 0 ? Infinity : bounds.width / bounds.height
+    }
+  }
+
   // 适应画布大小
   fit(getRbox = () => {}, enlarge = false, fitPadding) {
     fitPadding =
       fitPadding === undefined ? this.mindMap.opt.fitPadding : fitPadding
     const draw = this.mindMap.draw
     const origTransform = draw.transform()
-    const rect = getRbox() || draw.rbox()
+
+    // 获取主树包围盒
+    const mainTreeRect = getRbox() || draw.rbox()
+
+    // 【扩展】合并自由节点包围盒
+    let combinedRect = mainTreeRect
+    const freeNodesRect = this.getFreeNodesBoundingRect()
+    if (freeNodesRect) {
+      // 将自由节点包围盒转换为画布坐标系
+      const freeX = freeNodesRect.x * origTransform.scaleX + origTransform.translateX
+      const freeY = freeNodesRect.y * origTransform.scaleY + origTransform.translateY
+      const freeX2 = freeNodesRect.x2 * origTransform.scaleX + origTransform.translateX
+      const freeY2 = freeNodesRect.y2 * origTransform.scaleY + origTransform.translateY
+
+      // 合并包围盒
+      const minX = Math.min(combinedRect.x, freeX)
+      const minY = Math.min(combinedRect.y, freeY)
+      const maxX = Math.max(combinedRect.x2, freeX2)
+      const maxY = Math.max(combinedRect.y2, freeY2)
+
+      combinedRect = {
+        x: minX,
+        y: minY,
+        x2: maxX,
+        y2: maxY,
+        width: maxX - minX,
+        height: maxY - minY
+      }
+    }
+
+    const rect = combinedRect
     const drawWidth = rect.width / origTransform.scaleX
     const drawHeight = rect.height / origTransform.scaleY
     const drawRatio = drawWidth / drawHeight
@@ -333,7 +388,7 @@ class View {
       newScale = newWidth / drawWidth
     }
     this.setScale(newScale)
-    const newRect = getRbox() || draw.rbox()
+    const newRect = combinedRect
     // 需要考虑画布容器距浏览器窗口左上角的距离
     newRect.x -= this.mindMap.elRect.left
     newRect.y -= this.mindMap.elRect.top

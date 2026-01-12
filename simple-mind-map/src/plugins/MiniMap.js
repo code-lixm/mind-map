@@ -31,6 +31,35 @@ class MiniMap {
       this.mindMap.getSvgData({
         ignoreWatermark: true
       })
+
+    // 【扩展】合并自由节点到包围盒计算
+    if (this.mindMap.freeNode && this.mindMap.freeNode.freeRootList && this.mindMap.freeNode.freeRootList.length > 0) {
+      // 获取自由节点包围盒
+      let freeMinX = Infinity
+      let freeMinY = Infinity
+      let freeMaxX = -Infinity
+      let freeMaxY = -Infinity
+
+      this.mindMap.freeNode.freeRootList.forEach(freeRoot => {
+        const freeRect = freeRoot.group.rbox()
+        if (freeRect.x < freeMinX) freeMinX = freeRect.x
+        if (freeRect.y < freeMinY) freeMinY = freeRect.y
+        if (freeRect.x2 > freeMaxX) freeMaxX = freeRect.x2
+        if (freeRect.y2 > freeMaxY) freeMaxY = freeRect.y2
+      })
+
+      // 如果存在有效的自由节点，合并包围盒
+      if (freeMinX !== Infinity) {
+        rect.x = Math.min(rect.x, freeMinX)
+        rect.y = Math.min(rect.y, freeMinY)
+        rect.x2 = Math.max(rect.x2, freeMaxX)
+        rect.y2 = Math.max(rect.y2, freeMaxY)
+        rect.width = rect.x2 - rect.x
+        rect.height = rect.y2 - rect.y
+        rect.ratio = rect.width / rect.height
+      }
+    }
+
     // 计算数据
     const elRect = this.mindMap.elRect
     rect.x -= elRect.left

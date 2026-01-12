@@ -178,6 +178,13 @@ class Command {
     if (!this.mindMap.renderer.renderTree) return null
     const res = copyRenderTree({}, this.mindMap.renderer.renderTree, true)
     res.smmVersion = pkg.version
+
+    // 【FreedomNode 扩展】包含自由节点数据
+    // 如果存在自由节点，则将其深拷贝到结果中
+    if (this.mindMap.renderer.renderTree.freeNodes) {
+      res.freeNodes = simpleDeepClone(this.mindMap.renderer.renderTree.freeNodes)
+    }
+
     return res
   }
 

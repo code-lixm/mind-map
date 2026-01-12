@@ -191,13 +191,61 @@ class MindMap {
   handleData(data) {
     if (isUndef(data) || Object.keys(data).length <= 0) return null
     data = simpleDeepClone(data || {})
+
+    // 处理主树数据
+    let mainTree = data
+    let freeNodes = []
+
+    // 检查是否是新格式（包含 root 和 freeNodes）
+    if (data.root) {
+      mainTree = data.root
+      freeNodes = data.freeNodes || []
+    }
+
     // 根节点不能收起
-    if (data.data && !data.data.expand) {
-      data.data.expand = true
+    if (mainTree.data && !mainTree.data.expand) {
+      mainTree.data.expand = true
     }
     // 给没有uid的节点添加uid
-    createUidForAppointNodes([data], false, null, true)
-    return data
+    createUidForAppointNodes([mainTree], false, null, true)
+
+    // 处理自由节点数据
+    if (freeNodes && freeNodes.length > 0) {
+      freeNodes = this.processFreeNodes(freeNodes)
+    }
+
+    // 返回规范化的数据结构
+    // 如果原始数据包含 freeNodes 字段，则将其添加到主树
+    if (data.root && freeNodes.length > 0) {
+      mainTree.freeNodes = freeNodes
+    }
+
+    return mainTree
+  }
+
+  // 处理自由节点数据
+  processFreeNodes(freeNodes) {
+    if (!Array.isArray(freeNodes)) return []
+
+    return freeNodes.map(freeNode => {
+      const cloned = simpleDeepClone(freeNode)
+      // 为自由节点树生成 uid
+      if (cloned.root && cloned.root.data) {
+        createUidForAppointNodes([cloned.root], false, null, true)
+        // 标记为自由节点
+        if (!cloned.root.data.isFreedomNode) {
+          cloned.root.data.isFreedomNode = true
+        }
+      }
+      // 确保必需字段存在
+      if (!cloned.id) {
+        cloned.id = `fn_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+      }
+      if (!cloned.position) {
+        cloned.position = { left: 0, top: 0 }
+      }
+      return cloned
+    }).filter(node => node.root && node.root.data) // 过滤无效节点
   }
 
   // 创建容器元素

@@ -20,6 +20,29 @@ class Drag extends Base {
     this.bindEvent()
   }
 
+  getFreedomConfig(key, defaultValue) {
+    const pluginOptions = this.mindMap.freeNode
+      ? this.mindMap.freeNode.options || {}
+      : {}
+    if (pluginOptions[key] !== undefined) {
+      return pluginOptions[key]
+    }
+    if (
+      this.mindMap.opt.freedomNodeConfig &&
+      this.mindMap.opt.freedomNodeConfig[key] !== undefined
+    ) {
+      return this.mindMap.opt.freedomNodeConfig[key]
+    }
+    if (this.mindMap.opt[key] !== undefined) {
+      return this.mindMap.opt[key]
+    }
+    return defaultValue
+  }
+
+  isFreedomNodeDragEnabled() {
+    return this.getFreedomConfig('enableFreedomNodeDrag', true)
+  }
+
   //  复位
   reset() {
     // 是否正在拖拽中
@@ -66,12 +89,14 @@ class Drag extends Base {
     this.onNodeMousedown = this.onNodeMousedown.bind(this)
     this.onMousemove = this.onMousemove.bind(this)
     this.onMouseup = this.onMouseup.bind(this)
+    this.onDblclick = this.onDblclick.bind(this)
     this.checkOverlapNode = throttle(this.checkOverlapNode, 300, this)
 
     this.mindMap.on('node_mousedown', this.onNodeMousedown)
     this.mindMap.on('mousemove', this.onMousemove)
     this.mindMap.on('node_mouseup', this.onMouseup)
     this.mindMap.on('mouseup', this.onMouseup)
+    this.mindMap.on('dblclick', this.onDblclick)
   }
 
   // 解绑事件
@@ -80,6 +105,7 @@ class Drag extends Base {
     this.mindMap.off('mousemove', this.onMousemove)
     this.mindMap.off('node_mouseup', this.onMouseup)
     this.mindMap.off('mouseup', this.onMouseup)
+    this.mindMap.off('dblclick', this.onDblclick)
   }
 
   // 节点鼠标按下事件
@@ -158,6 +184,15 @@ class Drag extends Base {
         return
       }
     }
+    // 检查是否拖拽自由节点
+    if (this.mousedownNode && this.mousedownNode.getData('isFreedomNode')) {
+      if (this.isFreedomNodeDragEnabled()) {
+        this.handleFreeNodeDragEnd(e)
+      }
+      this.reset()
+      return
+    }
+
     // 存在重叠子节点，则移动作为其子节点
     if (this.overlapNode) {
       this.removeNodeActive(this.overlapNode)
@@ -182,30 +217,34 @@ class Drag extends Base {
         this.beingDragNodeList,
         this.nextNode
       )
+    } else if (this.isDragging && this.beingDragNodeList.length === 1) {
+      if (this.tryAttachNodeToFreeRoot(e)) {
+        this.reset()
+        return
+      }
+      // 检查是否超出安全距离，如果是则转换为自由节点
+      const dragToBlankConvertSafeDistance = this.getFreedomConfig(
+        'dragToBlankConvertSafeDistance'
+      )
+      if (dragToBlankConvertSafeDistance) {
+        const distance = this.calculateDistanceFromTree()
+        if (distance > dragToBlankConvertSafeDistance) {
+          this.convertToFreedomNode(e)
+          this.reset()
+          return
+        }
+      }
+      // 在安全距离内，设置自定义位置
+      if (this.clone && enableFreeDrag) {
+        this.setCustomPosition(e)
+      }
     } else if (
       this.clone &&
       enableFreeDrag &&
       this.beingDragNodeList.length === 1
     ) {
       // 如果只拖拽了一个节点，那么设置自定义位置
-      let { x, y } = this.mindMap.toPos(
-        e.clientX - this.offsetX,
-        e.clientY - this.offsetY
-      )
-      let { scaleX, scaleY, translateX, translateY } = this.drawTransform
-      x = (x - translateX) / scaleX
-      y = (y - translateY) / scaleY
-      this.mousedownNode.left = x
-      this.mousedownNode.top = y
-      this.mousedownNode.customLeft = x
-      this.mousedownNode.customTop = y
-      this.mindMap.execCommand(
-        'SET_NODE_CUSTOM_POSITION',
-        this.mousedownNode,
-        x,
-        y
-      )
-      this.mindMap.render()
+      this.setCustomPosition(e)
     }
     if (this.isDragging) {
       this.mindMap.emit('node_dragend', {
@@ -1268,6 +1307,238 @@ class Drag extends Base {
       return item.uid === node.uid || item.isAncestor(node)
     })
   }
+
+  // === 自由节点相关方法 ===
+
+  // 设置自定义位置（提取原有逻辑）
+  setCustomPosition(e) {
+    let { x, y } = this.mindMap.toPos(
+      e.clientX - this.offsetX,
+      e.clientY - this.offsetY
+    )
+    let { scaleX, scaleY, translateX, translateY } = this.drawTransform
+    x = (x - translateX) / scaleX
+    y = (y - translateY) / scaleY
+    this.mousedownNode.left = x
+    this.mousedownNode.top = y
+    this.mousedownNode.customLeft = x
+    this.mousedownNode.customTop = y
+    this.mindMap.execCommand(
+      'SET_NODE_CUSTOM_POSITION',
+      this.mousedownNode,
+      x,
+      y
+    )
+    this.mindMap.render()
+  }
+
+  // 计算节点距树的距离
+  calculateDistanceFromTree() {
+    if (!this.beingDragNodeList || this.beingDragNodeList.length === 0) {
+      return 0
+    }
+
+    const draggedNode = this.beingDragNodeList[0]
+    const { x, y } = this.mindMap.toPos(
+      this.mouseMoveX - this.offsetX,
+      this.mouseMoveY - this.offsetY
+    )
+
+    // 计算与最近节点的距离
+    let minDistance = Infinity
+    this.nodeList.forEach(node => {
+      const nodeRect = this.getNodeRect(node)
+      // 计算到节点边界的距离
+      const distance = Math.sqrt(
+        Math.pow(nodeRect.originLeft - x, 2) + Math.pow(nodeRect.originTop - y, 2)
+      )
+      if (distance < minDistance) {
+        minDistance = distance
+      }
+    })
+
+    return minDistance
+  }
+
+  // 转换为自由节点
+  convertToFreedomNode(e) {
+    if (!this.mindMap.freeNode) {
+      console.warn('FreedomNode plugin not installed')
+      return
+    }
+
+    const node = this.beingDragNodeList[0]
+    let { x, y } = this.mindMap.toPos(
+      e.clientX - this.offsetX,
+      e.clientY - this.offsetY
+    )
+    let { scaleX, scaleY, translateX, translateY } = this.drawTransform
+    x = (x - translateX) / scaleX
+    y = (y - translateY) / scaleY
+
+    // 调用FreedomNode插件的转换方法
+    this.mindMap.freeNode.convertToFreedom(node, { left: x, top: y })
+
+    // 触发事件
+    this.mindMap.emit('node_converted_to_freedom', {
+      node: node,
+      position: { left: x, top: y }
+    })
+  }
+
+  // 处理自由节点拖拽结束
+  handleFreeNodeDragEnd(e) {
+    if (!this.mindMap.freeNode) {
+      return
+    }
+    if (!this.isFreedomNodeDragEnabled()) {
+      return
+    }
+
+    const draggedNode = this.beingDragNodeList[0]
+    let { x, y } = this.mindMap.toPos(
+      e.clientX - this.offsetX,
+      e.clientY - this.offsetY
+    )
+    let { scaleX, scaleY, translateX, translateY } = this.drawTransform
+    x = (x - translateX) / scaleX
+    y = (y - translateY) / scaleY
+
+    // 检查是否拖入树形结构（吸附）
+    const targetNode = this.checkSnapToTree(draggedNode, { x, y })
+
+    if (targetNode) {
+      // 吸附回树形结构
+      const freeNodeId = draggedNode._freedomNodeId
+      this.mindMap.freeNode.attachToTree(freeNodeId, targetNode)
+
+      // 触发事件
+      this.mindMap.emit('freedom_node_attached', {
+        freeNodeId: freeNodeId,
+        targetNode: targetNode
+      })
+    } else {
+      // 更新自由节点位置
+      const deltaX = x - draggedNode.left
+      const deltaY = y - draggedNode.top
+      const freeNodeId = draggedNode._freedomNodeId
+      if (freeNodeId) {
+        this.mindMap.freeNode.moveFreeNode(freeNodeId, deltaX, deltaY)
+      }
+    }
+  }
+
+  getDragCanvasPosition(e) {
+    let { x, y } = this.mindMap.toPos(
+      e.clientX - this.offsetX,
+      e.clientY - this.offsetY
+    )
+    const { scaleX, scaleY, translateX, translateY } = this.drawTransform
+    x = (x - translateX) / scaleX
+    y = (y - translateY) / scaleY
+    return { x, y }
+  }
+
+  getFreeRootUnderPointer(e) {
+    if (
+      !this.mindMap.freeNode ||
+      !Array.isArray(this.mindMap.freeNode.freeRootList) ||
+      this.mindMap.freeNode.freeRootList.length === 0
+    ) {
+      return null
+    }
+    const { x, y } = this.getDragCanvasPosition(e)
+    const snapDistance = this.getFreedomConfig('snapToTreeDistance', 100)
+    for (const root of this.mindMap.freeNode.freeRootList) {
+      const left = root.left - snapDistance
+      const top = root.top - snapDistance
+      const right = root.left + root.width + snapDistance
+      const bottom = root.top + root.height + snapDistance
+      if (x >= left && x <= right && y >= top && y <= bottom) {
+        return root
+      }
+    }
+    return null
+  }
+
+  tryAttachNodeToFreeRoot(e) {
+    if (
+      !this.mindMap.freeNode ||
+      this.beingDragNodeList.length !== 1
+    ) {
+      return false
+    }
+    const targetRoot = this.getFreeRootUnderPointer(e)
+    if (!targetRoot) {
+      return false
+    }
+    const freeNodeId = targetRoot.getData('_freedomNodeId')
+    if (!freeNodeId) {
+      return false
+    }
+    const draggedNode = this.beingDragNodeList[0]
+    this.mindMap.freeNode.appendNodeToFreeRoot(draggedNode, freeNodeId)
+    return true
+  }
+
+  // 检查是否应该吸附到树形节点
+  checkSnapToTree(draggedNode, mousePos) {
+    const snapDistance = this.getFreedomConfig('snapToTreeDistance', 100)
+
+    // 遍历所有树形节点
+    for (const node of this.nodeList) {
+      if (node.getData('isFreedomNode')) continue
+
+      const nodeRect = this.getNodeRect(node)
+      const distance = Math.sqrt(
+        Math.pow(nodeRect.originLeft - mousePos.x, 2) +
+        Math.pow(nodeRect.originTop - mousePos.y, 2)
+      )
+
+      if (distance < snapDistance) {
+        return node  // 返回目标节点
+      }
+    }
+
+    return null
+  }
+
+  // 双击空白画布创建自由节点
+  onDblclick(e) {
+    if (this.mindMap.opt.readonly) {
+      return
+    }
+
+    // 检查配置项
+    const dblclickBlankCreateFreedom = this.getFreedomConfig(
+      'dblclickBlankCreateFreedom',
+      true
+    )
+    if (!dblclickBlankCreateFreedom || !this.mindMap.freeNode) {
+      return
+    }
+
+    // 检查是否点击在节点上
+    const target = e.target
+    if (target && target.closest('.smm-node')) {
+      return  // 点击在节点上，不创建自由节点
+    }
+
+    // 计算点击位置
+    let { x, y } = this.mindMap.toPos(e.clientX, e.clientY)
+    const transform = this.mindMap.draw.transform()
+    x = (x - transform.translateX) / transform.scaleX
+    y = (y - transform.translateY) / transform.scaleY
+
+    // 调用FreedomNode插件创建自由节点
+    this.mindMap.freeNode.createFreeNode({
+      position: { left: x, top: y },
+      text: this.getFreedomConfig('defaultFreedomNodeText', '自由节点')
+    })
+  }
+
+  // === 自由节点方法结束 ===
+
 
   // 插件被移除前做的事情
   beforePluginRemove() {

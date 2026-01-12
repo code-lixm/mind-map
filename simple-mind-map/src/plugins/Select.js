@@ -220,6 +220,7 @@ class Select {
       }
     }
 
+    // 检查主树节点
     bfsWalk(this.mindMap.renderer.root, node => {
       check(node)
       // 概要节点
@@ -229,6 +230,21 @@ class Select {
         })
       }
     })
+
+    // 【扩展】检查自由节点
+    if (this.mindMap.freeNode && this.mindMap.freeNode.freeRootList) {
+      this.mindMap.freeNode.freeRootList.forEach(freeRoot => {
+        bfsWalk(freeRoot, node => {
+          check(node)
+          // 概要节点
+          if (node._generalizationList && node._generalizationList.length > 0) {
+            node._generalizationList.forEach(item => {
+              check(item.generalizationNode)
+            })
+          }
+        })
+      })
+    }
   }
 
   // 是否存在选区
