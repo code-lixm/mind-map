@@ -1,8 +1,8 @@
-//  默认主题
+//  默认主题（数据主题转换）
 export default {
   // 节点内边距
-  paddingX: 15,
-  paddingY: 5,
+  paddingX: 24, // root-padding[1]
+  paddingY: 14, // root-padding[0]
   // 图片显示的最大宽度
   imgMaxWidth: 350,
   // 图片显示的最大高度
@@ -10,9 +10,9 @@ export default {
   // icon的大小
   iconSize: 20,
   // 连线的粗细
-  lineWidth: 1,
+  lineWidth: 3, // connect-width
   // 连线的颜色
-  lineColor: '#549688',
+  lineColor: '#333333', // connect-color
   // 连线样式
   lineDasharray: 'none',
   // 连线是否开启流动效果，仅在虚线时有效（需要注册LineFlow插件）
@@ -22,27 +22,27 @@ export default {
   // 流动方向是否是从父节点到子节点
   lineFlowForward: true,
   // 连线风格
-  lineStyle: 'straight', // 曲线（curve）【贝塞尔曲线,仅支持logicalStructure、mindMap、verticalTimeline三种结构】、圆弧（curve2）【圆弧风格,仅支持logicalStructure、mindMap、organizationStructure、verticalTimeline四种结构】、直线（straight）、直连（direct）【仅支持logicalStructure、mindMap、organizationStructure、verticalTimeline四种结构】
+  lineStyle: 'straight', // connect-type: mind-round-angle 转换为 straight
   // 曲线连接时，根节点和其他节点的连接线样式保持统一，默认根节点为 ( 型，其他节点为 { 型，设为true后，都为 { 型。仅支持logicalStructure、mindMap两种结构
   rootLineKeepSameInCurve: true,
   // 曲线连接时，根节点和其他节点的连线起始位置保持统一，默认根节点的连线起始位置在节点中心，其他节点在节点右侧（或左侧），如果该配置设为true，那么根节点的连线起始位置也会在节点右侧（或左侧）
   rootLineStartPositionKeepSameInCurve: false,
   // 直线连接(straight)时，连线的圆角大小，设置为0代表没有圆角，仅支持logicalStructure、mindMap、verticalTimeline三种结构
-  lineRadius: 5,
+  lineRadius: 1, // connect-radius
   // 连线是否显示标记，目前只支持箭头
   showLineMarker: false,
   // 概要连线的粗细
-  generalizationLineWidth: 1,
+  generalizationLineWidth: 3, // generalize-connect-width
   // 概要连线的颜色
-  generalizationLineColor: '#549688',
+  generalizationLineColor: '#265AE4', // generalize-connect-color
   // 概要曲线距节点的距离
-  generalizationLineMargin: 0,
+  generalizationLineMargin: 20, // generalize-margin[1]
   // 概要节点距节点的距离
-  generalizationNodeMargin: 20,
+  generalizationNodeMargin: 5, // generalize-margin[0]
   // 关联线默认状态的粗细
   associativeLineWidth: 2,
   // 关联线默认状态的颜色
-  associativeLineColor: 'rgb(51, 51, 51)',
+  associativeLineColor: 'rgb(51, 51, 51)', // connect-color
   // 关联线激活状态的粗细
   associativeLineActiveWidth: 8,
   // 关联线激活状态的颜色
@@ -50,15 +50,15 @@ export default {
   // 关联线样式
   associativeLineDasharray: '6,4',
   // 关联线文字颜色
-  associativeLineTextColor: 'rgb(51, 51, 51)',
+  associativeLineTextColor: 'rgb(51, 51, 51)', // connect-color
   // 关联线文字大小
   associativeLineTextFontSize: 14,
   // 关联线文字行高
-  associativeLineTextLineHeight: 1.2,
+  associativeLineTextLineHeight: 1.2, // line-height
   // 关联线文字字体
-  associativeLineTextFontFamily: '微软雅黑, Microsoft YaHei',
+  associativeLineTextFontFamily: '微软雅黑, "Microsoft YaHei"', // root-font-family
   // 背景颜色
-  backgroundColor: '#fafafa',
+  backgroundColor: '#FFFFFF', // background
   // 背景图片
   backgroundImage: 'none',
   // 背景重复
@@ -71,20 +71,22 @@ export default {
   nodeUseLineStyle: false,
   // 根节点样式
   root: {
-    shape: 'rectangle',
-    fillColor: '#549688',
-    fontFamily: '微软雅黑, Microsoft YaHei',
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
+    shape: 'rectangle', // root-shape: default -> rectangle
+    marginX: 50, // root-margin[1]
+    marginY: 30, // root-margin[0]
+    fillColor: '#265AE4', // root-background
+    fontFamily: '微软雅黑, "Microsoft YaHei"', // root-font-family
+    color: '#FFFFFF', // root-color
+    fontSize: 24, // root-font-size
+    fontWeight: 'bold', // root-font-weight
     fontStyle: 'normal',
-    borderColor: 'transparent',
-    borderWidth: 0,
+    borderColor: '#265AE4', // root-stroke
+    borderWidth: 2, // root-stroke-width
     borderDasharray: 'none',
-    borderRadius: 5,
+    borderRadius: 8, // root-radius
     textDecoration: 'none',
     gradientStyle: false,
-    startColor: '#549688',
+    startColor: '#265AE4',
     endColor: '#fff',
     startDir: [0, 0],
     endDir: [1, 0],
@@ -93,13 +95,16 @@ export default {
     // 节点鼠标hover和激活时显示的矩形边框的颜色，主题里不设置，默认会取hoverRectColor实例化选项的值
     hoverRectColor: '',
     // 点鼠标hover和激活时显示的矩形边框的圆角大小
-    hoverRectRadius: 5,
+    hoverRectRadius: 8, // root-radius
     // 文本对齐
     textAlign: 'left', // right、center、justify、left
     // 图片放置位置，相对于整个文本内容
     imgPlacement: 'top', // left、right、bottom、top
     // 标签放置位置
-    tagPlacement: 'right' // right（文字右侧）、bottom（文本内容下方）
+    tagPlacement: 'right', // right（文字右侧）、bottom（文本内容下方）
+    // 节点特定的 padding
+    paddingX: 24, // root-padding[1]
+    paddingY: 14 // root-padding[0]
     // 下列样式也支持给节点设置，用于覆盖最外层的设置
     // paddingX,
     // paddingY,
@@ -113,86 +118,95 @@ export default {
   },
   // 二级节点样式
   second: {
-    shape: 'rectangle',
-    marginX: 100,
-    marginY: 40,
-    fillColor: '#fff',
-    fontFamily: '微软雅黑, Microsoft YaHei',
-    color: '#565656',
-    fontSize: 16,
+    shape: 'rectangle', // main-shape: default -> rectangle
+    marginX: 20, // main-margin (数字)
+    marginY: 0, // main-margin 为数字时，默认设为0
+    fillColor: '#262626', // main-background (深色背景)
+    fontFamily: '微软雅黑, "Microsoft YaHei"', // main-font-family
+    color: '#FFFFFF', // main-color (白色文字)
+    fontSize: 18, // main-font-size
     fontWeight: 'normal',
     fontStyle: 'normal',
-    borderColor: '#549688',
-    borderWidth: 1,
+    borderColor: '#262626', // main-stroke
+    borderWidth: 2, // main-stroke-width
     borderDasharray: 'none',
-    borderRadius: 5,
+    borderRadius: 8, // main-radius
     textDecoration: 'none',
     gradientStyle: false,
-    startColor: '#549688',
+    startColor: '#262626',
     endColor: '#fff',
     startDir: [0, 0],
     endDir: [1, 0],
     lineMarkerDir: 'end',
     hoverRectColor: '',
-    hoverRectRadius: 5,
+    hoverRectRadius: 8, // main-radius
     textAlign: 'left',
     imgPlacement: 'top',
-    tagPlacement: 'right'
+    tagPlacement: 'right',
+    // 节点特定的 padding
+    paddingX: 20, // main-padding[1]
+    paddingY: 14 // main-padding[0]
   },
   // 三级及以下节点样式
   node: {
     shape: 'rectangle',
-    marginX: 50,
-    marginY: 0,
-    fillColor: 'transparent',
-    fontFamily: '微软雅黑, Microsoft YaHei',
-    color: '#6a6d6c',
-    fontSize: 14,
+    marginX: 20, // sub-margin[1]
+    marginY: 5, // sub-margin[0]
+    fillColor: '#F9FAFB', // sub-background (浅灰背景)
+    fontFamily: '微软雅黑, "Microsoft YaHei"', // sub-font-family
+    color: '#333333', // sub-color (深色文字)
+    fontSize: 14, // sub-font-size
     fontWeight: 'normal',
     fontStyle: 'normal',
-    borderColor: 'transparent',
-    borderWidth: 0,
-    borderRadius: 5,
+    borderColor: '#333333', // sub-stroke (有边框)
+    borderWidth: 2, // sub-stroke-width
+    borderRadius: 5, // sub-radius
     borderDasharray: 'none',
     textDecoration: 'none',
     gradientStyle: false,
-    startColor: '#549688',
+    startColor: '#F9FAFB',
     endColor: '#fff',
     startDir: [0, 0],
     endDir: [1, 0],
     lineMarkerDir: 'end',
     hoverRectColor: '',
-    hoverRectRadius: 5,
+    hoverRectRadius: 5, // sub-radius
     textAlign: 'left',
     imgPlacement: 'top',
-    tagPlacement: 'right'
+    tagPlacement: 'right',
+    // 节点特定的 padding
+    paddingX: 10, // sub-padding[1]
+    paddingY: 7 // sub-padding[0]
   },
   // 概要节点样式
   generalization: {
-    shape: 'rectangle',
-    marginX: 100,
-    marginY: 40,
-    fillColor: '#fff',
-    fontFamily: '微软雅黑, Microsoft YaHei',
-    color: '#565656',
-    fontSize: 16,
+    shape: 'rectangle', // generalize-shape: default -> rectangle
+    marginX: 20, // generalize-margin[1]
+    marginY: 5, // generalize-margin[0]
+    fillColor: '#6BA4FF', // generalize-background
+    fontFamily: '微软雅黑, "Microsoft YaHei"', // generalize-font-family
+    color: '#FFFFFF', // generalize-color
+    fontSize: 14, // generalize-font-size
     fontWeight: 'normal',
     fontStyle: 'normal',
-    borderColor: '#549688',
-    borderWidth: 1,
+    borderColor: '#265AE4', // generalize-stroke
+    borderWidth: 2, // generalize-stroke-width
     borderDasharray: 'none',
-    borderRadius: 5,
+    borderRadius: 4, // generalize-radius
     textDecoration: 'none',
     gradientStyle: false,
-    startColor: '#549688',
+    startColor: '#6BA4FF',
     endColor: '#fff',
     startDir: [0, 0],
     endDir: [1, 0],
     hoverRectColor: '',
-    hoverRectRadius: 5,
+    hoverRectRadius: 4, // generalize-radius
     textAlign: 'left',
     imgPlacement: 'top',
-    tagPlacement: 'right'
+    tagPlacement: 'right',
+    // 节点特定的 padding
+    paddingX: 10, // generalize-padding[1]
+    paddingY: 7 // generalize-padding[0]
   }
 }
 
