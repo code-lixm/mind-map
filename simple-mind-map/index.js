@@ -505,19 +505,21 @@ class MindMap {
 
   //  动态设置思维导图数据，包括节点数据、布局、主题、视图
   setFullData(data) {
-    if (data.root) {
-      this.setData(data.root)
-    }
-    if (data.layout) {
-      this.setLayout(data.layout)
-    }
+    // 先设置主题和布局，再设置数据，确保节点尺寸计算时使用正确的主题配置
     if (data.theme) {
       if (data.theme.template) {
-        this.setTheme(data.theme.template)
+        this.setTheme(data.theme.template, true) // notRender = true，避免多次渲染
       }
       if (data.theme.config) {
-        this.setThemeConfig(data.theme.config)
+        this.setThemeConfig(data.theme.config, true) // notRender = true，避免多次渲染
       }
+    }
+    if (data.layout) {
+      this.setLayout(data.layout, true) // notRender = true，避免多次渲染
+    }
+    // 最后设置数据，这会触发一次完整的渲染
+    if (data.root) {
+      this.setData(data.root)
     }
     if (data.view) {
       this.view.setTransformData(data.view)
