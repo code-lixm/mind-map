@@ -23,7 +23,8 @@ import {
   getNodeTreeBoundingRect,
   getNodeTreeBoundingRectByNodeData,
   mergeTheme,
-  createUidForAppointNodes
+  createUidForAppointNodes,
+  throttle
 } from './src/utils'
 import defaultTheme, {
   checkIsNodeSizeIndependenceConfig
@@ -109,6 +110,8 @@ class MindMap {
 
     // 初始化缓存数据
     this.initCache()
+    // 标记是否有待处理的 resize
+    this._pendingResize = false
 
     // 注册插件
     MindMap.pluginList
@@ -149,6 +152,9 @@ class MindMap {
 
     // 批量执行类
     this.batchExecution = new BatchExecution()
+
+    // 创建节流版本的 resize 方法，避免频繁触发导致多次布局计算
+    this._resizeThrottled = throttle(this._doResize.bind(this), 100, this)
 
     // 注册插件
     MindMap.pluginList
@@ -331,14 +337,20 @@ class MindMap {
       throw new Error('容器元素el的宽高不能为0')
   }
 
-  //  容器尺寸变化，调整尺寸
-  resize() {
+  //  容器尺寸变化，调整尺寸（内部方法，实际执行 resize 逻辑）
+  _doResize() {
     const oldWidth = this.width
     const oldHeight = this.height
     this.getElRectInfo()
     this.svg.size(this.width, this.height)
     if (oldWidth !== this.width || oldHeight !== this.height) {
       // 如果画布宽高改变了需要触发一次渲染
+      // 如果正在渲染中，等待渲染完成后再执行，避免布局计算冲突
+      if (this.renderer.isRendering) {
+        // 标记需要等待渲染完成后再次执行 resize
+        this._pendingResize = true
+        return
+      }
       if (this.demonstrate) {
         // 如果存在演示插件，并且正在演示中，那么不需要触发重新渲染，否则会冲突
         if (!this.demonstrate.isInDemonstrate) {
@@ -349,6 +361,11 @@ class MindMap {
       }
     }
     this.emit('resize')
+  }
+
+  //  容器尺寸变化，调整尺寸（公共方法，使用节流）
+  resize() {
+    this._resizeThrottled()
   }
 
   //  监听事件
@@ -370,7 +387,8 @@ class MindMap {
   initCache() {
     this.commonCaches = {
       measureCustomNodeContentSizeEl: null,
-      measureRichtextNodeTextSizeEl: null
+      measureRichtextNodeTextSizeEl: null,
+      measureSvgElementSizeSvg: null
     }
   }
 

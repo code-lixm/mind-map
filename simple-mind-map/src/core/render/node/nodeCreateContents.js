@@ -14,12 +14,29 @@ import iconsSvg from '../../../svg/icons'
 import { noneRichTextNodeLineHeight } from '../../../constants/constant'
 
 // 测量svg文本宽高
-const measureText = (text, style) => {
+const measureText = (text, style, mindMap) => {
   const g = new G()
   const node = new Text().text(text)
   style.text(node)
   g.add(node)
-  return g.bbox()
+  // 确保元素被添加到 SVG DOM 中才能正确测量尺寸
+  // 在性能模式下，如果节点不在可视区域内，group 可能不存在，需要使用临时 SVG 容器
+  if (!mindMap.commonCaches.measureSvgElementSizeSvg) {
+    mindMap.commonCaches.measureSvgElementSizeSvg = SVG()
+      .size(1, 1)
+      .addTo(document.body)
+    mindMap.commonCaches.measureSvgElementSizeSvg.css({
+      position: 'fixed',
+      left: '-99999px',
+      top: '-99999px',
+      visibility: 'hidden'
+    })
+  }
+  const tempSvg = mindMap.commonCaches.measureSvgElementSizeSvg
+  tempSvg.add(g)
+  const bbox = g.bbox()
+  tempSvg.remove(g)
+  return bbox
 }
 
 // 标签默认的样式
@@ -289,7 +306,7 @@ function createTextNode(specifyText) {
     while (arr.length) {
       let str = arr.shift()
       let text = [...line, str].join('')
-      if (measureText(text, this.style).width <= maxWidth) {
+      if (measureText(text, this.style, this.mindMap).width <= maxWidth) {
         line.push(str)
       } else {
         lines.push(line.join(''))
@@ -328,14 +345,33 @@ function createTextNode(specifyText) {
     )
     g.add(node)
   })
+  // 确保元素被添加到 SVG DOM 中才能正确测量尺寸
+  // 在性能模式下，如果节点不在可视区域内，group 可能不存在，需要使用临时 SVG 容器
+  if (!this.mindMap.commonCaches.measureSvgElementSizeSvg) {
+    this.mindMap.commonCaches.measureSvgElementSizeSvg = SVG()
+      .size(1, 1)
+      .addTo(document.body)
+    this.mindMap.commonCaches.measureSvgElementSizeSvg.css({
+      position: 'fixed',
+      left: '-99999px',
+      top: '-99999px',
+      visibility: 'hidden'
+    })
+  }
+  const tempSvg = this.mindMap.commonCaches.measureSvgElementSizeSvg
+  tempSvg.add(g)
   let { width, height } = g.bbox()
   // 如果文本为空，那么需要计算一个默认高度
   if (height <= 0) {
     const tmpNode = new Text().text(emptyTextMeasureHeightText)
     this.style.text(tmpNode)
+    tempSvg.add(tmpNode)
     const tmpBbox = tmpNode.bbox()
     height = tmpBbox.height
+    tempSvg.remove(tmpNode)
   }
+  // 测量完成后移除
+  tempSvg.remove(g)
   width = Math.min(Math.ceil(width), maxWidth)
   height = Math.ceil(height)
   g.attr('data-width', width)
@@ -415,8 +451,25 @@ function createTagNode() {
     // 标签文本
     const text = new Text().text(str)
     this.style.tagText(text, style)
+    // 确保元素被添加到 SVG DOM 中才能正确测量尺寸
+    // 在性能模式下，如果节点不在可视区域内，group 可能不存在，需要使用临时 SVG 容器
+    if (!this.mindMap.commonCaches.measureSvgElementSizeSvg) {
+      this.mindMap.commonCaches.measureSvgElementSizeSvg = SVG()
+        .size(1, 1)
+        .addTo(document.body)
+      this.mindMap.commonCaches.measureSvgElementSizeSvg.css({
+        position: 'fixed',
+        left: '-99999px',
+        top: '-99999px',
+        visibility: 'hidden'
+      })
+    }
+    const tempSvg = this.mindMap.commonCaches.measureSvgElementSizeSvg
+    tempSvg.add(text)
     // 获取文本宽高
     const { width: textWidth, height: textHeight } = text.bbox()
+    // 测量完成后移除
+    tempSvg.remove(text)
     // 矩形宽度
     const rectWidth = hasCustomWidth
       ? style.width

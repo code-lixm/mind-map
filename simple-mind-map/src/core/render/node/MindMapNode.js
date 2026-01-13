@@ -531,7 +531,9 @@ class MindMapNode {
     if (this.getData('isActive')) {
       return
     }
-    this.mindMap.emit('before_node_active', this, this.renderer.activeNodeList)
+    // 清理循环引用后再发送事件
+    const cleanedActiveNodeList = this.renderer.cleanNodeListForEvent(this.renderer.activeNodeList)
+    this.mindMap.emit('before_node_active', this, cleanedActiveNodeList)
     this.renderer.clearActiveNodeList()
     this.renderer.addNodeToActiveList(this, true)
     this.renderer.emitNodeActiveEvent(this)
@@ -669,7 +671,7 @@ class MindMapNode {
   // 递归渲染
   // forceRender：强制渲染，无论是否处于画布可视区域
   // async：异步渲染
-  render(callback = () => {}, forceRender = false, async = false) {
+  render(callback = () => { }, forceRender = false, async = false) {
     // 节点
     // 重新渲染连线
     this.renderLine()
@@ -1044,8 +1046,8 @@ class MindMapNode {
   getIndexInBrothers() {
     return this.parent && this.parent.children
       ? this.parent.children.findIndex(item => {
-          return item.uid === this.uid
-        })
+        return item.uid === this.uid
+      })
       : -1
   }
 
