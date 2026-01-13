@@ -504,25 +504,55 @@ class MindMap {
   }
 
   //  动态设置思维导图数据，包括节点数据、布局、主题、视图
-  setFullData(data) {
-    // 先设置主题和布局，再设置数据，确保节点尺寸计算时使用正确的主题配置
-    if (data.theme) {
-      if (data.theme.template) {
-        this.setTheme(data.theme.template, true) // notRender = true，避免多次渲染
+  setFullData(data = {}) {
+    const { layout, theme, config, root, view } = data || {}
+    const lastLayout = this.opt.layout
+    const lastTheme = this.opt.theme
+    const hasLayout = layout !== undefined && layout !== null
+    const hasTheme = !!theme
+
+    // 1) 先静默合并其它配置，保证不会触发重复渲染
+    if (config) {
+      this.updateConfig(config)
+    }
+
+    // 2) 静默更新主题相关状态，供后续渲染读取
+    if (hasTheme) {
+      if (theme.template) {
+        this.opt.theme = theme.template
       }
-      if (data.theme.config) {
-        this.setThemeConfig(data.theme.config, true) // notRender = true，避免多次渲染
+      if (theme.config) {
+        this.opt.themeConfig = theme.config
       }
     }
-    if (data.layout) {
-      this.setLayout(data.layout, true) // notRender = true，避免多次渲染
+
+    // 3) 静默更新布局，确保后续渲染使用最新布局
+    if (hasLayout) {
+      this.opt.layout = layoutValueList.includes(layout)
+        ? layout
+        : CONSTANTS.LAYOUT.LOGICAL_STRUCTURE
     }
-    // 最后设置数据，这会触发一次完整的渲染
-    if (data.root) {
-      this.setData(data.root)
+
+    // 4) 布局状态同步到渲染器，但不立即触发渲染
+    const needSyncLayout = hasLayout || this.opt.layout !== lastLayout
+    if (needSyncLayout) {
+      this.renderer.setLayout()
+      this.emit('layout_change', this.opt.layout)
     }
-    if (data.view) {
-      this.view.setTransformData(data.view)
+
+    // 5) 主题模板变化时同步事件（不立即渲染）
+    if ((hasTheme && theme.template) || this.opt.theme !== lastTheme) {
+      this.emit('view_theme_change', this.opt.theme)
+    }
+
+    // 6) 配置就绪后再一次性设置数据触发渲染
+    if (root) {
+      this.setData(root)
+    }
+
+    // 7) 恢复视图信息
+    if (view) {
+      this.view.setTransformData(view)
     }
   }
 
