@@ -312,7 +312,6 @@ class Export {
       img.onerror = e => {
         reject(e)
       }
-      console.log('svgSrc', svgSrc)
       img.src = svgSrc
     })
   }
