@@ -581,7 +581,6 @@ class Render {
     this.mindMap.emit('node_tree_render_end')
     // 如果有待处理的 resize，在渲染完成后执行
     if (this.mindMap._pendingResize) {
-      this.mindMap._pendingResize = false
       // 使用 setTimeout 确保在下一个事件循环中执行，避免在渲染回调中直接触发新的渲染
       setTimeout(() => {
         this.mindMap._doResize()

@@ -361,7 +361,7 @@ class MindMap {
     const oldHeight = this.height
     this.getElRectInfo()
     this.svg.size(this.width, this.height)
-    if (oldWidth !== this.width || oldHeight !== this.height) {
+    if (this._pendingResize || oldWidth !== this.width || oldHeight !== this.height) {
       // 如果画布宽高改变了需要触发一次渲染
       // 如果正在渲染中，等待渲染完成后再执行，避免布局计算冲突
       if (this.renderer.isRendering) {
@@ -369,6 +369,7 @@ class MindMap {
         this._pendingResize = true
         return
       }
+      this._pendingResize = false
       if (this.demonstrate) {
         // 如果存在演示插件，并且正在演示中，那么不需要触发重新渲染，否则会冲突
         if (!this.demonstrate.isInDemonstrate) {
