@@ -24,6 +24,7 @@ import {
   getNodeTreeBoundingRectByNodeData,
   mergeTheme,
   createUidForAppointNodes,
+  createUid,
   throttle
 } from './src/utils'
 import defaultTheme, {
@@ -202,7 +203,24 @@ class MindMap {
       data.data.expand = true
     }
     // 给没有uid的节点添加uid
-    createUidForAppointNodes([data], false, null, true)
+    const uidSet = new Set()
+    createUidForAppointNodes(
+      [data],
+      false,
+      node => {
+        if (node.data && node.data.uid) {
+          if (uidSet.has(node.data.uid)) {
+            this.opt.errorHandler(ERROR_TYPES.DUPLICATE_UID, node.data.uid)
+            const newUid = createUid()
+            node.data.uid = newUid
+            uidSet.add(newUid)
+          } else {
+            uidSet.add(node.data.uid)
+          }
+        }
+      },
+      true
+    )
     return data
   }
 

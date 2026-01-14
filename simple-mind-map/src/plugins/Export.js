@@ -37,12 +37,12 @@ class Export {
   createTransformImgTaskList(svg, tagName, propName, getUrlFn) {
     const imageList = svg.find(tagName)
     return imageList.map(async item => {
-      const imgUlr = getUrlFn(item)
+      const imgUrl = getUrlFn(item)
       // 已经是data:URL形式不用转换
-      if (/^data:/.test(imgUlr) || imgUlr === 'none') {
+      if (/^data:/.test(imgUrl) || imgUrl === 'none') {
         return
       }
-      const imgData = await imgToDataUrl(imgUlr)
+      const imgData = await imgToDataUrl(imgUrl)
       item.attr(propName, imgData)
     })
   }
@@ -58,6 +58,16 @@ class Export {
       addContentToFooter,
       handleBeingExportSvg
     } = this.mindMap.opt
+    // 处理仅在导出时显示的 specific watermark scenario
+    const watermark = this.mindMap.watermark
+    const isWatermarkOnlyExport =
+      watermark &&
+      this.mindMap.opt.watermarkConfig &&
+      this.mindMap.opt.watermarkConfig.onlyExport
+    if (isWatermarkOnlyExport) {
+      watermark.isInExport = true
+      watermark.draw()
+    }
     let { svg, svgHTML, clipData } = this.mindMap.getSvgData({
       paddingX: exportPaddingX,
       paddingY: exportPaddingY,
@@ -65,6 +75,11 @@ class Export {
       addContentToFooter,
       node
     })
+    // 恢复水印状态
+    if (isWatermarkOnlyExport) {
+      watermark.isInExport = false
+      watermark.draw()
+    }
     if (clipData) {
       clipData.paddingX = exportPaddingX
       clipData.paddingY = exportPaddingY
@@ -297,6 +312,7 @@ class Export {
       img.onerror = e => {
         reject(e)
       }
+      console.log('svgSrc', svgSrc)
       img.src = svgSrc
     })
   }
@@ -487,9 +503,13 @@ class Export {
     str = removeHTMLEntities(str)
     // 给html自闭合标签添加闭合状态
     str = handleSelfCloseTags(str)
+    // 增加xml声明，指定字符集，否则存在繁体字时导出图片会报错
+    if (!/^<\?xml/.test(str)) {
+      str = '<?xml version="1.0" encoding="utf-8"?>' + str
+    }
     // 转换成blob数据
     const blob = new Blob([str], {
-      type: 'image/svg+xml'
+      type: 'image/svg+xml;charset=utf-8'
     })
     const res = await readBlob(blob)
     return res

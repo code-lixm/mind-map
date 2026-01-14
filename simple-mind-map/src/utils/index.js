@@ -135,7 +135,9 @@ export const resizeImg = (imgUrl, maxWidth, maxHeight) => {
       resolve(arr)
     }
     img.onerror = e => {
-      reject(e)
+      reject(
+        new Error(`Failed to load image for resize: ${imgUrl}. ${e.message || 'Unknown error'}`)
+      )
     }
   })
 }
@@ -251,7 +253,9 @@ export const imgToDataUrl = (src, returnBlob = false) => {
       }
     }
     img.onerror = e => {
-      reject(e)
+      reject(
+        new Error(`Failed to load image: ${src}. ${e.message || 'Unknown error'}`)
+      )
     }
     img.src = src
   })
