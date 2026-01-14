@@ -33,7 +33,14 @@ class CatalogOrganization extends Base {
       this.renderer.renderTree,
       null,
       (cur, parent, isRoot, layerIndex, index, ancestors) => {
-        let newNode = this.createNode(cur, parent, isRoot, layerIndex, index, ancestors)
+        let newNode = this.createNode(
+          cur,
+          parent,
+          isRoot,
+          layerIndex,
+          index,
+          ancestors
+        )
         // 根节点定位在画布中心位置
         if (isRoot) {
           this.setNodeCenter(newNode)
@@ -248,7 +255,9 @@ class CatalogOrganization extends Base {
       if (len > 0) {
         let lin2 = this.lineDraw.path()
         node.style.line(lin2)
-        lin2.plot(this.transformPath(`M ${minx},${y1 + s1} L ${maxx},${y1 + s1}`))
+        lin2.plot(
+          this.transformPath(`M ${minx},${y1 + s1} L ${maxx},${y1 + s1}`)
+        )
         node._lines.push(lin2)
         style && style(lin2, node)
       }

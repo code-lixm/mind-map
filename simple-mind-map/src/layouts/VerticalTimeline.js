@@ -75,11 +75,11 @@ class VerticalTimeline extends Base {
             newNode.left =
               newNode.dir === CONSTANTS.LAYOUT_GROW_DIR.RIGHT
                 ? parent._node.left +
-                parent._node.width +
-                this.getMarginX(layerIndex)
+                  parent._node.width +
+                  this.getMarginX(layerIndex)
                 : parent._node.left -
-                this.getMarginX(layerIndex) -
-                newNode.width
+                  this.getMarginX(layerIndex) -
+                  newNode.width
           }
         }
         if (!cur.data.expand) {
@@ -94,9 +94,9 @@ class VerticalTimeline extends Base {
         let len = cur.data.expand === false ? 0 : cur._node.children.length
         cur._node.childrenAreaHeight = len
           ? cur._node.children.reduce((h, item) => {
-            return h + item.height
-          }, 0) +
-          (len + 1) * this.getMarginY(layerIndex + 1)
+              return h + item.height
+            }, 0) +
+            (len + 1) * this.getMarginY(layerIndex + 1)
           : 0
       },
       true,

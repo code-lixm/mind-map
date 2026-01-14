@@ -261,10 +261,7 @@ class Render {
     this.mindMap.command.add('INSERT_CHILD_NODE', this.insertChildNode)
     // 插入多个子节点
     this.insertMultiChildNode = this.insertMultiChildNode.bind(this)
-    this.mindMap.command.add(
-      'INSERT_MULTI_CHILD_NODE',
-      this.insertMultiChildNode
-    )
+    this.mindMap.command.add('INSERT_MULTI_CHILD_NODE', this.insertMultiChildNode)
     // 插入父节点
     this.insertParentNode = this.insertParentNode.bind(this)
     this.mindMap.command.add('INSERT_PARENT_NODE', this.insertParentNode)
@@ -453,6 +450,31 @@ class Render {
     })
   }
 
+  // 清理节点列表中的循环引用，避免序列化时出错
+  // 移除 opt.data._node 这个循环引用，保持节点对象的其他属性和方法
+  cleanNodeListForEvent(nodeList) {
+    return nodeList.map(node => {
+      // 如果节点没有 opt.data._node 循环引用，直接返回
+      if (!node.opt || !node.opt.data || !node.opt.data._node) {
+        return node
+      }
+      // 创建一个新对象，保持节点的原型链和方法
+      const cleanedNode = Object.create(Object.getPrototypeOf(node))
+      // 复制所有属性到新对象
+      Object.assign(cleanedNode, node)
+      // 清理 opt.data._node 循环引用
+      if (cleanedNode.opt && cleanedNode.opt.data) {
+        cleanedNode.opt = {
+          ...cleanedNode.opt,
+          data: { ...cleanedNode.opt.data }
+        }
+        // 移除循环引用
+        delete cleanedNode.opt.data._node
+      }
+      return cleanedNode
+    })
+  }
+
   // 派发节点激活事件
   emitNodeActiveEvent(node = null, activeNodeList = [...this.activeNodeList]) {
     const isChange = !checkNodeListIsEqual(
@@ -463,16 +485,17 @@ class Render {
     this.lastActiveNodeList = [...activeNodeList]
     clearTimeout(this.emitNodeActiveEventTimer)
     this.emitNodeActiveEventTimer = setTimeout(() => {
-      this.mindMap.emit('node_active', node, activeNodeList)
+      // 清理循环引用后再发送事件
+      const cleanedActiveNodeList = this.cleanNodeListForEvent(activeNodeList)
+      this.mindMap.emit('node_active', node, cleanedActiveNodeList)
     }, 0)
   }
 
-  emitNodeInactiveEvent(
-    node,
-    activeNodeList = [...this.activeNodeList]
-  ) {
+  emitNodeInactiveEvent(node, activeNodeList = [...this.activeNodeList]) {
     if (!node) return
-    this.mindMap.emit('node_inactive', node, activeNodeList)
+    // 清理循环引用后再发送事件
+    const cleanedActiveNodeList = this.cleanNodeListForEvent(activeNodeList)
+    this.mindMap.emit('node_inactive', node, cleanedActiveNodeList)
   }
 
   // 鼠标点击画布时清空当前激活节点列表
@@ -556,6 +579,13 @@ class Render {
     this.renderCallbackList = []
     this.renderSourceList = []
     this.mindMap.emit('node_tree_render_end')
+    // 如果有待处理的 resize，在渲染完成后执行
+    if (this.mindMap._pendingResize) {
+      // 使用 setTimeout 确保在下一个事件循环中执行，避免在渲染回调中直接触发新的渲染
+      setTimeout(() => {
+        this.mindMap._doResize()
+      }, 0)
+    }
   }
 
   // 渲染
@@ -677,7 +707,9 @@ class Render {
     const index = this.findActiveNodeIndex(node)
     if (index === -1) {
       if (!notEmitBeforeNodeActiveEvent) {
-        this.mindMap.emit('before_node_active', node, this.activeNodeList)
+        // 清理循环引用后再发送事件
+        const cleanedActiveNodeList = this.cleanNodeListForEvent(this.activeNodeList)
+        this.mindMap.emit('before_node_active', node, cleanedActiveNodeList)
       }
       this.mindMap.execCommand('SET_NODE_ACTIVE', node, true)
       this.activeNodeList.push(node)
@@ -699,7 +731,9 @@ class Render {
   activeMultiNode(nodeList = []) {
     nodeList.forEach(node => {
       // 手动派发节点激活前事件
-      this.mindMap.emit('before_node_active', node, this.activeNodeList)
+      // 清理循环引用后再发送事件
+      const cleanedActiveNodeList = this.cleanNodeListForEvent(this.activeNodeList)
+      this.mindMap.emit('before_node_active', node, cleanedActiveNodeList)
       // 激活节点，并将该节点添加到激活节点列表里
       this.addNodeToActiveList(node, true)
       // 手动派发节点激活事件
@@ -2011,9 +2045,29 @@ class Render {
 
   //  更新节点数据
   setNodeData(node, data) {
-    Object.keys(data).forEach(key => {
-      node.nodeData.data[key] = data[key]
-    })
+    // 如果配置了 beforeNodeDataHandle 函数，则在更新数据前先调用它格式化数据
+    const { beforeNodeDataHandle } = this.mindMap.opt
+    if (beforeNodeDataHandle && typeof beforeNodeDataHandle === 'function') {
+      // 构造完整的节点数据对象，用于 beforeNodeDataHandle 处理
+      const fullNodeData = {
+        data: {
+          ...node.nodeData.data,
+          ...data
+        },
+        children: node.nodeData.children || []
+      }
+      // 调用 beforeNodeDataHandle 处理数据
+      const processedData = beforeNodeDataHandle(fullNodeData) || fullNodeData
+      // 使用处理后的数据更新节点
+      Object.keys(data).forEach(key => {
+        node.nodeData.data[key] = processedData.data[key]
+      })
+    } else {
+      // 如果没有配置 beforeNodeDataHandle，直接更新数据
+      Object.keys(data).forEach(key => {
+        node.nodeData.data[key] = data[key]
+      })
+    }
   }
 
   //  设置节点数据，并判断是否渲染

@@ -9,7 +9,7 @@ import {
   formatGetNodeGeneralization,
   nodeRichTextToTextWithWrap,
   getNodeRichTextStyles,
-  htmlEscape,
+  htmlEscape
 } from '../utils'
 import { richTextSupportStyleList } from '../constants/constant'
 import MindMapNode from '../core/render/node/MindMapNode'
@@ -262,9 +262,10 @@ class RichText {
       this.textEditNode.style.cssText = `
         position:fixed;
         box-sizing: border-box;
-        ${openRealtimeRenderOnNodeTextEdit
-          ? ''
-          : 'box-shadow: 0 0 20px rgba(0,0,0,.5);'
+        ${
+          openRealtimeRenderOnNodeTextEdit
+            ? ''
+            : 'box-shadow: 0 0 20px rgba(0,0,0,.5);'
         }
         outline: none;
         word-break: break-all;
@@ -340,8 +341,8 @@ class RichText {
     this.textEditNode.style.background = openRealtimeRenderOnNodeTextEdit
       ? 'transparent'
       : this.node
-        ? this.mindMap.renderer.textEdit.getBackground(this.node)
-        : ''
+      ? this.mindMap.renderer.textEdit.getBackground(this.node)
+      : ''
     this.textEditNode.style.boxShadow = openRealtimeRenderOnNodeTextEdit
       ? 'none'
       : '0 0 20px rgba(0,0,0,.5)'
@@ -893,8 +894,7 @@ class RichText {
   handleSetData(data) {
     if (!data) return
     // 短期处理，为了兼容老数据，长期会去除
-    const isOldRichTextVersion =
-      false
+    const isOldRichTextVersion = false
     const walk = root => {
       if (root.data && (!root.data.richText || isOldRichTextVersion)) {
         this.handleDataToRichText(root.data)

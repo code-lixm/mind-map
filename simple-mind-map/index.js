@@ -23,7 +23,9 @@ import {
   getNodeTreeBoundingRect,
   getNodeTreeBoundingRectByNodeData,
   mergeTheme,
-  createUidForAppointNodes
+  createUidForAppointNodes,
+  createUid,
+  throttle
 } from './src/utils'
 import defaultTheme, {
   checkIsNodeSizeIndependenceConfig
@@ -109,6 +111,8 @@ class MindMap {
 
     // 初始化缓存数据
     this.initCache()
+    // 标记是否有待处理的 resize
+    this._pendingResize = false
 
     // 注册插件
     MindMap.pluginList
@@ -149,6 +153,9 @@ class MindMap {
 
     // 批量执行类
     this.batchExecution = new BatchExecution()
+
+    // 创建节流版本的 resize 方法，避免频繁触发导致多次布局计算
+    this._resizeThrottled = throttle(this._doResize.bind(this), 100, this)
 
     // 注册插件
     MindMap.pluginList
@@ -220,7 +227,25 @@ class MindMap {
       mainTree.freeNodes = freeNodes
     }
 
-    return mainTree
+    const uidSet = new Set()
+    createUidForAppointNodes(
+      [data],
+      false,
+      node => {
+        if (node.data && node.data.uid) {
+          if (uidSet.has(node.data.uid)) {
+            this.opt.errorHandler(ERROR_TYPES.DUPLICATE_UID, node.data.uid)
+            const newUid = createUid()
+            node.data.uid = newUid
+            uidSet.add(newUid)
+          } else {
+            uidSet.add(node.data.uid)
+          }
+        }
+      },
+      true
+    )
+    return data
   }
 
   // 处理自由节点数据
@@ -379,14 +404,21 @@ class MindMap {
       throw new Error('容器元素el的宽高不能为0')
   }
 
-  //  容器尺寸变化，调整尺寸
-  resize() {
+  //  容器尺寸变化，调整尺寸（内部方法，实际执行 resize 逻辑）
+  _doResize() {
     const oldWidth = this.width
     const oldHeight = this.height
     this.getElRectInfo()
     this.svg.size(this.width, this.height)
-    if (oldWidth !== this.width || oldHeight !== this.height) {
+    if (this._pendingResize || oldWidth !== this.width || oldHeight !== this.height) {
       // 如果画布宽高改变了需要触发一次渲染
+      // 如果正在渲染中，等待渲染完成后再执行，避免布局计算冲突
+      if (this.renderer.isRendering) {
+        // 标记需要等待渲染完成后再次执行 resize
+        this._pendingResize = true
+        return
+      }
+      this._pendingResize = false
       if (this.demonstrate) {
         // 如果存在演示插件，并且正在演示中，那么不需要触发重新渲染，否则会冲突
         if (!this.demonstrate.isInDemonstrate) {
@@ -397,6 +429,11 @@ class MindMap {
       }
     }
     this.emit('resize')
+  }
+
+  //  容器尺寸变化，调整尺寸（公共方法，使用节流）
+  resize() {
+    this._resizeThrottled()
   }
 
   //  监听事件
@@ -418,7 +455,8 @@ class MindMap {
   initCache() {
     this.commonCaches = {
       measureCustomNodeContentSizeEl: null,
-      measureRichtextNodeTextSizeEl: null
+      measureRichtextNodeTextSizeEl: null,
+      measureSvgElementSizeSvg: null
     }
   }
 
@@ -534,23 +572,55 @@ class MindMap {
   }
 
   //  动态设置思维导图数据，包括节点数据、布局、主题、视图
-  setFullData(data) {
-    if (data.root) {
-      this.setData(data.root)
+  setFullData(data = {}) {
+    const { layout, theme, config, root, view } = data || {}
+    const lastLayout = this.opt.layout
+    const lastTheme = this.opt.theme
+    const hasLayout = layout !== undefined && layout !== null
+    const hasTheme = !!theme
+
+    // 1) 先静默合并其它配置，保证不会触发重复渲染
+    if (config) {
+      this.updateConfig(config)
     }
-    if (data.layout) {
-      this.setLayout(data.layout)
-    }
-    if (data.theme) {
-      if (data.theme.template) {
-        this.setTheme(data.theme.template)
+
+    // 2) 静默更新主题相关状态，供后续渲染读取
+    if (hasTheme) {
+      if (theme.template) {
+        this.opt.theme = theme.template
       }
-      if (data.theme.config) {
-        this.setThemeConfig(data.theme.config)
+      if (theme.config) {
+        this.opt.themeConfig = theme.config
       }
     }
-    if (data.view) {
-      this.view.setTransformData(data.view)
+
+    // 3) 静默更新布局，确保后续渲染使用最新布局
+    if (hasLayout) {
+      this.opt.layout = layoutValueList.includes(layout)
+        ? layout
+        : CONSTANTS.LAYOUT.LOGICAL_STRUCTURE
+    }
+
+    // 4) 布局状态同步到渲染器，但不立即触发渲染
+    const needSyncLayout = hasLayout || this.opt.layout !== lastLayout
+    if (needSyncLayout) {
+      this.renderer.setLayout()
+      this.emit('layout_change', this.opt.layout)
+    }
+
+    // 5) 主题模板变化时同步事件（不立即渲染）
+    if ((hasTheme && theme.template) || this.opt.theme !== lastTheme) {
+      this.emit('view_theme_change', this.opt.theme)
+    }
+
+    // 6) 配置就绪后再一次性设置数据触发渲染
+    if (root) {
+      this.setData(root)
+    }
+
+    // 7) 恢复视图信息
+    if (view) {
+      this.view.setTransformData(view)
     }
   }
 
@@ -682,7 +752,8 @@ class MindMap {
     // 内边距
     const fixHeight = 0
     const contentWidth = rect.width + paddingX * 2
-    const contentHeight = rect.height + paddingY * 2 + fixHeight + headerHeight + footerHeight
+    const contentHeight =
+      rect.height + paddingY * 2 + fixHeight + headerHeight + footerHeight
 
     // 如果DOM隐藏，使用viewBox方式导出
     if (isRboxInvalid) {
@@ -912,21 +983,15 @@ class MindMap {
   initCustomContentLifecycle() {
     this.teardownCustomContentLifecycle()
     const opt = this.opt.addCustomContentToNode
-    if (
-      !opt ||
-      typeof opt.create !== 'function' ||
-      opt.mode !== 'lazy'
-    ) {
+    if (!opt || typeof opt.create !== 'function' || opt.mode !== 'lazy') {
       return
     }
-    const mountEvents =
-      (opt.events && Array.isArray(opt.events.mount) && opt.events.mount) ||
-      ['node_active']
-    const unmountEvents =
-      (opt.events &&
-        Array.isArray(opt.events.unmount) &&
-        opt.events.unmount) ||
-      ['node_inactive']
+    const mountEvents = (opt.events &&
+      Array.isArray(opt.events.mount) &&
+      opt.events.mount) || ['node_active']
+    const unmountEvents = (opt.events &&
+      Array.isArray(opt.events.unmount) &&
+      opt.events.unmount) || ['node_inactive']
     const lifecycle = {
       mountEvents,
       unmountEvents,

@@ -34,7 +34,11 @@ class ExportPDF {
         resolve(res)
       }
       image.onerror = e => {
-        reject(e)
+        reject(
+          new Error(
+            `Failed to load image for PDF export. ${e.message || 'Unknown error'}`
+          )
+        )
       }
       image.src = img
     })

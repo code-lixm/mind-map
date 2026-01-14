@@ -102,13 +102,13 @@ function updateUserListNode() {
     } else {
       node = this.createTextAvatar(item)
     }
-    node.on('click', (e) => {
+    node.on('click', e => {
       this.mindMap.emit('node_cooperate_avatar_click', item, this, node, e)
     })
-    node.on('mouseenter', (e) => {
+    node.on('mouseenter', e => {
       this.mindMap.emit('node_cooperate_avatar_mouseenter', item, this, node, e)
     })
-    node.on('mouseleave', (e) => {
+    node.on('mouseleave', e => {
       this.mindMap.emit('node_cooperate_avatar_mouseleave', item, this, node, e)
     })
     node.x(index * avatarSize).cy(-avatarSize / 2)

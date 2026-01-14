@@ -63,8 +63,8 @@ class MindMap extends Base {
           newNode.left =
             newNode.dir === CONSTANTS.LAYOUT_GROW_DIR.RIGHT
               ? parent._node.left +
-              parent._node.width +
-              this.getMarginX(layerIndex)
+                parent._node.width +
+                this.getMarginX(layerIndex)
               : parent._node.left - this.getMarginX(layerIndex) - newNode.width
         }
         if (!cur.data.expand) {
@@ -102,7 +102,7 @@ class MindMap extends Base {
         // 如果存在概要，则和概要的高度取最大值
         let generalizationNodeHeight = cur._node.checkHasGeneralization()
           ? cur._node._generalizationNodeHeight +
-          this.getMarginY(layerIndex + 1)
+            this.getMarginY(layerIndex + 1)
           : 0
         cur._node.leftChildrenAreaHeight2 = Math.max(
           cur._node.leftChildrenAreaHeight,
@@ -327,8 +327,8 @@ class MindMap extends Base {
         node.layerIndex === 0 && !rootLineStartPositionKeepSameInCurve
           ? left + width / 2
           : item.dir === CONSTANTS.LAYOUT_GROW_DIR.LEFT
-            ? left - expandBtnSize
-            : left + width + expandBtnSize
+          ? left - expandBtnSize
+          : left + width + expandBtnSize
       let y1 = top + height / 2
       let x2 =
         item.dir === CONSTANTS.LAYOUT_GROW_DIR.LEFT
@@ -397,7 +397,7 @@ class MindMap extends Base {
 
       // 始终先绘制一段直线再连接圆弧
       // 直线长度为节点与子节点距离的 20%
-      const straightLineLength = Math.abs(x2 - x1) * 0.20
+      const straightLineLength = Math.abs(x2 - x1) * 0.2
       let x1_end
       if (item.dir === CONSTANTS.LAYOUT_GROW_DIR.LEFT) {
         x1_end = x1 - straightLineLength
@@ -405,7 +405,10 @@ class MindMap extends Base {
         x1_end = x1 + straightLineLength
       }
       // 先画直线，再从直线终点画圆弧到目标点
-      path = `M ${x1},${y1} L ${x1_end},${y1} ` + this.arcPath(x1_end, y1, x2, y2) + nodeUseLineStylePath
+      path =
+        `M ${x1},${y1} L ${x1_end},${y1} ` +
+        this.arcPath(x1_end, y1, x2, y2) +
+        nodeUseLineStylePath
       this.setLineStyle(style, lines[index], path, item)
     })
   }
@@ -417,8 +420,12 @@ class MindMap extends Base {
     }
 
     // 将子节点按方向分组
-    const leftChildren = node.children.filter(item => item.dir === CONSTANTS.LAYOUT_GROW_DIR.LEFT)
-    const rightChildren = node.children.filter(item => item.dir === CONSTANTS.LAYOUT_GROW_DIR.RIGHT)
+    const leftChildren = node.children.filter(
+      item => item.dir === CONSTANTS.LAYOUT_GROW_DIR.LEFT
+    )
+    const rightChildren = node.children.filter(
+      item => item.dir === CONSTANTS.LAYOUT_GROW_DIR.RIGHT
+    )
 
     let { left, top, width, height, expandBtnSize } = node
     const { alwaysShowExpandBtn, notShowExpandBtn } = this.mindMap.opt
@@ -434,17 +441,55 @@ class MindMap extends Base {
 
     // 处理左侧子节点
     if (leftChildren.length > 0) {
-      lineIndex = this.renderBraceForDirection(node, leftChildren, lines, style, lineIndex, true, left, top, width, height, expandBtnSize, nodeUseLineStyle)
+      lineIndex = this.renderBraceForDirection(
+        node,
+        leftChildren,
+        lines,
+        style,
+        lineIndex,
+        true,
+        left,
+        top,
+        width,
+        height,
+        expandBtnSize,
+        nodeUseLineStyle
+      )
     }
 
     // 处理右侧子节点
     if (rightChildren.length > 0) {
-      this.renderBraceForDirection(node, rightChildren, lines, style, lineIndex, false, left, top, width, height, expandBtnSize, nodeUseLineStyle)
+      this.renderBraceForDirection(
+        node,
+        rightChildren,
+        lines,
+        style,
+        lineIndex,
+        false,
+        left,
+        top,
+        width,
+        height,
+        expandBtnSize,
+        nodeUseLineStyle
+      )
     }
   }
 
   // 为特定方向的子节点渲染括号连线
-  renderBraceForDirection(node, children, lines, style, startLineIndex, isLeft, left, top, width, height, expandBtnSize) {
+  renderBraceForDirection(
+    node,
+    children,
+    lines,
+    style,
+    startLineIndex,
+    isLeft,
+    left,
+    top,
+    width,
+    height,
+    expandBtnSize
+  ) {
     if (children.length === 0) return startLineIndex
 
     // 只有一个子节点时，直接连接
@@ -483,7 +528,9 @@ class MindMap extends Base {
     if (midY > lastY) midY = lastY
 
     // 计算括号的X位置（在父节点和子节点之间）
-    const firstChildX = isLeft ? firstChild.left + firstChild.width : firstChild.left
+    const firstChildX = isLeft
+      ? firstChild.left + firstChild.width
+      : firstChild.left
     const braceX = x1 + (firstChildX - x1) * 0.6
 
     // 括号的弯曲程度
@@ -505,10 +552,14 @@ class MindMap extends Base {
     const topOffset = topDy * 0.3
     const bottomOffset = bottomDy * 0.3
 
-    let bracePath = `M ${braceX},${firstY} Q ${topCurveX},${firstY} ${topCurveX},${firstY + topOffset}`
+    let bracePath = `M ${braceX},${firstY} Q ${topCurveX},${firstY} ${topCurveX},${
+      firstY + topOffset
+    }`
     bracePath += ` L ${topCurveX},${midY - topOffset}`
     bracePath += ` Q ${topCurveX},${midY} ${midX},${midY}`
-    bracePath += ` Q ${bottomCurveX},${midY} ${bottomCurveX},${midY + bottomOffset}`
+    bracePath += ` Q ${bottomCurveX},${midY} ${bottomCurveX},${
+      midY + bottomOffset
+    }`
     bracePath += ` L ${bottomCurveX},${lastY - bottomOffset}`
     bracePath += ` Q ${bottomCurveX},${lastY} ${braceX},${lastY}`
 
@@ -518,7 +569,7 @@ class MindMap extends Base {
     }
 
     // 每个子节点不绘制连线
-    children.forEach((item) => {
+    children.forEach(item => {
       const childIndex = node.children.indexOf(item)
       // 跳过第一个节点（已用于主连线）和最后一个节点（已用于括号）
       if (childIndex === firstChildIndex || childIndex === lastChildIndex) {

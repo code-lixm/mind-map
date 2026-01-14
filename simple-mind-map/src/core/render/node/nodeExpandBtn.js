@@ -127,7 +127,7 @@ function renderExpandBtn() {
     })
     this._expandBtn.on('click', e => {
       e.stopPropagation()
-      // 展开收缩
+      // 展开收缩（只读模式下也允许展开/收缩，因为这只是查看操作）
       this.mindMap.execCommand('SET_NODE_EXPAND', this, !this.getData('expand'))
       this.mindMap.emit('expand_btn_click', this)
     })

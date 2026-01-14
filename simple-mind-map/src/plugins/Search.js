@@ -71,14 +71,15 @@ class Search {
   }
 
   // 搜索
-  search(text, options = {}, callback = () => { }) {
+  search(text, options = {}, callback = () => {}) {
     if (isUndef(text)) return this.endSearch()
     text = String(text)
     const newSearchType = options.type || 'text'
     this.isSearching = true
 
     // 检查搜索文本和类型是否都相同
-    const isSameSearch = this.searchText === text && this.searchType === newSearchType
+    const isSameSearch =
+      this.searchText === text && this.searchType === newSearchType
 
     // 更新搜索类型
     this.searchType = newSearchType
@@ -128,9 +129,8 @@ class Search {
     if (!tree) return
     const matchList = []
     bfsWalk(tree, node => {
-      let { richText, text, generalization, tag } = isOnlySearchCurrentRenderNodes
-        ? node.getData()
-        : node.data
+      let { richText, text, generalization, tag } =
+        isOnlySearchCurrentRenderNodes ? node.getData() : node.data
 
       // 根据搜索类型进行匹配
       let isMatch = false
@@ -141,11 +141,11 @@ class Search {
           // 处理标签可能是字符串或对象的情况
           isMatch = tag.some(t => {
             if (typeof t === 'string') {
-              return t.includes(this.searchText);
+              return t.includes(this.searchText)
             } else if (t && t.text) {
-              return String(t.text).includes(this.searchText);
+              return String(t.text).includes(this.searchText)
             }
-            return false;
+            return false
           })
         }
       } else {
@@ -180,11 +180,11 @@ class Search {
           if (tag && Array.isArray(tag)) {
             isMatch = tag.some(t => {
               if (typeof t === 'string') {
-                return t.includes(this.searchText);
+                return t.includes(this.searchText)
               } else if (t && t.text) {
-                return String(t.text).includes(this.searchText);
+                return String(t.text).includes(this.searchText)
               }
-              return false;
+              return false
             })
           }
         } else {
@@ -270,7 +270,7 @@ class Search {
   }
 
   // 定位到指定搜索结果索引的节点
-  jump(index, callback = () => { }) {
+  jump(index, callback = () => {}) {
     this.searchNext(callback, index)
   }
 

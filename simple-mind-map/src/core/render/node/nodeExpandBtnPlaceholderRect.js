@@ -16,6 +16,26 @@ function renderExpandBtnPlaceholderRect() {
       this._unVisibleRectRegionNode.fill({
         color: 'transparent'
       })
+      // 为占位区域绑定点击事件，确保在性能模式下即使节点不在可视区域也能展开/收缩
+      this._unVisibleRectRegionNode.on('click', e => {
+        e.stopPropagation()
+        // 展开收缩（只读模式下也允许展开/收缩，因为这只是查看操作）
+        this.mindMap.execCommand('SET_NODE_EXPAND', this, !this.getData('expand'))
+        this.mindMap.emit('expand_btn_click', this)
+      })
+      this._unVisibleRectRegionNode.on('mouseover', e => {
+        e.stopPropagation()
+        this._unVisibleRectRegionNode.css({
+          cursor: 'pointer'
+        })
+      })
+      this._unVisibleRectRegionNode.on('mouseout', e => {
+        e.stopPropagation()
+        this._unVisibleRectRegionNode.css({
+          cursor: 'auto'
+        })
+      })
+      this._unVisibleRectRegionNode.addClass('smm-expand-btn-placeholder')
     }
     this.group.add(this._unVisibleRectRegionNode)
     this.renderer.layout.renderExpandBtnRect(

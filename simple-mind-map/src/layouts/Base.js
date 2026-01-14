@@ -174,7 +174,10 @@ class Base {
         data.data
       )
       // 重新计算节点大小和布局
+      // 在性能模式下，即使节点数据没有改变，也需要重新计算尺寸，因为之前可能因为不在可视区域导致尺寸计算不准确
+      const { openPerformance } = this.mindMap.opt
       if (
+        openPerformance || // 性能模式下强制重新计算尺寸
         isResizeSource ||
         isNodeDataChange ||
         isLayerTypeChange ||
@@ -226,7 +229,10 @@ class Base {
         nodeInnerPostfixData
       )
       // 重新计算节点大小和布局
+      // 在性能模式下，即使节点数据没有改变，也需要重新计算尺寸，因为之前可能因为不在可视区域导致尺寸计算不准确
+      const { openPerformance } = this.mindMap.opt
       if (
+        openPerformance || // 性能模式下强制重新计算尺寸
         isResizeSource ||
         isNodeDataChange ||
         isLayerTypeChange ||
@@ -534,7 +540,8 @@ class Base {
 
     // 构建括号路径
     // 从起点开始，先向内弯曲到顶部
-    let path = `M ${x1},${y1} Q ${topCurveX},${y1} ${topCurveX},${y1 + dy * 0.15}`
+    let path = `M ${x1},${y1} Q ${topCurveX},${y1} ${topCurveX},${y1 + dy * 0.15
+      }`
     // 垂直线到中间位置附近
     path += ` L ${topCurveX},${midY - dy * 0.15}`
     // 弯曲到中间最凸出的点
@@ -548,7 +555,6 @@ class Base {
 
     return path
   }
-
 
   // 根据a,b两个点的位置，计算去除圆角大小后的新的b点
   computeNewPoint(a, b, radius = 0) {

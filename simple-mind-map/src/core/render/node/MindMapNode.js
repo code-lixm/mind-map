@@ -102,8 +102,7 @@ class MindMapNode {
     this._customContentAddToNodeAdd = null
     this._customContentElement = null
     const customContentOpt = this.mindMap.opt.addCustomContentToNode
-    const customMode =
-      (customContentOpt && customContentOpt.mode) || 'eager'
+    const customMode = (customContentOpt && customContentOpt.mode) || 'eager'
     this._customContentMounted = customMode !== 'lazy'
     // 尺寸信息
     this._rectInfo = {
@@ -208,6 +207,15 @@ class MindMapNode {
 
   //  处理数据
   handleData(data) {
+    // 如果配置了 beforeNodeDataHandle 函数，则在处理数据前先调用它格式化数据
+    // 注意：此时 this.mindMap 可能还未初始化，所以通过 this.opt.mindMap 访问
+    const mindMap = this.mindMap || this.opt.mindMap
+    if (mindMap && mindMap.opt && mindMap.opt.beforeNodeDataHandle) {
+      const { beforeNodeDataHandle } = mindMap.opt
+      if (typeof beforeNodeDataHandle === 'function') {
+        data = beforeNodeDataHandle(data) || data
+      }
+    }
     data.data.expand = data.data.expand === false ? false : true
     data.data.isActive = data.data.isActive === true ? true : false
     data.children = data.children || []
@@ -488,9 +496,9 @@ class MindMapNode {
     })
     // 右键菜单事件
     this.group.on('contextmenu', e => {
-      const { readonly, useLeftKeySelectionRightKeyDrag } = this.mindMap.opt
+      const { useLeftKeySelectionRightKeyDrag } = this.mindMap.opt
       // Mac上按住ctrl键点击鼠标左键不知为何触发的是contextmenu事件
-      if (readonly || e.ctrlKey) {
+      if (e.ctrlKey) {
         return
       }
       e.stopPropagation()
@@ -523,7 +531,9 @@ class MindMapNode {
     if (this.getData('isActive')) {
       return
     }
-    this.mindMap.emit('before_node_active', this, this.renderer.activeNodeList)
+    // 清理循环引用后再发送事件
+    const cleanedActiveNodeList = this.renderer.cleanNodeListForEvent(this.renderer.activeNodeList)
+    this.mindMap.emit('before_node_active', this, cleanedActiveNodeList)
     this.renderer.clearActiveNodeList()
     this.renderer.addNodeToActiveList(this, true)
     this.renderer.emitNodeActiveEvent(this)
@@ -661,7 +671,7 @@ class MindMapNode {
   // 递归渲染
   // forceRender：强制渲染，无论是否处于画布可视区域
   // async：异步渲染
-  render(callback = () => {}, forceRender = false, async = false) {
+  render(callback = () => { }, forceRender = false, async = false) {
     // 节点
     // 重新渲染连线
     this.renderLine()
@@ -1036,8 +1046,8 @@ class MindMapNode {
   getIndexInBrothers() {
     return this.parent && this.parent.children
       ? this.parent.children.findIndex(item => {
-          return item.uid === this.uid
-        })
+        return item.uid === this.uid
+      })
       : -1
   }
 

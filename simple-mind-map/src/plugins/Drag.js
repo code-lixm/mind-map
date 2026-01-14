@@ -1140,7 +1140,7 @@ class Drag extends Base {
     this.mindMap.renderer.layout.renderLine(
       parent,
       [this.placeHolderLine],
-      (...args) => {
+      () => {
         // node.styleLine(...args)
       },
       node.style.getStyle('lineStyle', true)

@@ -314,13 +314,13 @@ export const parseNodeGeneralizationToXmind = node => {
     collectSummary(item, item.range[0], item.range[1])
   })
 
-    // 遍历子节点，找出子节点自身的概要
-    ; (node.children || []).forEach((child, childIndex) => {
-      const list = getSelfGeneralization(child.data)
-      list.forEach(item => {
-        collectSummary(item, childIndex, childIndex)
-      })
+  // 遍历子节点，找出子节点自身的概要
+  ;(node.children || []).forEach((child, childIndex) => {
+    const list = getSelfGeneralization(child.data)
+    list.forEach(item => {
+      collectSummary(item, childIndex, childIndex)
     })
+  })
 
   return {
     summary,
