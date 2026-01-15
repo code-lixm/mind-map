@@ -1043,11 +1043,19 @@ export const formatDataToArray = data => {
 
 //  获取节点在同级里的位置索引
 export const getNodeDataIndex = node => {
-  return node.parent
-    ? node.parent.nodeData.children.findIndex(item => {
-        return item.data.uid === node.uid
-      })
-    : 0
+  if (!node.parent) {
+    return 0
+  }
+  let index = node.parent.nodeData.children.findIndex(item => {
+    return item.data.uid === node.uid
+  })
+  // 如果通过uid没找到，尝试通过对象引用查找
+  if (index === -1) {
+    index = node.parent.nodeData.children.findIndex(item => {
+      return item === node.nodeData
+    })
+  }
+  return index
 }
 
 // 从一个节点列表里找出某个节点的索引
@@ -1228,7 +1236,11 @@ export const removeFromParentNodeData = node => {
   if (!node || !node.parent) return
   const index = getNodeDataIndex(node)
   if (index === -1) return
-  node.parent.nodeData.children.splice(index, 1)
+  const removedData = node.parent.nodeData.children.splice(index, 1)[0]
+  // 清理 _node 引用，防止复用已销毁的节点
+  if (removedData && removedData._node) {
+    removedData._node = null
+  }
 }
 
 // 给html自闭合标签添加闭合状态

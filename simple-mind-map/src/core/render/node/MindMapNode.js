@@ -775,6 +775,14 @@ class MindMapNode {
     if (this.parent) {
       this.parent.removeLine()
     }
+    // 从 LRU 缓存中移除
+    if (this.renderer && this.renderer.layout && this.renderer.layout.lru) {
+      this.renderer.layout.lru.delete(this.uid)
+    }
+    // 清理 nodeData 上的 _node 引用
+    if (this.nodeData && this.nodeData._node === this) {
+      this.nodeData._node = null
+    }
     if (!this.group) return
     if (this.emptyUser) {
       this.emptyUser()

@@ -142,51 +142,59 @@ class Base {
     // 数据上保存了节点引用，那么直接复用节点
     if (data && data._node && !this.renderer.reRender) {
       newNode = data._node
-      // 节点层级改变了
-      const isLayerTypeChange = this.checkIsLayerTypeChange(
-        newNode.layerIndex,
-        layerIndex
-      )
-      newNode.reset()
-      newNode.layerIndex = layerIndex
-      if (isRoot) {
-        newNode.isRoot = true
+      // 检查节点是否有效（未被销毁），如果已被销毁（group不存在），则不能复用
+      if (!newNode.group) {
+        newNode = null
+        data._node = null
       } else {
-        newNode.parent = parent._node
+        // 节点层级改变了
+        const isLayerTypeChange = this.checkIsLayerTypeChange(
+          newNode.layerIndex,
+          layerIndex
+        )
+        newNode.reset()
+        newNode.layerIndex = layerIndex
+        if (isRoot) {
+          newNode.isRoot = true
+        } else {
+          newNode.parent = parent._node
+        }
+        this.cacheNode(data._node.uid, newNode)
+        this.checkIsLayoutChangeRerenderExpandBtnPlaceholderRect(newNode)
+        // 库前置或后置内容是否改变了
+        const isNodeInnerFixChange = this.checkNodeFixChange(
+          newNode,
+          nodeInnerPrefixData,
+          nodeInnerPostfixData
+        )
+        // 主题或主题配置改变了
+        const isResizeSource = this.checkIsNeedResizeSources()
+        // 节点数据改变了
+        const isNodeDataChange = this.checkIsNodeDataChange(
+          data._node.nodeDataSnapshot,
+          data.data
+        )
+        // 重新计算节点大小和布局
+        // 在性能模式下，即使节点数据没有改变，也需要重新计算尺寸，因为之前可能因为不在可视区域导致尺寸计算不准确
+        const { openPerformance } = this.mindMap.opt
+        if (
+          openPerformance || // 性能模式下强制重新计算尺寸
+          isResizeSource ||
+          isNodeDataChange ||
+          isLayerTypeChange ||
+          (newNode.getData('resetRichText') && // 自定义节点内容可以直接忽略resetRichText
+            !newNode.isUseCustomNodeContent()) ||
+          newNode.getData('needUpdate') ||
+          isNodeInnerFixChange
+        ) {
+          newNode.getSize()
+          newNode.needLayout = true
+        }
+        this.checkGetGeneralizationChange(newNode, isResizeSource)
       }
-      this.cacheNode(data._node.uid, newNode)
-      this.checkIsLayoutChangeRerenderExpandBtnPlaceholderRect(newNode)
-      // 库前置或后置内容是否改变了
-      const isNodeInnerFixChange = this.checkNodeFixChange(
-        newNode,
-        nodeInnerPrefixData,
-        nodeInnerPostfixData
-      )
-      // 主题或主题配置改变了
-      const isResizeSource = this.checkIsNeedResizeSources()
-      // 节点数据改变了
-      const isNodeDataChange = this.checkIsNodeDataChange(
-        data._node.nodeDataSnapshot,
-        data.data
-      )
-      // 重新计算节点大小和布局
-      // 在性能模式下，即使节点数据没有改变，也需要重新计算尺寸，因为之前可能因为不在可视区域导致尺寸计算不准确
-      const { openPerformance } = this.mindMap.opt
-      if (
-        openPerformance || // 性能模式下强制重新计算尺寸
-        isResizeSource ||
-        isNodeDataChange ||
-        isLayerTypeChange ||
-        (newNode.getData('resetRichText') && // 自定义节点内容可以直接忽略resetRichText
-          !newNode.isUseCustomNodeContent()) ||
-        newNode.getData('needUpdate') ||
-        isNodeInnerFixChange
-      ) {
-        newNode.getSize()
-        newNode.needLayout = true
-      }
-      this.checkGetGeneralizationChange(newNode, isResizeSource)
-    } else if (
+    }
+    if (
+      !newNode &&
       (this.lru.has(uid) || this.renderer.lastNodeCache[uid]) &&
       !this.renderer.reRender
     ) {
@@ -195,52 +203,62 @@ class Base {
       // 或者在上一次渲染缓存对象中找到了节点
       // 也可以直接复用
       newNode = this.lru.get(uid) || this.renderer.lastNodeCache[uid]
-      // 保存该节点上一次的数据
-      const lastData = newNode.nodeDataSnapshot || JSON.stringify(newNode.getData())
-      // 节点层级改变了
-      const isLayerTypeChange = this.checkIsLayerTypeChange(
-        newNode.layerIndex,
-        layerIndex
-      )
-      newNode.reset()
-      newNode.nodeData = newNode.handleData(data || {})
-      newNode.layerIndex = layerIndex
-      if (isRoot) {
-        newNode.isRoot = true
-      } else {
-        newNode.parent = parent._node
+      // 同样检查节点有效性
+      if (newNode && !newNode.group) {
+        newNode = null
+        // 如果缓存中的节点已销毁，应将其清理（虽然destroy中已经清理，这里做双重保险）
+        if (this.lru.has(uid)) this.lru.delete(uid)
+        if (this.renderer.lastNodeCache[uid]) delete this.renderer.lastNodeCache[uid]
       }
-      this.cacheNode(uid, newNode)
-      this.checkIsLayoutChangeRerenderExpandBtnPlaceholderRect(newNode)
-      data._node = newNode
-      // 主题或主题配置改变了需要重新计算节点大小和布局
-      const isResizeSource = this.checkIsNeedResizeSources()
-      // 点数据改变了
-      const isNodeDataChange = this.checkIsNodeDataChange(lastData, data.data)
-      // 库前置或后置内容是否改变了
-      const isNodeInnerFixChange = this.checkNodeFixChange(
-        newNode,
-        nodeInnerPrefixData,
-        nodeInnerPostfixData
-      )
-      // 重新计算节点大小和布局
-      // 在性能模式下，即使节点数据没有改变，也需要重新计算尺寸，因为之前可能因为不在可视区域导致尺寸计算不准确
-      const { openPerformance } = this.mindMap.opt
-      if (
-        openPerformance || // 性能模式下强制重新计算尺寸
-        isResizeSource ||
-        isNodeDataChange ||
-        isLayerTypeChange ||
-        (newNode.getData('resetRichText') &&
-          !newNode.isUseCustomNodeContent()) ||
-        newNode.getData('needUpdate') ||
-        isNodeInnerFixChange
-      ) {
-        newNode.getSize()
-        newNode.needLayout = true
+      if (newNode) {
+        // 保存该节点上一次的数据
+        const lastData = newNode.nodeDataSnapshot || JSON.stringify(newNode.getData())
+        // 节点层级改变了
+        const isLayerTypeChange = this.checkIsLayerTypeChange(
+          newNode.layerIndex,
+          layerIndex
+        )
+        newNode.reset()
+        newNode.nodeData = newNode.handleData(data || {})
+        newNode.layerIndex = layerIndex
+        if (isRoot) {
+          newNode.isRoot = true
+        } else {
+          newNode.parent = parent._node
+        }
+        this.cacheNode(uid, newNode)
+        this.checkIsLayoutChangeRerenderExpandBtnPlaceholderRect(newNode)
+        data._node = newNode
+        // 主题或主题配置改变了需要重新计算节点大小和布局
+        const isResizeSource = this.checkIsNeedResizeSources()
+        // 点数据改变了
+        const isNodeDataChange = this.checkIsNodeDataChange(lastData, data.data)
+        // 库前置或后置内容是否改变了
+        const isNodeInnerFixChange = this.checkNodeFixChange(
+          newNode,
+          nodeInnerPrefixData,
+          nodeInnerPostfixData
+        )
+        // 重新计算节点大小和布局
+        // 在性能模式下，即使节点数据没有改变，也需要重新计算尺寸，因为之前可能因为不在可视区域导致尺寸计算不准确
+        const { openPerformance } = this.mindMap.opt
+        if (
+          openPerformance || // 性能模式下强制重新计算尺寸
+          isResizeSource ||
+          isNodeDataChange ||
+          isLayerTypeChange ||
+          (newNode.getData('resetRichText') &&
+            !newNode.isUseCustomNodeContent()) ||
+          newNode.getData('needUpdate') ||
+          isNodeInnerFixChange
+        ) {
+          newNode.getSize()
+          newNode.needLayout = true
+        }
+        this.checkGetGeneralizationChange(newNode, isResizeSource)
       }
-      this.checkGetGeneralizationChange(newNode, isResizeSource)
-    } else {
+    }
+    if (!newNode) {
       // 创建新节点
       const newUid = uid || createUid()
       newNode = new MindMapNode({
