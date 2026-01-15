@@ -51,6 +51,7 @@ const hasImage = computed(() => {
   if (activeNodes.value.length === 0)
     return false
   const firstNode = activeNodes.value[0]
+  if (!firstNode) return false
   return !!(firstNode.getData('image') || firstNode.getData('imageData'))
 })
 
@@ -58,6 +59,7 @@ const hasIcon = computed(() => {
   if (activeNodes.value.length === 0)
     return false
   const firstNode = activeNodes.value[0]
+  if (!firstNode) return false
   const icons = firstNode.getData('icon') || []
   return icons.length > 0
 })
@@ -66,6 +68,7 @@ const hasLink = computed(() => {
   if (activeNodes.value.length === 0)
     return false
   const firstNode = activeNodes.value[0]
+  if (!firstNode) return false
   return !!firstNode.getData('hyperlink')
 })
 
@@ -73,6 +76,7 @@ const hasNote = computed(() => {
   if (activeNodes.value.length === 0)
     return false
   const firstNode = activeNodes.value[0]
+  if (!firstNode) return false
   return !!firstNode.getData('note')
 })
 
@@ -80,6 +84,7 @@ const hasTag = computed(() => {
   if (activeNodes.value.length === 0)
     return false
   const firstNode = activeNodes.value[0]
+  if (!firstNode) return false
   const tags = firstNode.getData('tag') || []
   return tags.length > 0
 })
@@ -88,6 +93,7 @@ const hasGeneralizationData = computed(() => {
   if (activeNodes.value.length === 0)
     return false
   const firstNode = activeNodes.value[0]
+  if (!firstNode) return false
   return !!firstNode.getData('generalization')
 })
 
@@ -95,6 +101,7 @@ const hasOuterFrame = computed(() => {
   if (activeNodes.value.length === 0)
     return false
   const firstNode = activeNodes.value[0]
+  if (!firstNode) return false
   return !!firstNode.getData('outerFrame')
 })
 

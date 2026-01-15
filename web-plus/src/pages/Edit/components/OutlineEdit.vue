@@ -211,6 +211,7 @@ function scrollTo(y: number) {
 function getData() {
   const newNode: any = {}
   const node = data.value[0]
+  if (!node) return newNode
   const walk = (root: OutlineTreeNode, newRoot: any) => {
     newRoot.data = root.data
     newRoot.children = []

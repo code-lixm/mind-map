@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { inject, ref, nextTick, onMounted, onBeforeUnmount } from 'vue'
 import type { EventBus, MindMapInstance, OutlineTreeNode } from '../types'
 import {
   createUid,

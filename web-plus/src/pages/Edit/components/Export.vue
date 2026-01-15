@@ -5,6 +5,7 @@ import { ElNotification } from 'element-plus'
 import { isMobile as checkIsMobile } from 'simple-mind-map/src/utils/index'
 import { useCaseStore } from '@/store/case'
 import { useEditorState } from '../composables/useEditorState'
+import { useLocalStorage } from '../composables/useLocalStorage'
 import { downTypeList as downTypeListConfig } from '../config'
 
 const localeText = inject<(key: string) => string>('localeText')!

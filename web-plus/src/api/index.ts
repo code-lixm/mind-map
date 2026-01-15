@@ -29,23 +29,23 @@ export const getData = () => {
   if (store.isHandleLocalFile) {
     // 注意：如果需要在 Vue 3 中处理本地文件，需要提供替代方案
     // 这里暂时返回 localStorage 数据
-    const store = localStorage.getItem(SIMPLE_MIND_MAP_DATA)
-    if (store === null) {
+    const localData = localStorage.getItem(SIMPLE_MIND_MAP_DATA)
+    if (localData === null) {
       return simpleDeepClone(exampleData)
     } else {
       try {
-        return JSON.parse(store)
+        return JSON.parse(localData)
       } catch (error) {
         return simpleDeepClone(exampleData)
       }
     }
   }
-  const store = localStorage.getItem(SIMPLE_MIND_MAP_DATA)
-  if (store === null) {
+  const localData = localStorage.getItem(SIMPLE_MIND_MAP_DATA)
+  if (localData === null) {
     return simpleDeepClone(exampleData)
   } else {
     try {
-      return JSON.parse(store)
+      return JSON.parse(localData)
     } catch (error) {
       return simpleDeepClone(exampleData)
     }

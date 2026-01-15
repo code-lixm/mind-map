@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { EventBus } from '../types'
 import { computed, inject, nextTick, onBeforeUnmount, ref, watch } from 'vue'
+import { ElMessage } from 'element-plus'
 import MarkdownIt from 'markdown-it'
 import { createUid } from 'simple-mind-map/src/utils'
 import Sidebar from './Sidebar.vue'
@@ -63,7 +64,7 @@ const chatList = ref<ChatItem[]>([])
 const isCreating = ref(false)
 
 // Markdown 解析器
-let md: MarkdownIt | null = null
+let md: any = null
 
 // 监听 activeSidebar 变化
 watch(activeSidebar, (val) => {

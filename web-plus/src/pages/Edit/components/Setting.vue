@@ -337,7 +337,7 @@ onBeforeUnmount(() => {
           <div class="settingItem fullWidth">
             <el-checkbox
               v-model="watermarkConfig.show"
-              @change="watermarkShowChange"
+              @change="(val: any) => watermarkShowChange(val as boolean)"
             >
               {{ localeText.setting.showWatermark }}
             </el-checkbox>
@@ -375,7 +375,7 @@ onBeforeUnmount(() => {
           <div class="settingItem">
             <el-checkbox
               v-model="enableNodeRichText"
-              @change="enableNodeRichTextChange"
+              @change="(val: any) => enableNodeRichTextChange(val as boolean)"
             >
               {{ localeText.setting.isEnableNodeRichText }}
             </el-checkbox>

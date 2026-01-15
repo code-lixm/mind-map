@@ -106,7 +106,7 @@ function removeFile(file: UploadFile) {
 const uploadRef = ref<UploadInstance>()
 
 // 超出文件数量限制时的处理
-function handleExceed(files: UploadRawFile[]) {
+function handleExceed(files: File[]) {
   ElMessageBox.confirm(
     '',
     '最多只能上传1张图片，继续上传会替换已上传的文件，确定继续吗？',
