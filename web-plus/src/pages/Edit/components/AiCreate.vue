@@ -8,8 +8,8 @@ import {
   isUndef,
 } from 'simple-mind-map/src/utils'
 import { transformMarkdownTo } from 'simple-mind-map/src/parse/markdownTo'
-import Ai from '../utils/ai'
-import { defaultLocaleText } from '../locale'
+import Ai from '@/utils/ai'
+import { defaultLocaleText } from '@/locale'
 import AiConfigDialog from './AiConfigDialog.vue'
 
 // 定义 Store 接口

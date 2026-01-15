@@ -11,10 +11,10 @@ import {
   linearGradientDirList,
   shapeList,
   shapeListMap,
-} from '../config'
+} from '@/config'
 import Color from './Color.vue'
 import Sidebar from './Sidebar.vue'
-import { useEditorState } from '../composables/useEditorState'
+import { useEditorState } from '@/composables/useEditorState'
 
 // Props
 interface Props {

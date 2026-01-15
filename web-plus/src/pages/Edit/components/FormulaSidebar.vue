@@ -3,7 +3,7 @@ import type { EventBus, MindMapInstance, MindMapNode } from '../types'
 import { inject, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import Sidebar from './Sidebar.vue'
-import { formulaList } from '../config/constant'
+import { formulaList } from '@/config/constant'
 
 // Props
 interface Props {
@@ -76,18 +76,18 @@ watch(
 
 // 初始化公式列表
 function init() {
-  if (!window.katex)
-    return
-  if (!props.mindMap)
+  if (!(window as any).katex)
     return
 
   list.value = formulaList.map((item) => {
     return {
-      overview: window.katex.renderToString(
-        item,
-        props.mindMap!.formula.getKatexConfig(),
-      ),
       text: item,
+      overview: (window as any).katex.renderToString(
+        item,
+        {
+          throwOnError: false,
+        },
+      ),
     }
   })
 }

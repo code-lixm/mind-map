@@ -4,7 +4,7 @@ T<template>
   </div>
 </template>
 
-<style lang="less" scoped>
+<style lang="scss" scoped>
 .doc {
   position: fixed;
   left: 0;

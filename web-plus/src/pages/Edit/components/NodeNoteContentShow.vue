@@ -36,7 +36,7 @@ function onNodeActive(_node: any, nodes: any[]) {
 function onShowNoteContent(content: string, leftPos: number, topPos: number, nodeData: any) {
   node.value = nodeData
   if (editor.value) {
-    editor.value.setMarkdown(content)
+    ;(editor.value as any).setMarkdown(content)
   }
   handleALink()
   updateNoteContentPosition(leftPos, topPos)

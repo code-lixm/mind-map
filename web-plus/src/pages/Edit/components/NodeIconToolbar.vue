@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { MindMap } from '../types'
 import { inject, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
-import icon from '../config/icon'
+import icon from '@/config/icon'
 
 // Props
 interface Props {

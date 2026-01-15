@@ -4,7 +4,7 @@ import { inject, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { ElMessageBox } from 'element-plus'
 import Sidebar from './Sidebar.vue'
 import WatermarkSettings from './WatermarkSettings.vue'
-import { useEditorState } from '../composables/useEditorState'
+import { useEditorState } from '@/composables/useEditorState'
 
 // Props
 interface Props {

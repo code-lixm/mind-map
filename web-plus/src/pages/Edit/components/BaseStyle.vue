@@ -12,18 +12,18 @@ import {
   lineStyleMap,
   lineWidthList,
   rootLineKeepSameInCurveList,
-} from '../config'
+} from '@/config'
 import {
   rainbowLinesOptions,
   supportLineRadiusLayouts,
   supportLineStyleLayoutsMap,
   supportNodeUseLineStyleLayouts,
   supportRootLineKeepSameInCurveLayouts,
-} from '../config/constant'
+} from '@/config/constant'
 import Color from './Color.vue'
 import Sidebar from './Sidebar.vue'
 import ImgUpload from './ImgUpload.vue'
-import { useEditorState } from '../composables/useEditorState'
+import { useEditorState } from '@/composables/useEditorState'
 
 // Props
 interface Props {

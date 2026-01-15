@@ -3,7 +3,7 @@ import type { IsDark } from '../types'
 import { inject, nextTick, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import { imgToDataUrl } from 'simple-mind-map/src/utils'
-import { setImgToClipboard } from '../utils'
+import { setImgToClipboard } from '@/utils'
 
 interface Props {
   mindMap: any

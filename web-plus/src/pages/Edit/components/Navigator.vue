@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { inject, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
-import { useEditorState } from '../composables/useEditorState'
+import { useEditorState } from '@/composables/useEditorState'
 
 interface Props {
   mindMap: any

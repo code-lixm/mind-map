@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { inject, onBeforeUnmount, ref, watch } from 'vue'
 import { mergerIconList } from 'simple-mind-map/src/utils/index'
-import icon from '../config/icon'
+import icon from '@/config/icon'
 import Sidebar from './Sidebar.vue'
-import { stickerList } from '../config/image'
-import { useEditorState } from '../composables/useEditorState'
+import { stickerList } from '@/config/image'
+import { useEditorState } from '@/composables/useEditorState'
 
 // Props
 interface Props {

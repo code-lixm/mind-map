@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { inject, onBeforeUnmount, ref } from 'vue'
-import icon from '../config/icon'
+import icon from '@/config/icon'
 
 // 注入
 const localeText = inject('localeText', {} as any)

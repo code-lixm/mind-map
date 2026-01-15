@@ -6,7 +6,7 @@ import { ElMessageBox } from 'element-plus'
 import themeList from 'simple-mind-map-plugin-themes/themeList'
 import themeImgMap from 'simple-mind-map-plugin-themes/themeImgMap'
 import Sidebar from './Sidebar.vue'
-import { useEditorState } from '../composables/useEditorState'
+import { useEditorState } from '@/composables/useEditorState'
 
 interface Props {
   mindMap: any

@@ -118,8 +118,8 @@ function handleExceed(files: File[]) {
   ).then(() => {
     uploadRef.value?.clearFiles()
     const file = files[0]
-    file.uid = genFileId()
-    uploadRef.value?.handleStart(file)
+    ;(file as any).uid = genFileId()
+    uploadRef.value?.handleStart(file as any)
     uploadRef.value?.submit()
   })
 }

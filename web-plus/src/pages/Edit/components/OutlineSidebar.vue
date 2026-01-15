@@ -2,7 +2,7 @@
 import type { MindMapInstance } from '../types'
 import Outline from './Outline.vue'
 import Sidebar from './Sidebar.vue'
-import { printOutline } from '../utils'
+import { printOutline } from '@/utils'
 
 // Props
 interface Props {

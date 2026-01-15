@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { inject, ref, watch } from 'vue'
-import { colorList } from '../config'
+import { colorList } from '@/config'
 
 // Props
 interface Props {

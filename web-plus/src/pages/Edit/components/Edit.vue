@@ -819,7 +819,7 @@ export default {
 }
 </script>
 
-<style lang="less" scoped>
+<style lang="scss" scoped>
 .editContainer {
   position: fixed;
   left: 0;

@@ -398,5 +398,5 @@ onBeforeUnmount(() => {
 </style>
 
 <style lang="scss" scoped>
-@import url('../styles/outlineTree.scss');
+@import '@/style/outlineTree.scss';
 </style>

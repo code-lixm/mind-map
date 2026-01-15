@@ -95,7 +95,7 @@ onMounted(async () => {
 })
 </script>
 
-<style lang="less">
+<style lang="scss">
 .container {
 }
 

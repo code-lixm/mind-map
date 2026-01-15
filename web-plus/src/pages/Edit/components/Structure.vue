@@ -3,9 +3,9 @@ import type { LocaleTextProvider } from '../types'
 import { computed, inject, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import Sidebar from './Sidebar.vue'
-import { layoutImgMap } from '../config/constant'
-import { useEditorState } from '../composables/useEditorState'
-import { layoutGroupList as layoutGroupListConfig } from '../config'
+import { layoutImgMap } from '@/config/constant'
+import { useEditorState } from '@/composables/useEditorState'
+import { layoutGroupList as layoutGroupListConfig } from '@/config'
 
 interface Props {
   mindMap: any

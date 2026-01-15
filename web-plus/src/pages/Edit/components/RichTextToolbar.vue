@@ -6,7 +6,7 @@ import {
   alignList as alignListZh,
   fontFamilyList as fontFamilyListZh,
   fontSizeList,
-} from '../config/zh'
+} from '@/config/zh'
 
 import Color from './Color.vue'
 

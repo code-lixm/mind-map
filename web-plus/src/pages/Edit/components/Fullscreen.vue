@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { MindMapInstance } from '../types'
 import { inject, onMounted } from 'vue'
-import { fullScreen, fullscrrenEvent } from '../utils'
+import { fullScreen, fullscrrenEvent } from '@/utils'
 
 // Props
 interface Props {

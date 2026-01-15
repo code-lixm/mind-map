@@ -5,13 +5,13 @@ import OuterFrame from 'simple-mind-map/src/plugins/OuterFrame'
 import {
   borderDasharrayList as borderDasharrayListZh,
   fontFamilyList as fontFamilyListZh,
-} from '../config/zh'
+} from '@/config/zh'
 import {
   borderRadiusList,
   fontSizeList,
   lineHeightList,
   lineWidthList,
-} from '../config/constant'
+} from '@/config/constant'
 import Color from './Color.vue'
 import Sidebar from './Sidebar.vue'
 

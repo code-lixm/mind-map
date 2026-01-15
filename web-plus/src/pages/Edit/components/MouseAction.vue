@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { MindMapInstance } from '../types'
 import { computed, inject } from 'vue'
-import { useEditorState } from '../composables/useEditorState'
+import { useEditorState } from '@/composables/useEditorState'
 
 // Props
 interface Props {

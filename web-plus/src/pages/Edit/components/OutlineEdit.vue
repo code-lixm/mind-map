@@ -8,7 +8,7 @@ import {
   simpleDeepClone,
   textToNodeRichTextWithWrap,
 } from 'simple-mind-map/src/utils'
-import { printOutline } from '../utils'
+import { printOutline } from '@/utils'
 
 // Props
 interface Props {
@@ -376,5 +376,5 @@ onBeforeUnmount(() => {
 </style>
 
 <style lang="scss" scoped>
-@import url('../styles/outlineTree.scss');
+@import '@/style/outlineTree.scss';
 </style>

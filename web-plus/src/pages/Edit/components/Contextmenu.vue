@@ -6,8 +6,8 @@ import { ElMessage } from 'element-plus'
 import { transformToTxt } from 'simple-mind-map/src/parse/toTxt'
 import { getTextFromHtml, imgToDataUrl } from 'simple-mind-map/src/utils'
 import { transformToMarkdown } from 'simple-mind-map/src/parse/toMarkdown'
-import { useEditorState } from '../composables/useEditorState'
-import { copy, setDataToClipboard, setImgToClipboard } from '../utils'
+import { useEditorState } from '@/composables/useEditorState'
+import { copy, setDataToClipboard, setImgToClipboard } from '@/utils'
 
 interface Props {
   mindMap?: MindMapInstance

@@ -9,7 +9,7 @@ import { isMobile as checkIsMobile, throttle } from 'simple-mind-map/src/utils/i
 import Export from './Export.vue'
 import Import from './Import.vue'
 import ToolbarNodeBtnList from './ToolbarNodeBtnList.vue'
-import { useEditorState } from '../composables/useEditorState'
+import { useEditorState } from '@/composables/useEditorState'
 
 const props = defineProps<{
   mode?: 'readonly' | 'edit'

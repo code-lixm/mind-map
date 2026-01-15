@@ -3,7 +3,7 @@ import 'viewerjs/dist/viewer.css'
 import type { EventBus } from '../types'
 import { inject, onBeforeUnmount, onMounted, ref } from 'vue'
 import { component as Viewer, api as viewerApi } from 'v-viewer'
-import { useEditorState } from '../composables/useEditorState'
+import { useEditorState } from '@/composables/useEditorState'
 
 interface Props {
   mindMap: any

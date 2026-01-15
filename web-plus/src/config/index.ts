@@ -81,117 +81,37 @@ import {
   layoutGroupList as layoutGroupListVi
 } from './vi'
 
-const fontFamilyList = {
-  zh: fontFamilyListZh,
-  en: fontFamilyListEn,
-  zhtw: fontFamilyListZhtw,
-  vi: fontFamilyListVi
-}
+const fontFamilyList = fontFamilyListZh
 
-const borderDasharrayList = {
-  zh: borderDasharrayListZh,
-  en: borderDasharrayListEn,
-  zhtw: borderDasharrayListZhtw,
-  vi: borderDasharrayListVi
-}
+const borderDasharrayList = borderDasharrayListZh
 
-const lineStyleList = {
-  zh: lineStyleListZh,
-  en: lineStyleListEn,
-  zhtw: lineStyleListZhtw,
-  vi: lineStyleListVi
-}
+const lineStyleList = lineStyleListZh
 
-const rootLineKeepSameInCurveList = {
-  zh: rootLineKeepSameInCurveListZh,
-  en: rootLineKeepSameInCurveListEn,
-  zhtw: rootLineKeepSameInCurveListZhtw,
-  vi: rootLineKeepSameInCurveListVi
-}
+const rootLineKeepSameInCurveList = rootLineKeepSameInCurveListZh
 
-const backgroundRepeatList = {
-  zh: backgroundRepeatListZh,
-  en: backgroundRepeatListEn,
-  zhtw: backgroundRepeatListZhtw,
-  vi: backgroundRepeatListVi
-}
+const backgroundRepeatList = backgroundRepeatListZh
 
-const backgroundPositionList = {
-  zh: backgroundPositionListZh,
-  en: backgroundPositionListEn,
-  zhtw: backgroundPositionListZhtw,
-  vi: backgroundPositionListVi
-}
+const backgroundPositionList = backgroundPositionListZh
 
-const backgroundSizeList = {
-  zh: backgroundSizeListZh,
-  en: backgroundSizeListEn,
-  zhtw: backgroundSizeListZhtw,
-  vi: backgroundSizeListVi
-}
+const backgroundSizeList = backgroundSizeListZh
 
-const shortcutKeyList = {
-  zh: shortcutKeyListZh,
-  en: shortcutKeyListEn,
-  zhtw: shortcutKeyListZhtw,
-  vi: shortcutKeyListVi
-}
+const shortcutKeyList = shortcutKeyListZh
 
-const shapeList = {
-  zh: shapeListZh,
-  en: shapeListEn,
-  zhtw: shapeListZhtw,
-  vi: shapeListVi
-}
+const shapeList = shapeListZh
 
-const sidebarTriggerList = {
-  zh: sidebarTriggerListZh,
-  en: sidebarTriggerListEn,
-  zhtw: sidebarTriggerListZhtw,
-  vi: sidebarTriggerListVi
-}
+const sidebarTriggerList = sidebarTriggerListZh
 
-const downTypeList = {
-  zh: downTypeListZh,
-  en: downTypeListEn,
-  zhtw: downTypeListZhtw,
-  vi: downTypeListVi
-}
+const downTypeList = downTypeListZh
 
-const numberTypeList = {
-  zh: numberTypeListZh,
-  en: numberTypeListEn,
-  zhtw: numberTypeListZhtw,
-  vi: numberTypeListVi
-}
+const numberTypeList = numberTypeListZh
 
-const numberLevelList = {
-  zh: numberLevelListZh,
-  en: numberLevelListEn,
-  zhtw: numberLevelListZhtw,
-  vi: numberLevelListVi
-}
+const numberLevelList = numberLevelListZh
 
-const linearGradientDirList = {
-  zh: linearGradientDirListZh,
-  en: linearGradientDirListEn,
-  zhtw: linearGradientDirListZhtw,
-  vi: linearGradientDirListVi
-}
+const linearGradientDirList = linearGradientDirListZh
 
-const alignList = {
-  zh: alignListZh,
-  en: alignListEn,
-  zhtw: alignListZhtw,
-  vi: alignListVi
-}
+const alignList = alignListZh
 
-const layoutGroupList = {
-  zh: layoutGroupListZh,
-  en: layoutGroupListEn,
-  zhtw: layoutGroupListZhtw,
-  vi: layoutGroupListVi
-}
+const layoutGroupList = layoutGroupListZh
 
 export {
   fontSizeList,

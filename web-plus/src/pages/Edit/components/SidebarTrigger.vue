@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import { sidebarTriggerList } from '../config'
+import { sidebarTriggerList } from '@/config'
 
 // Props
 interface Props {

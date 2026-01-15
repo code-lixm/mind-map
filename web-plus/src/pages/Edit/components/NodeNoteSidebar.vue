@@ -4,7 +4,7 @@ import type { EventBus, LocaleText } from '../types'
 import { inject, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import Viewer from '@toast-ui/editor/dist/toastui-editor-viewer'
 import Sidebar from './Sidebar.vue'
-import { useEditorState } from '../composables/useEditorState'
+import { useEditorState } from '@/composables/useEditorState'
 
 interface Props {
   mindMap: any
@@ -61,7 +61,7 @@ function onNodeNoteClick(nodeData: any) {
   node.value = nodeData
   setActiveSidebar('noteSidebar')
   if (editor.value) {
-    editor.value.setMarkdown(nodeData.getData('note'))
+    ;(editor.value as any).setMarkdown(nodeData.getData('note'))
   }
 }
 

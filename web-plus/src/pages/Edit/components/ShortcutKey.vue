@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { inject, ref, watch } from 'vue'
 import Sidebar from './Sidebar.vue'
-import { shortcutKeyList as shortcutKeyListZh } from '../config/zh'
+import { shortcutKeyList as shortcutKeyListZh } from '@/config/zh'
 
 // Props
 interface Props {
