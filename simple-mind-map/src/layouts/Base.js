@@ -196,7 +196,7 @@ class Base {
       // 也可以直接复用
       newNode = this.lru.get(uid) || this.renderer.lastNodeCache[uid]
       // 保存该节点上一次的数据
-      const lastData = JSON.stringify(newNode.getData())
+      const lastData = newNode.nodeDataSnapshot || JSON.stringify(newNode.getData())
       // 节点层级改变了
       const isLayerTypeChange = this.checkIsLayerTypeChange(
         newNode.layerIndex,
