@@ -216,24 +216,33 @@ class Render {
         return
       }
 
-      // 如果焦点在输入框、文本域或可编辑元素上，不拦截粘贴事件
-      if (activeElement && (
-        activeElement.tagName === 'INPUT' ||
-        activeElement.tagName === 'TEXTAREA' ||
-        activeElement.isContentEditable ||
-        activeElement.hasAttribute('contenteditable')
-      )) {
+      // 检查元素是否是可编辑的输入框
+      const isEditableInput = (el) => {
+        if (!el) return false
+        // 特殊处理：如果你提到的 textarea 带有这个类名且导致了粘贴失败，
+        // 说明它可能是一个辅助型元素（非用户交互），我们应当允许在此处触发脑图粘贴
+        if (el.classList && el.classList.contains('customScrollbar')) {
+          return false
+        }
+        const tagName = el.tagName
+        // 输入框或文本域，且非只读非禁用
+        if (tagName === 'INPUT' || tagName === 'TEXTAREA') {
+          return !el.readOnly && !el.disabled
+        }
+        // contenteditable 元素
+        if (el.isContentEditable || el.hasAttribute('contenteditable')) {
+          return true
+        }
+        return false
+      }
+
+      // 如果焦点在可编辑输入框上，不拦截粘贴事件
+      if (isEditableInput(activeElement)) {
         return
       }
 
-      // 进一步检查事件目标是否是输入框（防止 activeElement 更新滞后或不准）
-      const target = e.target
-      if (target && (
-        target.tagName === 'INPUT' ||
-        target.tagName === 'TEXTAREA' ||
-        target.isContentEditable ||
-        target.hasAttribute('contenteditable')
-      )) {
+      // 进一步检查事件目标（防止 activeElement 更新滞后）
+      if (isEditableInput(e.target)) {
         return
       }
 
@@ -660,6 +669,16 @@ class Render {
           this.emitNodeActiveEvent()
           // 调用节点的销毁方法
           this.lastNodeCache[uid].destroy()
+        } else if (this.nodeCache[uid] !== this.lastNodeCache[uid]) {
+          // 如果是更新了节点实例，那么需要把旧实例销毁
+          const oldNode = this.lastNodeCache[uid]
+          const newNode = this.nodeCache[uid]
+          // 如果旧节点是激活状态，那么需要更新激活列表里的节点实例
+          const index = this.activeNodeList.indexOf(oldNode)
+          if (index !== -1) {
+            this.activeNodeList[index] = newNode
+          }
+          oldNode.destroy()
         }
       })
       // 更新根节点

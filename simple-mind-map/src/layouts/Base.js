@@ -153,13 +153,18 @@ class Base {
           layerIndex
         )
         newNode.reset()
+        // 同步更新节点 uid，确保与数据一致
+        if (uid && newNode.uid !== uid) {
+          newNode.uid = uid
+        }
         newNode.layerIndex = layerIndex
         if (isRoot) {
           newNode.isRoot = true
         } else {
           newNode.parent = parent._node
         }
-        this.cacheNode(data._node.uid, newNode)
+        // 使用 uid（来自 data.data.uid）确保缓存键一致性
+        this.cacheNode(uid, newNode)
         this.checkIsLayoutChangeRerenderExpandBtnPlaceholderRect(newNode)
         // 库前置或后置内容是否改变了
         const isNodeInnerFixChange = this.checkNodeFixChange(

@@ -352,7 +352,6 @@ export default {
           el.innerText = childrenLength
           el.addEventListener('click', e => {
             e.stopPropagation()
-            console.log('hello world')
           })
           return {
             el,
