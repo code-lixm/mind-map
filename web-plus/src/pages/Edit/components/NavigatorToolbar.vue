@@ -199,18 +199,19 @@ function backToRoot() {
   right: 20px;
   bottom: 20px;
   background: #ffffff;
-  border-radius: 5px;
-  opacity: 0.8;
+  border-radius: 6px;
   height: 44px;
   font-size: 12px;
   display: flex;
   align-items: center;
+  box-shadow: 0 2px 16px 0 rgba(0, 0, 0, 0.06);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  color: rgba(26, 26, 26, 0.8);
 
-  &:hover {
-    opacity: 1;
-  }
   &.isDark {
     background: #262a2e;
+    color: hsla(0, 0%, 100%, 0.9);
+    border-color: transparent;
 
     .item {
       a {
@@ -231,13 +232,14 @@ function backToRoot() {
     }
 
     a {
-      color: #303133;
+      color: rgba(26, 26, 26, 0.8);
       text-decoration: none;
     }
 
     .btn {
       cursor: pointer;
       font-size: 18px;
+      color: rgba(26, 26, 26, 0.8);
 
       &:hover {
         color: var(--el-color-primary);

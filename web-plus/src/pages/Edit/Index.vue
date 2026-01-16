@@ -4,7 +4,6 @@
     :class="{ isDark: isDark, activeSidebar: activeSidebar }"
   >
     <template v-if="show">
-      <Toolbar v-if="!isZenMode"></Toolbar>
       <MindMapContainer
         :model-value="mindMapData"
         :mode="isReadonly ? 'readonly' : 'edit'"
@@ -28,7 +27,6 @@ import { ElLoading } from 'element-plus'
 import { useI18n } from 'vue-i18n'
 import { useMainStore } from '@/store'
 import { getLocalConfig, getData } from '@/api'
-import Toolbar from './components/Toolbar.vue'
 import MindMapContainer from './components/MindMapContainer.vue'
 import type { MindMapFullData, MindMapInstance } from '@/types/mind-map'
 
@@ -97,6 +95,8 @@ onMounted(async () => {
 
 <style lang="scss">
 .container {
+  height: 100%;
+  width: 100%;
 }
 
 body {

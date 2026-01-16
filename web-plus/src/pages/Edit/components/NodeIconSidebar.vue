@@ -221,7 +221,7 @@ onBeforeUnmount(() => {
   .title {
     font-size: 16px;
     font-weight: 500;
-    color: #333;
+    color: rgba(26, 26, 26, 0.9);
   }
 
   .boxContent {
