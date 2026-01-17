@@ -512,7 +512,7 @@ export const loadImage = imgFile => {
 
 // 移除字符串中的html实体
 export const removeHTMLEntities = str => {
-  ;[['&nbsp;', '&#160;']].forEach(item => {
+  [['&nbsp;', '&#160;']].forEach(item => {
     str = str.replace(new RegExp(item[0], 'g'), item[1])
   })
   return str
@@ -1043,11 +1043,19 @@ export const formatDataToArray = data => {
 
 //  获取节点在同级里的位置索引
 export const getNodeDataIndex = node => {
-  return node.parent
-    ? node.parent.nodeData.children.findIndex(item => {
-        return item.data.uid === node.uid
-      })
-    : 0
+  if (!node.parent) {
+    return 0
+  }
+  let index = node.parent.nodeData.children.findIndex(item => {
+    return item.data.uid === node.uid
+  })
+  // 如果通过uid没找到，尝试通过对象引用查找
+  if (index === -1) {
+    index = node.parent.nodeData.children.findIndex(item => {
+      return item === node.nodeData
+    })
+  }
+  return index
 }
 
 // 从一个节点列表里找出某个节点的索引
@@ -1140,6 +1148,11 @@ export const checkClipboardReadEnable = () => {
   return navigator.clipboard && typeof navigator.clipboard.read === 'function'
 }
 
+// 检查navigator.clipboard对象的写入是否可用
+export const checkClipboardWriteEnable = () => {
+  return navigator.clipboard && typeof navigator.clipboard.writeText === 'function'
+}
+
 const supportClipboardImageMimeList = ['image/png', 'image/jpeg', 'image/jpg']
 const supportClipboardImageExtReg = /(\.png|\.jpe?g)(\?.*)?$/i
 
@@ -1172,10 +1185,50 @@ export const isSupportedClipboardFileText = text => {
   return supportClipboardImageExtReg.test(candidate)
 }
 
+// 降级方案：使用 execCommand 复制文本到剪贴板
+const setDataToClipboardFallback = data => {
+  const text = JSON.stringify(data)
+  const textarea = document.createElement('textarea')
+  textarea.value = text
+  textarea.style.cssText = 'position:fixed;top:-9999px;left:-9999px;opacity:0;pointer-events:none;'
+  textarea.setAttribute('readonly', '')
+  document.body.appendChild(textarea)
+
+  // 兼容 iOS
+  if (navigator.userAgent.match(/ipad|iphone/i)) {
+    const range = document.createRange()
+    range.selectNodeContents(textarea)
+    const selection = window.getSelection()
+    selection.removeAllRanges()
+    selection.addRange(range)
+    textarea.setSelectionRange(0, textarea.value.length)
+  } else {
+    textarea.select()
+  }
+
+  try {
+    const successful = document.execCommand('copy')
+    document.body.removeChild(textarea)
+    return successful
+  } catch (err) {
+    document.body.removeChild(textarea)
+    console.warn('Fallback copy failed:', err)
+    return false
+  }
+}
+
 // 将数据设置到用户剪切板中
 export const setDataToClipboard = data => {
-  if (navigator.clipboard && navigator.clipboard.writeText) {
-    navigator.clipboard.writeText(JSON.stringify(data))
+  if (checkClipboardWriteEnable()) {
+    // 优先使用现代 Clipboard API
+    return navigator.clipboard.writeText(JSON.stringify(data))
+      .catch(err => {
+        console.warn('Clipboard API failed, using fallback:', err)
+        return setDataToClipboardFallback(data)
+      })
+  } else {
+    // 非 HTTPS 环境或不支持 Clipboard API，使用降级方案
+    return Promise.resolve(setDataToClipboardFallback(data))
   }
 }
 
@@ -1228,7 +1281,11 @@ export const removeFromParentNodeData = node => {
   if (!node || !node.parent) return
   const index = getNodeDataIndex(node)
   if (index === -1) return
-  node.parent.nodeData.children.splice(index, 1)
+  const removedData = node.parent.nodeData.children.splice(index, 1)[0]
+  // 清理 _node 引用，防止复用已销毁的节点
+  if (removedData && removedData._node) {
+    removedData._node = null
+  }
 }
 
 // 给html自闭合标签添加闭合状态
