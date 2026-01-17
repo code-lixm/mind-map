@@ -303,6 +303,8 @@ export interface MindMapInstance {
     updateRainLinesConfig: (config: any) => void
     [key: string]: any
   }
+  /** 视口检测器 */
+  viewportDetector?: ViewportDetectorPlugin
   [key: string]: any
 }
 
@@ -950,6 +952,11 @@ export interface LocaleText {
     tip5: string
     [key: string]: string
   }
+  // 回到视图
+  backToView: {
+    buttonText: string
+    [key: string]: string
+  }
   // 允许扩展
   [key: string]: any
 }
@@ -1112,6 +1119,104 @@ export interface MindMapNode {
   setNote: (note: string) => void
   /** 其他属性和方法 */
   [key: string]: unknown
+}
+
+// ============== 视口检测相关 ==============
+
+/**
+ * 视口可见性信息
+ */
+export interface ViewportVisibility {
+  /** 状态: 完全可见 | 部分可见 | 不可见 */
+  status: 'fully_visible' | 'partially_visible' | 'invisible'
+  /** 是否完全可见 */
+  isFullyVisible: boolean
+  /** 是否部分可见 */
+  isPartiallyVisible: boolean
+  /** 是否不可见 */
+  isInvisible: boolean
+  /** 可见比例 (0-1) */
+  visibleRatio: number
+  /** 可见区域面积 */
+  visibleArea: number
+  /** 各方向溢出值 */
+  overflow: {
+    left: number
+    top: number
+    right: number
+    bottom: number
+  }
+  /** 溢出的方向列表 */
+  directions: string[]
+  /** 根节点是否可见 */
+  rootVisible: boolean
+  /** 思维导图边界 */
+  mindMapBounds: {
+    left: number
+    top: number
+    right: number
+    bottom: number
+    width: number
+    height: number
+    centerX: number
+    centerY: number
+  }
+  /** 视口边界 */
+  viewportBounds: {
+    left: number
+    top: number
+    right: number
+    bottom: number
+    width: number
+    height: number
+    centerX: number
+    centerY: number
+  }
+  /** 可见区域边界 */
+  visibleBounds: {
+    left: number
+    top: number
+    right: number
+    bottom: number
+    width: number
+    height: number
+  }
+}
+
+/**
+ * 视口检测器插件
+ */
+export interface ViewportDetectorPlugin {
+  /** 是否启用 */
+  enabled: boolean
+  /** 启用插件 */
+  enable: () => void
+  /** 禁用插件 */
+  disable: () => void
+  /** 切换启用状态 */
+  toggle: () => boolean
+  /** 是否已启用 */
+  isEnabled: () => boolean
+  /** 手动触发检测并 emit 事件 */
+  emitCheck: () => ViewportVisibility
+  /** 检测可见性 */
+  check: () => ViewportVisibility
+  /** 获取可见性信息 */
+  getVisibility: () => ViewportVisibility
+  /** 是否在视口内 */
+  isInViewport: () => boolean
+  /** 是否完全在视口内 */
+  isFullyInViewport: () => boolean
+  /** 获取溢出方向 */
+  getOverflowDirections: () => string[]
+  /** 回到视图中心 */
+  backToCenter: () => void
+  /** 检查节点是否在视口内 */
+  isNodeInViewport: (node: MindMapNode) => boolean
+  /** 获取可见节点 */
+  getVisibleNodes: () => MindMapNode[]
+  /** 获取不可见节点 */
+  getInvisibleNodes: () => MindMapNode[]
 }
 
 // ============== 同步相关 ==============

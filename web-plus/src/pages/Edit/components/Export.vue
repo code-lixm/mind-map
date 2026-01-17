@@ -1,9 +1,7 @@
 <script setup lang="ts">
 import { computed, inject, onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import { storeToRefs } from 'pinia'
 import { ElNotification } from 'element-plus'
 import { isMobile as checkIsMobile } from 'simple-mind-map/src/utils/index'
-import { useCaseStore } from '@/store/case'
 import { useEditorState } from '@/composables/useEditorState'
 import { useLocalStorage } from '@/composables/useLocalStorage'
 import { downTypeList as downTypeListConfig } from '@/config'
@@ -15,8 +13,6 @@ const eventBus = inject<{
   emit: (event: string, ...args: any[]) => void
 }>('eventBus')!
 const { isDark, setExtraTextOnExport } = useEditorState()
-const caseStore = useCaseStore()
-const { detail } = storeToRefs(caseStore)
 
 const dialogVisible = ref(false)
 // 注释掉:移除 .smm 格式支持，改为默认导出 json
@@ -44,10 +40,6 @@ const hideTaskNodeSupportTypes = []
 // const hideTaskNodeSupportTypes = ['xmind', 'json', 'md']
 const canHideTaskNodes = computed(() => hideTaskNodeSupportTypes.includes(exportType.value))
 const defaultExportFileName = computed(() => {
-  const caseName = detail.value?.caseInfo?.name?.trim()
-  if (caseName)
-    return `${caseName}`
-
   return localeText('export.defaultFileName')
 })
 
@@ -194,11 +186,8 @@ function confirm() {
 <template>
   <el-dialog
     v-model="dialogVisible"
-    v-loading.fullscreen.lock="loading"
     class="nodeExportDialog"
     :class="{ isMobile, isDark }"
-    :element-loading-text="loadingText"
-    element-loading-background="rgba(0, 0, 0, 0.8)"
     :width="isMobile ? '90%' : '800px'"
     :top="isMobile ? '20px' : '15vh'"
     :body-style="{ padding: 0 }"
@@ -486,31 +475,31 @@ function confirm() {
           background-size: cover;
 
           &.png {
-            background-image: url('../assets/img/foramt/2.png');
+            background-image: url('../../../assets/img/foramt/2.png');
           }
 
           &.pdf {
-            background-image: url('../assets/img/foramt/4.png');
+            background-image: url('../../../assets/img/foramt/4.png');
           }
 
           &.md {
-            background-image: url('../assets/img/foramt/5.png');
+            background-image: url('../../../assets/img/foramt/5.png');
           }
 
           &.json {
-            background-image: url('../assets/img/foramt/10.png');
+            background-image: url('../../../assets/img/foramt/10.png');
           }
 
           &.svg {
-            background-image: url('../assets/img/foramt/3.png');
+            background-image: url('../../../assets/img/foramt/3.png');
           }
 
           &.xmind {
-            background-image: url('../assets/img/foramt/6.png');
+            background-image: url('../../../assets/img/foramt/6.png');
           }
 
           &.txt {
-            background-image: url('../assets/img/foramt/7.png');
+            background-image: url('../../../assets/img/foramt/7.png');
           }
         }
 

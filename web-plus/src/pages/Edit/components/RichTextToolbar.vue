@@ -567,6 +567,7 @@ onBeforeUnmount(() => {
     cursor: pointer;
     border-radius: 4px;
     transition: all 0.2s;
+    color: #333;
 
     &:hover {
       background-color: var(--el-color-primary-light-9);

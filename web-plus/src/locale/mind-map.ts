@@ -560,6 +560,9 @@ export const defaultLocaleText: LocaleText = {
     tip4: '删除成功',
     tip5: '链接节点不存在，是否删除该链接？',
   },
+  backToView: {
+    buttonText: '回到视图',
+  },
 }
 
 /**
@@ -613,5 +616,6 @@ export function mergeLocaleText(
     ai: { ...defaultLocaleText.ai, ...customText.ai },
     note: { ...defaultLocaleText.note, ...customText.note },
     nodeLink: { ...defaultLocaleText.nodeLink, ...customText.nodeLink },
+    backToView: { ...defaultLocaleText.backToView, ...customText.backToView },
   }
 }

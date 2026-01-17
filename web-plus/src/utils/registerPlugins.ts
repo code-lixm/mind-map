@@ -29,6 +29,7 @@ import NodeImgAdjust from 'simple-mind-map/src/plugins/NodeImgAdjust.js'
 import AssociativeLine from 'simple-mind-map/src/plugins/AssociativeLine.js'
 import MindMapLayoutPro from 'simple-mind-map/src/plugins/MindMapLayoutPro.js'
 import KeyboardNavigation from 'simple-mind-map/src/plugins/KeyboardNavigation.js'
+import ViewportDetector from 'simple-mind-map/src/plugins/ViewportDetector.js'
 
 import NodeBase64ImageStorage from 'simple-mind-map/src/plugins/NodeBase64ImageStorage.js'
 
@@ -57,6 +58,7 @@ export function registerAllPlugins() {
     .usePlugin(OuterFrame)
     .usePlugin(MindMapLayoutPro)
     .usePlugin(NodeBase64ImageStorage)
+    .usePlugin(ViewportDetector)
 
   // 注册主题
   Themes.init(MindMap)

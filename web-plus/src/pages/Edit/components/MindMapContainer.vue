@@ -52,6 +52,7 @@ import NavigatorToolbar from './NavigatorToolbar.vue'
 import NodeNoteContentShow from './NodeNoteContentShow.vue'
 import AssociativeLineStyle from './AssociativeLineStyle.vue'
 import NodeImgPlacementToolbar from './NodeImgPlacementToolbar.vue'
+import BackToView from '@/components/BackToView.vue'
 import { getData, getConfig, storeData } from '@/api'
 
 // ============== Props & Emits ==============
@@ -1003,6 +1004,13 @@ defineExpose({
         :is-outline-edit="isOutlineEdit"
         @set-is-outline-edit="(value) => editorStore.setIsOutlineEdit(value)"
         @set-data="handleOutlineEditSetData"
+      />
+
+      <!-- 回到视图按钮 -->
+      <BackToView
+        v-if="mindMapInstance"
+        :mind-map="mindMapInstance"
+        :is-dark="isDark"
       />
 
       <!-- 对话框组件 -->

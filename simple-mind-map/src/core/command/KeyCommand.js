@@ -131,11 +131,8 @@ export default class KeyCommand {
     }
     Object.keys(this.shortcutMap).forEach(key => {
       if (this.checkKey(e, key)) {
-        // 粘贴事件不组织，因为要监听paste事件
-        if (!this.checkKey(e, 'Control+v')) {
-          e.stopPropagation()
-          e.preventDefault()
-        }
+        e.stopPropagation()
+        e.preventDefault()
         if (typeof beforeShortcutRun === 'function') {
           const isStop = beforeShortcutRun(key, [
             ...this.mindMap.renderer.activeNodeList

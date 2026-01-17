@@ -479,6 +479,10 @@ class Render {
     this.mindMap.keyCommand.addShortcut('Control+x', () => {
       this.cut()
     })
+    // 粘贴节点
+    this.mindMap.keyCommand.addShortcut('Control+v', () => {
+      this.paste()
+    })
     // 根节点居中显示
     this.mindMap.keyCommand.addShortcut('Control+Enter', () => {
       this.setRootNodeCenter()
