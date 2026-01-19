@@ -1,0 +1,3 @@
+export enum ERROR_CODE {
+  MIND_MAP_NOT_FOUND = 18888,
+}

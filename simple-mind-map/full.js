@@ -21,6 +21,7 @@ import OuterFrame from './src/plugins/OuterFrame.js'
 import MindMapLayoutPro from './src/plugins/MindMapLayoutPro.js'
 import NodeBase64ImageStorage from './src/plugins/NodeBase64ImageStorage.js'
 import FreedomNode from './src/plugins/FreedomNode.js'
+import ViewportDetector from './src/plugins/ViewportDetector.js'
 import xmind from './src/parse/xmind.js'
 import markdown from './src/parse/markdown.js'
 import icons from './src/svg/icons.js'
@@ -32,7 +33,7 @@ MindMap.markdown = markdown
 MindMap.iconList = icons.nodeIconList
 MindMap.constants = constants
 MindMap.defaultTheme = defaultTheme
-MindMap.version = '0.14.0-fix.16'
+MindMap.version = '0.14.0-fix.20'
 
 MindMap.usePlugin(MiniMap)
   .usePlugin(Watermark)
@@ -56,5 +57,6 @@ MindMap.usePlugin(MiniMap)
   .usePlugin(MindMapLayoutPro)
   .usePlugin(NodeBase64ImageStorage)
   .usePlugin(FreedomNode)
+  .usePlugin(ViewportDetector)
 
 export default MindMap

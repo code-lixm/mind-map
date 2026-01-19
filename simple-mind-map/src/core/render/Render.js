@@ -206,14 +206,53 @@ class Render {
       }
     })
     // 处理非https下的复制黏贴问题
-    // 暂时不启用，因为给页面的其他输入框（比如节点文本编辑框）粘贴内容也会触发，冲突问题暂时没有想到好的解决方法，不可能要求所有输入框都阻止冒泡
-    // if (!checkClipboardReadEnable()) {
-    //   this.handlePaste = this.handlePaste.bind(this)
-    //   window.addEventListener('paste', this.handlePaste)
-    //   this.mindMap.on('beforeDestroy', () => {
-    //     window.removeEventListener('paste', this.handlePaste)
-    //   })
-    // }
+    this.handlePasteEvent = (e) => {
+      // 获取当前焦点元素
+      const activeElement = document.activeElement
+      const isInTextEdit = this.textEdit && this.textEdit.showTextEdit
+
+      // 如果正在编辑节点文本，不拦截粘贴事件
+      if (isInTextEdit) {
+        return
+      }
+
+      // 检查元素是否是可编辑的输入框
+      const isEditableInput = (el) => {
+        if (!el) return false
+        // 特殊处理：如果你提到的 textarea 带有这个类名且导致了粘贴失败，
+        // 说明它可能是一个辅助型元素（非用户交互），我们应当允许在此处触发脑图粘贴
+        if (el.classList && el.classList.contains('customScrollbar')) {
+          return false
+        }
+        const tagName = el.tagName
+        // 输入框或文本域，且非只读非禁用
+        if (tagName === 'INPUT' || tagName === 'TEXTAREA') {
+          return !el.readOnly && !el.disabled
+        }
+        // contenteditable 元素
+        if (el.isContentEditable || el.hasAttribute('contenteditable')) {
+          return true
+        }
+        return false
+      }
+
+      // 如果焦点在可编辑输入框上，不拦截粘贴事件
+      if (isEditableInput(activeElement)) {
+        return
+      }
+
+      // 进一步检查事件目标（防止 activeElement 更新滞后）
+      if (isEditableInput(e.target)) {
+        return
+      }
+
+      this.handlePaste(e)
+    }
+
+    window.addEventListener('paste', this.handlePasteEvent)
+    this.mindMap.on('beforeDestroy', () => {
+      window.removeEventListener('paste', this.handlePasteEvent)
+    })
   }
 
   // 监听文本编辑事件，实时更新节点大小
@@ -636,6 +675,16 @@ class Render {
           this.emitNodeActiveEvent()
           // 调用节点的销毁方法
           this.lastNodeCache[uid].destroy()
+        } else if (this.nodeCache[uid] !== this.lastNodeCache[uid]) {
+          // 如果是更新了节点实例，那么需要把旧实例销毁
+          const oldNode = this.lastNodeCache[uid]
+          const newNode = this.nodeCache[uid]
+          // 如果旧节点是激活状态，那么需要更新激活列表里的节点实例
+          const index = this.activeNodeList.indexOf(oldNode)
+          if (index !== -1) {
+            this.activeNodeList[index] = newNode
+          }
+          oldNode.destroy()
         }
       })
       // 更新根节点
@@ -1265,166 +1314,228 @@ class Render {
   handlePaste(event) {
     const { disabledClipboard } = this.mindMap.opt
     if (disabledClipboard) return
+
     const clipboardData =
-      event.clipboardData || event.originalEvent.clipboardData
-    const items = clipboardData.items
-    // eslint-disable-next-line no-unused-vars
+      event.clipboardData || event.originalEvent?.clipboardData || window.clipboardData
+
+    if (!clipboardData) {
+      // 如果没有 clipboardData，尝试使用内部缓存数据
+      this.paste()
+      return
+    }
+
+    // 尝试获取数据
     let img = null
-    // eslint-disable-next-line no-unused-vars
     let text = ''
-    Array.from(items).forEach(item => {
-      if (item.type.indexOf('image') > -1) {
-        img = item.getAsFile()
+    const items = clipboardData.items
+    let hasText = false
+
+    if (items && items.length > 0) {
+      // 遍历获取图片和文本项
+      let textItem = null
+      Array.from(items).forEach(item => {
+        if (item.type.indexOf('image') > -1) {
+          img = item.getAsFile()
+        }
+        if (item.type.indexOf('text') > -1) {
+          hasText = true
+          if (!textItem) {
+            textItem = item
+          }
+        }
+      })
+      // 如果有文本项，异步获取文本
+      if (textItem) {
+        textItem.getAsString(str => {
+          text = str
+          this.handlePasteData({ text, img })
+        })
       }
-      if (item.type.indexOf('text') > -1) {
-        text = clipboardData.getData('text')
+    } else {
+      text = clipboardData.getData('text') || clipboardData.getData('Text')
+    }
+
+    // 如果没有文本（只有图片，或者降级处理），直接执行
+    // 如果有文本，会在 getAsString 回调中执行
+    if ((items && items.length > 0 && !hasText) || !items || items.length <= 0) {
+      if (text || img) {
+        this.handlePasteData({ text, img })
+      } else {
+        this.paste()
       }
-    })
-    this.paste()
+    }
+
+    // 阻止默认粘贴行为
+    if (event.preventDefault) {
+      event.preventDefault()
+    }
+    return false
   }
 
-  // 粘贴
-  async paste() {
+  // 处理粘贴的数据
+  async handlePasteData(data) {
+    let { text, img, unsupportedImageType } = data
+    text = text || ''
+    img = img || null
     const {
       errorHandler,
       handleIsSplitByWrapOnPasteCreateNewNode,
       handleNodePasteImg,
-      disabledClipboard,
       onlyPasteTextWhenHasImgAndText
     } = this.mindMap.opt
+
+    const clipboardTextLooksLikeImage = isSupportedClipboardFileText(text)
+    if (clipboardTextLooksLikeImage && (img || unsupportedImageType)) {
+      text = ''
+    }
+    if (unsupportedImageType) {
+      errorHandler(
+        ERROR_TYPES.LOAD_CLIPBOARD_IMAGE_ERROR,
+        new Error(
+          `Clipboard image type ${unsupportedImageType} is not supported`
+        )
+      )
+    }
+
+    try {
+      // 存在文本，则创建子节点
+      if (text) {
+        // 判断粘贴的是否是simple-mind-map的数据
+        let smmData = null
+        let useDefault = true
+        // 用户自定义处理
+        if (this.mindMap.opt.customHandleClipboardText) {
+          try {
+            const res = await this.mindMap.opt.customHandleClipboardText(text)
+            if (!isUndef(res)) {
+              useDefault = false
+              const checkRes = checkSmmFormatData(res)
+              if (checkRes.isSmm) {
+                smmData = checkRes.data
+              } else {
+                text = checkRes.data
+              }
+            }
+          } catch (error) {
+            errorHandler(
+              ERROR_TYPES.CUSTOM_HANDLE_CLIPBOARD_TEXT_ERROR,
+              error
+            )
+          }
+        }
+        // 默认处理
+        if (useDefault) {
+          const checkRes = checkSmmFormatData(text)
+          if (checkRes.isSmm) {
+            smmData = checkRes.data
+          } else {
+            text = checkRes.data
+          }
+        }
+        if (smmData) {
+          const data = Array.isArray(smmData) ? smmData : [smmData]
+          createUidForAppointNodes(data, true)
+          this.mindMap.execCommand(
+            'INSERT_MULTI_CHILD_NODE',
+            [],
+            data
+          )
+        } else {
+          // 如果是富文本模式，那么需要转义特殊字符
+          if (this.hasRichTextPlugin()) {
+            text = htmlEscape(text)
+          }
+          const textArr = text
+            // eslint-disable-next-line no-control-regex
+            .split(new RegExp('\\r?\\n|(?<!\\n)\\r', 'g'))
+            .filter(item => {
+              return !!item
+            })
+          // 判断是否需要根据换行自动分割节点
+          if (textArr.length > 1 && handleIsSplitByWrapOnPasteCreateNewNode) {
+            handleIsSplitByWrapOnPasteCreateNewNode()
+              .then(() => {
+                this.mindMap.execCommand(
+                  'INSERT_MULTI_CHILD_NODE',
+                  [],
+                  textArr.map(item => {
+                    return {
+                      data: {
+                        text: item
+                      },
+                      children: []
+                    }
+                  })
+                )
+              })
+              .catch(() => {
+                this.mindMap.execCommand('INSERT_CHILD_NODE', false, [], {
+                  text
+                })
+              })
+          } else {
+            this.mindMap.execCommand('INSERT_CHILD_NODE', false, [], {
+              text
+            })
+          }
+        }
+      }
+      // 存在图片，则添加到当前激活节点
+      if (img && (!text || !onlyPasteTextWhenHasImgAndText)) {
+        try {
+          let imgData = null
+          // 自定义图片处理函数
+          if (
+            handleNodePasteImg &&
+            typeof handleNodePasteImg === 'function'
+          ) {
+            imgData = await handleNodePasteImg(img)
+          } else {
+            imgData = await loadImage(img)
+          }
+          if (this.activeNodeList.length > 0) {
+            this.activeNodeList.forEach(node => {
+              this.mindMap.execCommand('SET_NODE_IMAGE', node, {
+                url: imgData.url,
+                title: '',
+                width: imgData.size.width,
+                height: imgData.size.height
+              })
+            })
+          }
+        } catch (error) {
+          errorHandler(ERROR_TYPES.LOAD_CLIPBOARD_IMAGE_ERROR, error)
+        }
+      }
+    } catch (error) {
+      errorHandler(ERROR_TYPES.READ_CLIPBOARD_ERROR, error)
+    }
+  }
+
+  // 粘贴
+  async paste() {
+    const { disabledClipboard } = this.mindMap.opt
     // 如果支持剪贴板操作，那么以剪贴板数据为准
     if (!disabledClipboard && checkClipboardReadEnable()) {
       try {
         const res = await getDataFromClipboard()
-        let text = res.text || ''
-        let img = res.img || null
-        const { unsupportedImageType } = res
-        const clipboardTextLooksLikeImage = isSupportedClipboardFileText(text)
-        if (clipboardTextLooksLikeImage && (img || unsupportedImageType)) {
-          text = ''
-        }
-        if (unsupportedImageType) {
-          errorHandler(
-            ERROR_TYPES.LOAD_CLIPBOARD_IMAGE_ERROR,
-            new Error(
-              `Clipboard image type ${unsupportedImageType} is not supported`
-            )
-          )
-        }
-        // 存在文本，则创建子节点
-        if (text) {
-          // 判断粘贴的是否是simple-mind-map的数据
-          let smmData = null
-          let useDefault = true
-          // 用户自定义处理
-          if (this.mindMap.opt.customHandleClipboardText) {
-            try {
-              const res = await this.mindMap.opt.customHandleClipboardText(text)
-              if (!isUndef(res)) {
-                useDefault = false
-                const checkRes = checkSmmFormatData(res)
-                if (checkRes.isSmm) {
-                  smmData = checkRes.data
-                } else {
-                  text = checkRes.data
-                }
-              }
-            } catch (error) {
-              errorHandler(
-                ERROR_TYPES.CUSTOM_HANDLE_CLIPBOARD_TEXT_ERROR,
-                error
-              )
-            }
-          }
-          // 默认处理
-          if (useDefault) {
-            const checkRes = checkSmmFormatData(text)
-            if (checkRes.isSmm) {
-              smmData = checkRes.data
-            } else {
-              text = checkRes.data
-            }
-          }
-          if (smmData) {
-            this.mindMap.execCommand(
-              'INSERT_MULTI_CHILD_NODE',
-              [],
-              Array.isArray(smmData) ? smmData : [smmData]
-            )
-          } else {
-            // 如果是富文本模式，那么需要转义特殊字符
-            if (this.hasRichTextPlugin()) {
-              text = htmlEscape(text)
-            }
-            const textArr = text
-              // eslint-disable-next-line no-control-regex
-              .split(new RegExp('\r?\n|(?<!\n)\r', 'g'))
-              .filter(item => {
-                return !!item
-              })
-            // 判断是否需要根据换行自动分割节点
-            if (textArr.length > 1 && handleIsSplitByWrapOnPasteCreateNewNode) {
-              handleIsSplitByWrapOnPasteCreateNewNode()
-                .then(() => {
-                  this.mindMap.execCommand(
-                    'INSERT_MULTI_CHILD_NODE',
-                    [],
-                    textArr.map(item => {
-                      return {
-                        data: {
-                          text: item
-                        },
-                        children: []
-                      }
-                    })
-                  )
-                })
-                .catch(() => {
-                  this.mindMap.execCommand('INSERT_CHILD_NODE', false, [], {
-                    text
-                  })
-                })
-            } else {
-              this.mindMap.execCommand('INSERT_CHILD_NODE', false, [], {
-                text
-              })
-            }
-          }
-        }
-        // 存在图片，则添加到当前激活节点
-        if (img && (!text || !onlyPasteTextWhenHasImgAndText)) {
-          try {
-            let imgData = null
-            // 自定义图片处理函数
-            if (
-              handleNodePasteImg &&
-              typeof handleNodePasteImg === 'function'
-            ) {
-              imgData = await handleNodePasteImg(img)
-            } else {
-              imgData = await loadImage(img)
-            }
-            if (this.activeNodeList.length > 0) {
-              this.activeNodeList.forEach(node => {
-                this.mindMap.execCommand('SET_NODE_IMAGE', node, {
-                  url: imgData.url,
-                  title: '',
-                  width: imgData.size.width,
-                  height: imgData.size.height
-                })
-              })
-            }
-          } catch (error) {
-            errorHandler(ERROR_TYPES.LOAD_CLIPBOARD_IMAGE_ERROR, error)
-          }
-        }
+        this.handlePasteData(res)
       } catch (error) {
-        errorHandler(ERROR_TYPES.READ_CLIPBOARD_ERROR, error)
+        this.mindMap.opt.errorHandler(ERROR_TYPES.READ_CLIPBOARD_ERROR, error)
       }
     } else {
+      // 尝试使用 execCommand 触发粘贴（降级支持）
+      // 注意：大部分现代浏览器出于安全考虑不支持此命令，但在某些特定环境可能有效
+      let isTriggered = false
+      try {
+        isTriggered = document.execCommand('paste')
+      } catch (error) {
+        console.error('execCommand paste error', error)
+      }
+
       // 禁用剪贴板或不支持剪贴板时
       // 粘贴画布内的节点数据
-      if (this.beingCopyData) {
+      if (!isTriggered && this.beingCopyData) {
         this.mindMap.execCommand('PASTE_NODE', this.beingCopyData)
       }
     }
