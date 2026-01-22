@@ -1598,7 +1598,7 @@ class Render {
     let isAppointNodes = appointNodes.length > 0
     let list = isAppointNodes ? appointNodes : this.activeNodeList
     let root = list.find(node => {
-      return node.isRoot
+      return node.isRoot && !node.getData('isFreedomNode')
     })
     if (root) {
       this.clearActiveNodeList()
@@ -1618,6 +1618,16 @@ class Render {
           this.textEdit.hideEditTextBox()
         }
         if (isAppointNodes) list.splice(i, 1)
+        
+        // 【FreedomNode Hook】处理自由节点删除
+        if (node.getData('isFreedomNode') && this.mindMap.freeNode) {
+           this.removeNodeFromActiveList(node)
+           const freeNodeId = node.getData('_freedomNodeId')
+           this.mindMap.freeNode.removeFreeNode(freeNodeId)
+           i--
+           continue
+        }
+
         if (node.isGeneralization) {
           this.deleteNodeGeneralization(node)
           this.removeNodeFromActiveList(node)
@@ -1705,6 +1715,9 @@ class Render {
       this.mindMap.opt.deleteNodeActive
     ) {
       const node = this.activeNodeList[0]
+      // 【FreedomNode Hook】如果节点没有父节点（如自由节点根节点），则没有兄弟节点
+      if (!node.parent) return null
+      
       const broList = node.parent.children
       const nodeIndex = getNodeIndexInNodeList(node, broList)
       // 如果后面有兄弟节点
@@ -2178,6 +2191,14 @@ class Render {
       Object.keys(data).forEach(key => {
         node.nodeData.data[key] = data[key]
       })
+    }
+
+    // 【FreedomNode Hook】如果是自由节点且修改的是持久化数据，同步到 freeNodeMap 和 renderTree.freeNodes
+    // 排除临时状态属性（isActive 等），这些不需要同步
+    const transientKeys = ['isActive']
+    const hasNonTransientData = Object.keys(data).some(key => !transientKeys.includes(key))
+    if (hasNonTransientData && node.getData('_freedomNodeId') && this.mindMap.freeNode) {
+      this.mindMap.freeNode.syncDataList()
     }
   }
 

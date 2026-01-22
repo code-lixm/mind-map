@@ -359,115 +359,6 @@ onBeforeUnmount(() => {
     <template v-if="type === 'node'">
       <!-- 左右两栏布局 -->
       <div class="panelWrapper" :class="{ isDark }">
-        <!-- 左侧：技战法推荐 -->
-        <div class="panelSection leftPanel">
-          <div class="panelTitle">
-            技战法推荐
-          </div>
-
-          <!-- 通讯号码研判 -->
-          <div class="item" @click="handleTacticsAction('phone')">
-            <span class="i-custom:phone tactics-icon" style="color: #3b82f6" />
-            <span class="name">通讯号码研判</span>
-          </div>
-
-          <!-- APP研判 -->
-          <div class="tactics-group">
-            <div class="tactics-group-title">
-              <span class="i-custom:apps tactics-icon" style="color: #22c55e" />
-              <span class="name">APP研判</span>
-            </div>
-            <div class="tactics-sub-item" @click="handleTacticsAction('app-device')">
-              APP包名获取设备/Wi-Fi
-            </div>
-            <div class="tactics-sub-item" @click="handleTacticsAction('app-mds')">
-              文件MDS提取终端画像(FR)
-            </div>
-          </div>
-
-          <div class="splitLine" />
-
-          <!-- Wi-Fi研判 -->
-          <div class="item" @click="handleTacticsAction('wifi')">
-            <span class="i-custom:wifi tactics-icon" style="color: #a855f7" />
-            <span class="name">Wi-Fi研判</span>
-          </div>
-
-          <!-- 出口路由研判 -->
-          <div class="tactics-group">
-            <div class="tactics-group-title">
-              <span class="i-custom:router tactics-icon" style="color: #f97316" />
-              <span class="name">出口路由研判</span>
-            </div>
-            <div class="tactics-sub-item" @click="handleTacticsAction('router-list')">
-              出口路由列表
-            </div>
-            <div class="tactics-sub-item" @click="handleTacticsAction('router-fr')">
-              出口路由提取终端画像(FR)
-            </div>
-          </div>
-
-          <div class="splitLine" />
-
-          <!-- IP研判 -->
-          <div class="tactics-group">
-            <div class="tactics-group-title">
-              <span class="i-custom:ip tactics-icon" style="color: #3b82f6" />
-              <span class="name">IP研判</span>
-            </div>
-            <div class="tactics-sub-item" @click="handleTacticsAction('ip-fr')">
-              IP提取终端画像(FR)
-            </div>
-            <div class="tactics-sub-item" @click="handleTacticsAction('ip-device')">
-              IP获取设备/Wi-Fi
-            </div>
-            <div class="tactics-sub-item" @click="handleTacticsAction('ip-trace')">
-              IP溯源
-            </div>
-          </div>
-
-          <div class="splitLine" />
-
-          <!-- 网站研判 -->
-          <div class="tactics-group">
-            <div class="tactics-group-title">
-              <span class="i-custom:website tactics-icon" style="color: #14b8a6" />
-              <span class="name">网站研判</span>
-            </div>
-            <div class="tactics-sub-item" @click="handleTacticsAction('website-info')">
-              网站基础信息识别
-            </div>
-            <div class="tactics-sub-item" @click="handleTacticsAction('website-fr')">
-              网址域名获取终端画像(FR)
-            </div>
-          </div>
-
-          <div class="splitLine" />
-
-          <!-- 虚拟身份获取终端画像 -->
-          <div class="item" @click="handleTacticsAction('virtual-identity')">
-            <span class="i-custom:virtual tactics-icon" style="color: #a855f7" />
-            <span class="name">虚拟身份获取终端画像(FR)</span>
-          </div>
-
-          <!-- 邮箱获取终端画像 -->
-          <div class="item" @click="handleTacticsAction('email')">
-            <span class="i-custom:mail tactics-icon" style="color: #f59e0b" />
-            <span class="name">邮箱获取终端画像</span>
-          </div>
-
-          <div class="splitLine" />
-
-          <!-- 批量上传数据 -->
-          <div class="item" @click="handleTacticsAction('batch-upload')">
-            <span class="i-custom:upload tactics-icon" style="color: #6b7280" />
-            <span class="name">批量上传数据</span>
-          </div>
-        </div>
-
-        <!-- 中间分隔线 -->
-        <div class="verticalDivider" />
-
         <!-- 右侧：脑图菜单 -->
         <div class="panelSection rightPanel">
           <div class="panelTitle">
@@ -529,11 +420,11 @@ onBeforeUnmount(() => {
             <span class="name">{{ localeText?.contextmenu?.expandNodeChild || '展开子节点' }}</span>
           </div>
           <div class="splitLine" />
-          <div class="item danger" @click="exec('REMOVE_NODE')">
+          <div class="item danger" @click="exec('REMOVE_NODE', false, node)">
             <span class="name">{{ localeText?.contextmenu?.deleteNode || '删除节点' }}</span>
             <span class="desc">Delete</span>
           </div>
-          <div class="item danger" @click="exec('REMOVE_CURRENT_NODE')">
+          <div class="item danger" @click="exec('REMOVE_CURRENT_NODE', false, node)">
             <span class="name">{{ localeText?.contextmenu?.deleteCurrentNode || '仅删除当前节点' }}</span>
             <span class="desc">Shift + Backspace</span>
           </div>

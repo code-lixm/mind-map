@@ -1,4 +1,4 @@
-import { walk, bfsWalk, simpleDeepClone, createUid } from '../utils/index'
+import { walk, bfsWalk, simpleDeepClone, createUid, copyRenderTree } from '../utils/index'
 
 /**
  * 自由节点插件（FreedomNode Plugin）
@@ -8,12 +8,6 @@ import { walk, bfsWalk, simpleDeepClone, createUid } from '../utils/index'
  * @version 1.0.0
  */
 class FreedomNode {
-  /**
-   * 插件名称，挂载到 mindMap.freeNode
-   * @static
-   */
-  static pluginName = 'freeNode'
-
   /**
    * 构造函数
    * @param {Object} opt - 配置选项
@@ -85,6 +79,18 @@ class FreedomNode {
   }
 
   /**
+   * 获取主树根节点位置
+   * @returns {Object} { left, top }
+   */
+  getMainRootPosition() {
+    const root = this.mindMap.renderer.root
+    if (root) {
+      return { left: root.left, top: root.top }
+    }
+    return { left: 0, top: 0 }
+  }
+
+  /**
    * 渲染结束回调
    */
   onRenderEnd() {
@@ -94,11 +100,124 @@ class FreedomNode {
 
   /**
    * 拖拽结束回调
-   * @param {Object} data - 拖拽数据
+   * @param {Drag} drag - Drag 插件的实例
    */
-  onDragEnd(data) {
-    // 检查是否需要转换为自由节点
-    // 实现在后续版本中补充
+  onDragEnd(drag) {
+    const {
+      e,
+      overlapNode,
+      prevNode,
+      nextNode,
+      beingDragNodeList
+    } = drag
+
+    if (!beingDragNodeList || beingDragNodeList.length === 0) {
+      return
+    }
+
+    const draggedNode = beingDragNodeList[0]
+    const isDragFreedomNode = !!draggedNode.getData('isFreedomNode')
+
+    // 情况一：正在拖拽一个已存在的自由节点
+    if (isDragFreedomNode) {
+      if (!this.options.enableFreedomNodeDrag) return
+
+      const { x, y } = drag.getDragCanvasPosition(e)
+      const targetNodeForSnap = drag.checkSnapToTree(draggedNode, { x, y })
+
+      if (targetNodeForSnap) {
+        // 吸附回主树
+        const freeNodeId = draggedNode.getData('_freedomNodeId')
+        if (freeNodeId) {
+          this.attachToTree(freeNodeId, targetNodeForSnap)
+        }
+      } else {
+        // 仅移动自由节点
+        const freeNodeId = draggedNode.getData('_freedomNodeId')
+        if (freeNodeId) {
+          const freeNodeData = this.freeNodeMap.get(freeNodeId)
+          if (freeNodeData) {
+            const { left: rootLeft, top: rootTop } = this.getMainRootPosition()
+            const relX = x - rootLeft
+            const relY = y - rootTop
+            const deltaX = relX - freeNodeData.position.left
+            const deltaY = relY - freeNodeData.position.top
+            this.moveFreeNode(freeNodeId, deltaX, deltaY)
+          }
+        }
+      }
+      return
+    }
+
+    // 情况二：正在拖拽一个普通节点
+    if (overlapNode || prevNode || nextNode) {
+      // 确定目标节点
+      const targetNode = overlapNode || prevNode || nextNode
+      // 检查目标节点是否属于自由节点树
+      const targetFreeId = targetNode.getData('_freedomNodeId')
+
+      if (targetFreeId) {
+        // 目标是自由节点，插入到自由节点树
+        if (overlapNode) {
+          this.insertNodeToFreeTree(draggedNode, targetFreeId, overlapNode, 'child')
+        } else if (prevNode) {
+          this.insertNodeToFreeTree(draggedNode, targetFreeId, prevNode, 'after')
+        } else if (nextNode) {
+          this.insertNodeToFreeTree(draggedNode, targetFreeId, nextNode, 'before')
+        }
+      } else {
+        // 目标是主树（非自由节点树），如果节点来自自由节点树，需要从源中移除
+        const uid = draggedNode.getData('uid')
+        // 检查被拖拽节点是否有 _freedomNodeId 标记，说明它来自自由节点树
+        const draggedFreeId = draggedNode.getData('_freedomNodeId')
+        const sourceFreeId = draggedFreeId || this.findFreeNodeIdByChildUid(uid)
+
+        if (sourceFreeId) {
+          // 尝试从 freeNodeMap 中移除（可能已在 Drag 插件中移除）
+          const removed = this.removeNodeFromFreeList(sourceFreeId, uid)
+          if (removed) {
+            this.syncDataList()
+          }
+        }
+
+        // 无论是否成功从 freeNodeMap 移除，都要清除节点的自由节点标记
+        // 因为 MOVE_NODE_TO 已经执行，节点已在主树中
+        if (draggedFreeId) {
+          this.clearFreedomMarkerFromNode(draggedNode)
+        }
+      }
+      return
+    }
+    // 情况三：拖拽到空白区域
+    if (beingDragNodeList.length === 1) {
+      // 检查是否要吸附到某个自由节点树上
+      const targetRoot = drag.getFreeRootUnderPointer(e)
+      if (targetRoot) {
+        const freeNodeId = targetRoot.getData('_freedomNodeId')
+        if (freeNodeId) {
+          this.insertNodeToFreeTree(draggedNode, freeNodeId, targetRoot, 'child')
+          return
+        }
+      }
+
+      // 检查是否超出安全距离，如果是则转换为自由节点
+      const dragToBlankConvertSafeDistance = this.options.dragToBlankConvertSafeDistance
+      if (dragToBlankConvertSafeDistance > 0) {
+        const distance = drag.calculateDistanceFromTree()
+        if (distance > dragToBlankConvertSafeDistance) {
+          const { x, y } = drag.getDragCanvasPosition(e)
+
+          // 如果节点来自自由节点树，转换前先从源中移除
+          const sourceFreeId = this.findFreeNodeIdByChildUid(draggedNode.getData('uid'))
+          if (sourceFreeId) {
+            this.removeNodeFromFreeList(sourceFreeId, draggedNode.getData('uid'))
+            this.syncDataList()
+          }
+
+          this.convertToFreedom(draggedNode, { left: x, top: y })
+        }
+      }
+    }
   }
 
   /**
@@ -135,11 +254,12 @@ class FreedomNode {
   /**
    * 创建自由节点
    * @param {Object} options - 创建选项
-   * @param {Object} options.position - 位置 { left, top }
+   * @param {Object} options.position - 位置 { left, top } (绝对坐标)
    * @param {String} [options.text] - 节点文本
    * @param {String} [options.layout] - 布局类型
    * @param {Object} [options.data] - 节点数据覆盖
    * @param {Array} [options.children] - 子节点列表
+   * @param {Boolean} [options.center] - 是否以 position 为中心点
    * @returns {String} 自由节点 ID
    */
   createFreeNode(options = {}) {
@@ -148,7 +268,8 @@ class FreedomNode {
       text = this.options.defaultFreedomNodeText,
       layout = this.options.defaultFreedomNodeLayout || this.mindMap.opt.layout,
       data = {},
-      children = []
+      children = [],
+      center = false
     } = options
 
     // 生成唯一 ID
@@ -168,12 +289,20 @@ class FreedomNode {
     // 标记自由节点树
     this.markTreeDataWithFreeId(nodeData, freeNodeId, true)
 
+    // 计算相对位置
+    const { left: rootLeft, top: rootTop } = this.getMainRootPosition()
+    const relativePosition = {
+      left: position.left - rootLeft,
+      top: position.top - rootTop
+    }
+
     // 构建自由节点数据
     const freeNodeData = {
       id: freeNodeId,
-      position: { ...position },
+      position: relativePosition,
       layout,
-      root: nodeData
+      root: nodeData,
+      center // 标记需要居中
     }
 
     // 添加到数据管理
@@ -283,7 +412,7 @@ class FreedomNode {
    * @param {MindMapNode} targetNode - 目标父节点
    * @param {Number} [index] - 插入位置索引
    */
-  attachToTree(freeNodeId, targetNode, index) {
+  attachToTree(freeNodeId, targetNode) {
     const freeNodeData = this.freeNodeMap.get(freeNodeId)
 
     if (!freeNodeData) {
@@ -297,17 +426,37 @@ class FreedomNode {
     }
 
     // 获取自由节点的根数据
-    const nodeData = simpleDeepClone(freeNodeData.root)
+    // 使用 copyRenderTree 避免循环引用导致克隆失败
+    const nodeData = {}
+    copyRenderTree(nodeData, freeNodeData.root)
 
     // 移除自由节点标记
-    delete nodeData.data.isFreedomNode
+    if (nodeData.data) {
+      delete nodeData.data.isFreedomNode
+    }
 
     // 添加到目标节点
-    this.mindMap.execCommand('INSERT_CHILD_NODE', targetNode, nodeData, index)
+    // INSERT_CHILD_NODE(openEdit, appointNodes, appointData, appointChildren)
+    this.mindMap.execCommand(
+      'INSERT_CHILD_NODE',
+      false,
+      [targetNode],
+      nodeData.data,
+      nodeData.children
+    )
 
     // 从自由节点列表移除
     this.freeNodeMap.delete(freeNodeId)
     this.syncDataList()
+
+    // 从 freeRootList 中移除实例，防止 renderAllFreeNodes 将其从 DOM 移除
+    const nodeInstance = this.findFreeNodeInstance(freeNodeId)
+    if (nodeInstance) {
+      this.freeRootList = this.freeRootList.filter(root => root !== nodeInstance)
+      if (nodeInstance._isFreeTree) {
+        delete nodeInstance._isFreeTree
+      }
+    }
 
     // 触发事件
     this.mindMap.emit('freedom_node_attached', freeNodeId, targetNode)
@@ -321,30 +470,168 @@ class FreedomNode {
   }
 
   /**
-   * 追加节点到已有的自由节点根下
-   * @param {MindMapNode} node - 被追加的节点
-   * @param {String} freeNodeId - 目标自由节点 ID
+   * 通过子节点 UID 查找所属的自由节点 ID
+   * @param {String} uid - 子节点 UID
+   * @returns {String|null} 自由节点 ID
    */
-  appendNodeToFreeRoot(node, freeNodeId) {
-    if (!node || !freeNodeId) {
-      return
+    findFreeNodeIdByChildUid(uid) {
+      for (const [id, data] of this.freeNodeMap) {
+        // 检查是否是根节点
+        if (data.root && data.root.data && data.root.data.uid === uid) return id
+        
+        // 检查子节点
+        let found = false
+        if (data.root) {
+          walk(data.root, null, (node) => {
+            if (node && node.data && node.data.uid === uid) {
+              found = true
+              return true // stop walk
+            }
+          })
+        }
+        if (found) return id
+      }
+      return null
     }
+  /**
+   * 清除节点及其子节点的自由节点标记
+   * @param {MindMapNode} node - 节点实例
+   */
+  clearFreedomMarkerFromNode(node) {
+    if (!node) return
+    bfsWalk(node, (n) => {
+      if (n.nodeData && n.nodeData.data) {
+        delete n.nodeData.data._freedomNodeId
+        delete n.nodeData.data.isFreedomNode
+      }
+    })
+  }
+
+  /**
+   * 在数据树中查找节点及其父节点
+   * @param {Object} root - 数据根
+   * @param {String} uid - 目标 UID
+   * @returns {Object|null} { node, parent, index }
+   */
+  findNodeDataAndParent(root, uid) {
+    if (root.data.uid === uid) {
+      return { node: root, parent: null, index: -1 }
+    }
+    if (root.children && root.children.length > 0) {
+      for (let i = 0; i < root.children.length; i++) {
+        const child = root.children[i]
+        if (child.data.uid === uid) {
+          return { node: child, parent: root, index: i }
+        }
+        const res = this.findNodeDataAndParent(child, uid)
+        if (res) return res
+      }
+    }
+    return null
+  }
+
+  /**
+   * 从自由节点数据中移除指定节点
+   * @param {String} freeNodeId - 自由节点 ID
+   * @param {String} nodeUid - 要移除的节点 UID
+   * @returns {Boolean} 是否成功移除
+   */
+  removeNodeFromFreeList(freeNodeId, nodeUid) {
+    const freeNodeData = this.freeNodeMap.get(freeNodeId)
+    if (!freeNodeData || !freeNodeData.root) {
+      console.warn('[FreedomNode] removeNodeFromFreeList: freeNodeData not found', freeNodeId)
+      return false
+    }
+
+    // 如果要移除的是根节点本身，删除整个自由节点
+    if (freeNodeData.root.data && freeNodeData.root.data.uid === nodeUid) {
+      this.freeNodeMap.delete(freeNodeId)
+      return true
+    }
+
+    const remove = (node) => {
+      if (!node || !node.children || node.children.length === 0) {
+        return false
+      }
+      const index = node.children.findIndex(item => item && item.data && item.data.uid === nodeUid)
+      if (index !== -1) {
+        node.children.splice(index, 1)
+        return true
+      }
+      for (const child of node.children) {
+        if (child && remove(child)) return true
+      }
+      return false
+    }
+
+    const result = remove(freeNodeData.root)
+    if (!result) {
+      console.warn('[FreedomNode] removeNodeFromFreeList: node not found in tree', nodeUid)
+    }
+    return result
+  }
+
+  /**
+   * 将节点插入到自由节点树的指定位置
+   * @param {MindMapNode} node - 被移动的节点
+   * @param {String} freeNodeId - 目标自由节点 ID
+   * @param {MindMapNode} targetNode - 参照节点（目标父节点或兄弟节点）
+   * @param {String} placement - 位置：'child' (子节点), 'after' (后一个兄弟), 'before' (前一个兄弟)
+   */
+  insertNodeToFreeTree(node, freeNodeId, targetNode, placement = 'child') {
+    if (!node || !freeNodeId || !targetNode) return
+
     const freeNodeData = this.freeNodeMap.get(freeNodeId)
     if (!freeNodeData || !freeNodeData.root) {
       console.warn('[FreedomNode] Target free node not found:', freeNodeId)
       return
     }
+
     const nodeData = this.getNodeDataWithChildren(node)
     nodeData.data.isFreedomNode = false
     this.markTreeDataWithFreeId(nodeData, freeNodeId, false)
-    this.mindMap.execCommand('REMOVE_NODE', [node])
-    if (!Array.isArray(freeNodeData.root.children)) {
-      freeNodeData.root.children = []
+
+    // 1. 从源中移除
+    const sourceId = this.findFreeNodeIdByChildUid(node.getData('uid'))
+    if (sourceId) {
+      this.removeNodeFromFreeList(sourceId, node.getData('uid'))
     }
-    freeNodeData.root.children.push(nodeData)
+    this.mindMap.execCommand('REMOVE_NODE', [node])
+
+    // 2. 查找目标位置
+    const targetUid = targetNode.getData('uid')
+    const targetInfo = this.findNodeDataAndParent(freeNodeData.root, targetUid)
+
+    if (!targetInfo) {
+      // 找不到目标，默认追加到根节点
+      if (!Array.isArray(freeNodeData.root.children)) {
+        freeNodeData.root.children = []
+      }
+      freeNodeData.root.children.push(nodeData)
+    } else {
+      const { node: tNode, parent: tParent, index: tIndex } = targetInfo
+
+      if (placement === 'child') {
+        if (!tNode.children) tNode.children = []
+        tNode.children.push(nodeData)
+        // 如果是插入子节点，自动展开
+        tNode.data.expand = true
+      } else if (placement === 'after' || placement === 'before') {
+        // 如果是根节点，无法插入兄弟（除非支持多个根，但这里不支持）
+        if (!tParent) {
+          if (!tNode.children) tNode.children = []
+          tNode.children.push(nodeData)
+        } else {
+          const insertIndex = placement === 'after' ? tIndex + 1 : tIndex
+          tParent.children.splice(insertIndex, 0, nodeData)
+        }
+      }
+    }
+
+    // 3. 同步和渲染
     this.syncDataList()
     this.mindMap.emit('freedom_node_change', {
-      type: 'child_appended',
+      type: 'node_moved',
       data: {
         freeNodeId,
         nodeUid: node.getData('uid')
@@ -450,6 +737,26 @@ class FreedomNode {
     this.freeNodeMap.forEach((freeNodeData, freeNodeId) => {
       this.renderFreeNode(freeNodeData, freeNodeId)
     })
+
+    // 【关键】自由节点渲染完成后，通知依赖位置的插件刷新
+    // 由于插件注册顺序，AssociativeLine 和 OuterFrame 的 node_tree_render_end 监听器
+    // 会在 FreedomNode 之前执行，此时 freeRootList 还是空的
+    // 所以需要在这里手动触发它们的刷新
+    this.refreshDependentPlugins()
+  }
+
+  /**
+   * 刷新依赖节点位置的插件（关联线、外框等）
+   */
+  refreshDependentPlugins() {
+    // 刷新关联线
+    if (this.mindMap.associativeLine && this.mindMap.associativeLine.renderAllLines) {
+      this.mindMap.associativeLine.renderAllLines()
+    }
+    // 刷新外框
+    if (this.mindMap.outerFrame && this.mindMap.outerFrame.renderOuterFrames) {
+      this.mindMap.outerFrame.renderOuterFrames()
+    }
   }
 
   /**
@@ -458,7 +765,7 @@ class FreedomNode {
    * @param {String} freeNodeId - 自由节点 ID
    */
   renderFreeNode(freeNodeData, freeNodeId) {
-    const { position, layout, root } = freeNodeData
+    const { layout, root } = freeNodeData
     if (!root || !root.data) {
       return
     }
@@ -482,8 +789,28 @@ class FreedomNode {
     }
 
     this.markInstanceTreeAsFree(rootNode, freeNodeId)
-    this.layoutFreeTree(rootNode, layoutInstance, position)
 
+    // 如果标记了需要居中（通常是刚创建时）
+    if (freeNodeData.center) {
+      const halfWidth = rootNode.width / 2
+      const halfHeight = rootNode.height / 2
+
+      // 更新存储的相对位置（将左上角向左上移动一半尺寸）
+      freeNodeData.position.left -= halfWidth
+      freeNodeData.position.top -= halfHeight
+
+      // 移除标记，确保只调整一次
+      delete freeNodeData.center
+    }
+
+    // Calculate absolute position for rendering
+    const { left: rootLeft, top: rootTop } = this.getMainRootPosition()
+    const absolutePosition = {
+      left: rootLeft + freeNodeData.position.left,
+      top: rootTop + freeNodeData.position.top
+    }
+
+    this.layoutFreeTree(rootNode, layoutInstance, absolutePosition)
     // 渲染节点
     rootNode.render(() => {
       // 渲染完成回调
@@ -570,7 +897,7 @@ class FreedomNode {
    * @param {String} layoutName - 布局名称
    * @returns {Object|null} 布局实例
    */
-  getLayoutInstance(layoutName) {
+  getLayoutInstance() {
     // 复用渲染器的布局实例
     const LayoutClass = this.mindMap.renderer.layout.constructor
     return new LayoutClass(this.mindMap.renderer)
@@ -580,20 +907,32 @@ class FreedomNode {
    * 布局自由节点树
    * @param {MindMapNode} rootNode - 根节点
    * @param {Object} layoutInstance - 布局实例
-   * @param {Object} position - 锚点位置
+   * @param {Object} position - 目标绝对位置
    */
   layoutFreeTree(rootNode, layoutInstance, position) {
     // 设置根节点为自由树模式（不居中）
     rootNode._isFreeTree = true
 
     // 计算布局
-    layoutInstance.root = rootNode
-    layoutInstance.doLayout(() => {
-      // 应用锚点偏移
-      this.applyAnchorOffset(rootNode, position)
-    })
-  }
+    // layoutInstance.root = rootNode
+    // layoutInstance.doLayout(() => {
+    //   // doLayout 会将节点定位在画布中心（默认行为）
+    //   // 我们需要计算偏移量，将其移动到目标位置
+    //   const deltaX = position.left - rootNode.left
+    //   const deltaY = position.top - rootNode.top
 
+    //   // 应用锚点偏移
+    //   this.applyAnchorOffset(rootNode, { left: deltaX, top: deltaY })
+    // })
+
+    // 直接计算偏移量
+    // 此时 rootNode.left/top 已经在 computeFreeTreeLayout 中计算好了（位于画布中心）
+    const deltaX = position.left - rootNode.left
+    const deltaY = position.top - rootNode.top
+
+    // 应用锚点偏移
+    this.applyAnchorOffset(rootNode, { left: deltaX, top: deltaY })
+  }
   /**
    * 应用锚点偏移
    * @param {MindMapNode} node - 根节点
@@ -675,6 +1014,7 @@ class FreedomNode {
 
     // 导入数据
     data.forEach(freeNodeData => {
+      if (!freeNodeData) return
       const { id, position, layout, root } = freeNodeData
 
       // 确保数据完整
@@ -709,7 +1049,19 @@ class FreedomNode {
     if (this.mindMap.renderer && this.mindMap.renderer.renderTree) {
       if (this.freeNodeDataList.length > 0) {
         this.mindMap.renderer.renderTree.freeNodes = this.freeNodeDataList.map(
-          item => simpleDeepClone(item)
+          item => {
+            const newItem = { ...item }
+            // 使用 copyRenderTree 安全地复制 root 数据，去除 _node 等循环引用
+            if (item.root) {
+              newItem.root = {}
+              copyRenderTree(newItem.root, item.root)
+            }
+            // 深拷贝 position 等其他属性，确保安全
+            if (newItem.position) {
+              newItem.position = { ...newItem.position }
+            }
+            return newItem
+          }
         )
       } else {
         delete this.mindMap.renderer.renderTree.freeNodes

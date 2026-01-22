@@ -589,4 +589,97 @@ describe('FreedomNode Plugin', () => {
       expect(duration).toBeLessThan(500) // 应在0.5秒内完成
     })
   })
+
+  describe('拖拽交互', () => {
+    test('应该在拖拽普通节点到空白处时创建自由节点', () => {
+      const nodeToDrag = mindMap.renderer.root.children[0]
+      const originalParent = nodeToDrag.parent
+      const originalChildrenCount = originalParent.children.length
+      
+      // 模拟 Drag 实例
+      const mockDrag = {
+        e: {},
+        overlapNode: null,
+        prevNode: null,
+        nextNode: null,
+        beingDragNodeList: [nodeToDrag],
+        getDragCanvasPosition: () => ({ left: 2000, top: 2000 }),
+        calculateDistanceFromTree: () => 999 // 返回一个大于安全距离的值
+      }
+
+      // 手动调用 onDragEnd
+      mindMap.freeNode.onDragEnd(mockDrag)
+      
+      // 验证
+      expect(mindMap.freeNode.freeNodeMap.size).toBe(1)
+      const newFreeNode = Array.from(mindMap.freeNode.freeNodeMap.values())[0]
+      expect(newFreeNode.root.data.text).toBe(nodeToDrag.getData('text'))
+      expect(newFreeNode.position).toEqual({ left: 2000, top: 2000 })
+      
+      // 验证原始节点是否被移除
+      expect(originalParent.children.length).toBe(originalChildrenCount - 1)
+    })
+
+    test('应该在拖拽自由节点到主树节点上时进行吸附', () => {
+      // 1. 创建一个自由节点
+      const freeNodeId = mindMap.execCommand('CREATE_FREEDOM_NODE', {
+        position: { left: 500, top: 300 },
+        text: '待吸附节点'
+      })
+      const freeNodeRoot = mindMap.freeNode.findFreeNodeInstance(freeNodeId)
+      
+      // 2. 模拟拖拽
+      const targetNode = mindMap.renderer.root
+      const originalChildrenCount = targetNode.children.length
+      const mockDrag = {
+        e: {},
+        overlapNode: null,
+        prevNode: null,
+        nextNode: null,
+        beingDragNodeList: [freeNodeRoot],
+        getDragCanvasPosition: () => ({ left: targetNode.left, top: targetNode.top }),
+        checkSnapToTree: () => targetNode // 模拟找到了吸附目标
+      }
+
+      // 3. 手动调用 onDragEnd
+      mindMap.freeNode.onDragEnd(mockDrag)
+      
+      // 4. 验证
+      expect(mindMap.freeNode.freeNodeMap.size).toBe(0) // 自由节点应该被移除
+      expect(targetNode.children.length).toBe(originalChildrenCount + 1)
+      const attachedNode = targetNode.children.find(c => c.getData('text') === '待吸附节点')
+      expect(attachedNode).toBeDefined()
+    })
+
+    test('应该在拖拽普通节点到自由节点上时添加为其子节点', () => {
+      // 1. 创建一个自由节点
+      const freeNodeId = mindMap.execCommand('CREATE_FREEDOM_NODE', {
+        position: { left: 1500, top: 1500 },
+        text: '自由父节点'
+      })
+      const freeNodeRoot = mindMap.freeNode.findFreeNodeInstance(freeNodeId)
+      
+      // 2. 模拟拖拽
+      const nodeToDrag = mindMap.renderer.root.children[0]
+      const originalParent = nodeToDrag.parent
+      const originalParentChildrenCount = originalParent.children.length
+      const mockDrag = {
+        e: {},
+        overlapNode: freeNodeRoot, // 假设重叠到了自由节点根节点上
+        prevNode: null,
+        nextNode: null,
+        beingDragNodeList: [nodeToDrag],
+        getFreeRootUnderPointer: () => freeNodeRoot // 模拟在自由节点范围内
+      }
+
+      // 3. 手动调用 onDragEnd
+      mindMap.freeNode.onDragEnd(mockDrag)
+      
+      // 4. 验证
+      const freeNodeData = mindMap.freeNode.freeNodeMap.get(freeNodeId)
+      expect(freeNodeData.root.children.length).toBe(1)
+      expect(freeNodeData.root.children[0].data.text).toBe(nodeToDrag.getData('text'))
+      expect(originalParent.children.length).toBe(originalParentChildrenCount - 1)
+    })
+  })
 })

@@ -32,6 +32,7 @@ import KeyboardNavigation from 'simple-mind-map/src/plugins/KeyboardNavigation.j
 import ViewportDetector from 'simple-mind-map/src/plugins/ViewportDetector.js'
 
 import NodeBase64ImageStorage from 'simple-mind-map/src/plugins/NodeBase64ImageStorage.js'
+import FreedomNode from 'simple-mind-map/src/plugins/FreedomNode.js'
 
 /**
  * 注册所有插件
@@ -59,6 +60,7 @@ export function registerAllPlugins() {
     .usePlugin(MindMapLayoutPro)
     .usePlugin(NodeBase64ImageStorage)
     .usePlugin(ViewportDetector)
+    .usePlugin(FreedomNode)
 
   // 注册主题
   Themes.init(MindMap)

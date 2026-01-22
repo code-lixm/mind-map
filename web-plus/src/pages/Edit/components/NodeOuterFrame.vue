@@ -366,30 +366,25 @@ onBeforeUnmount(() => {
         </div>
         <div class="row">
           <div class="btnGroup">
-            <el-tooltip
-              :content="localeText.nodeOuterFrame.color"
-              placement="bottom"
-            >
-              <el-popover placement="bottom" trigger="hover">
-                <template #reference>
-                  <div class="styleBtn">
-                    A
-                    <span
-                      class="colorShow"
-                      :style="{ backgroundColor: styleConfig.color }"
-                    />
-                  </div>
-                </template>
-                <Color
-                  :color="styleConfig.color"
-                  @change="
-                    (color: string) => {
-                      updateOuterFrame('color', color)
-                    }
-                  "
-                />
-              </el-popover>
-            </el-tooltip>
+            <el-popover placement="bottom" trigger="hover">
+              <template #reference>
+                <div class="styleBtn" :title="localeText.nodeOuterFrame.color">
+                  A
+                  <span
+                    class="colorShow"
+                    :style="{ backgroundColor: styleConfig.color }"
+                  />
+                </div>
+              </template>
+              <Color
+                :color="styleConfig.color"
+                @change="
+                  (color: string) => {
+                    updateOuterFrame('color', color)
+                  }
+                "
+              />
+            </el-popover>
             <el-tooltip
               :content="localeText.nodeOuterFrame.fontBold"
               placement="bottom"

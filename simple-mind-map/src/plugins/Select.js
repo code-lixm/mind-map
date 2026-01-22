@@ -59,6 +59,11 @@ class Select {
     if (mousedownEventPreventDefault) {
       e.preventDefault()
     }
+    // 如果点击的是节点，则不触发框选
+    const target = e.target
+    if (target && (target.closest('.smm-node') || target.closest('.smm-node-shape'))) {
+      return
+    }
     this.isMousedown = true
     this.cacheActiveList = [...this.mindMap.renderer.activeNodeList]
     let { x, y } = this.mindMap.toPos(e.clientX, e.clientY)

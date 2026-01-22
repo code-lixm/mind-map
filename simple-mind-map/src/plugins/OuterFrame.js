@@ -256,54 +256,59 @@ class OuterFrame {
     if (!tree) return
     const t = this.mindMap.draw.transform()
     const { outerFramePaddingX, outerFramePaddingY } = this.mindMap.opt
-    walk(
-      tree,
-      null,
-      cur => {
-        if (!cur) return
-        const outerFrameList = getNodeOuterFrameList(cur)
-        if (outerFrameList && outerFrameList.length > 0) {
-          outerFrameList.forEach(({ nodeList, range }) => {
-            if (range[0] === -1 || range[1] === -1) return
-            const { left, top, width, height } =
-              getNodeListBoundingRect(nodeList)
-            if (
-              !Number.isFinite(left) ||
-              !Number.isFinite(top) ||
-              !Number.isFinite(width) ||
-              !Number.isFinite(height)
-            )
-              return
-            const el = this.createOuterFrameEl(
-              (left -
-                outerFramePaddingX -
-                this.mindMap.elRect.left -
-                t.translateX) /
-                t.scaleX,
-              (top -
-                outerFramePaddingY -
-                this.mindMap.elRect.top -
-                t.translateY) /
-                t.scaleY,
-              (width + outerFramePaddingX * 2) / t.scaleX,
-              (height + outerFramePaddingY * 2) / t.scaleY,
-              this.getStyle(nodeList[0]) // 使用第一个节点的外框样式
-            )
-            // 渲染文字，如果有的话
-            const textNode = this.createText(el, cur, range)
-            this.textNodeList.push(textNode)
-            this.renderText(this.getText(nodeList[0]), el, textNode, cur, range)
-            el.on('click', e => {
-              e.stopPropagation()
-              this.setActiveOuterFrame(el, cur, range, textNode)
-            })
+
+    // 处理节点外框的渲染逻辑
+    const processNode = (cur) => {
+      if (!cur) return
+      const outerFrameList = getNodeOuterFrameList(cur)
+      if (outerFrameList && outerFrameList.length > 0) {
+        outerFrameList.forEach(({ nodeList, range }) => {
+          if (range[0] === -1 || range[1] === -1) return
+          const { left, top, width, height } =
+            getNodeListBoundingRect(nodeList)
+          if (
+            !Number.isFinite(left) ||
+            !Number.isFinite(top) ||
+            !Number.isFinite(width) ||
+            !Number.isFinite(height)
+          )
+            return
+          const el = this.createOuterFrameEl(
+            (left -
+              outerFramePaddingX -
+              this.mindMap.elRect.left -
+              t.translateX) /
+              t.scaleX,
+            (top -
+              outerFramePaddingY -
+              this.mindMap.elRect.top -
+              t.translateY) /
+              t.scaleY,
+            (width + outerFramePaddingX * 2) / t.scaleX,
+            (height + outerFramePaddingY * 2) / t.scaleY,
+            this.getStyle(nodeList[0]) // 使用第一个节点的外框样式
+          )
+          // 渲染文字，如果有的话
+          const textNode = this.createText(el, cur, range)
+          this.textNodeList.push(textNode)
+          this.renderText(this.getText(nodeList[0]), el, textNode, cur, range)
+          el.on('click', e => {
+            e.stopPropagation()
+            this.setActiveOuterFrame(el, cur, range, textNode)
           })
-        }
-      },
-      () => {},
-      true,
-      0
-    )
+        })
+      }
+    }
+
+    // 遍历主树
+    walk(tree, null, processNode, () => {}, true, 0)
+
+    // 【扩展】遍历自由节点树
+    if (this.mindMap.freeNode && this.mindMap.freeNode.freeRootList) {
+      this.mindMap.freeNode.freeRootList.forEach(freeRoot => {
+        walk(freeRoot, null, processNode, () => {}, true, 0)
+      })
+    }
   }
 
   // 激活外框

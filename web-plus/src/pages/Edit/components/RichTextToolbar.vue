@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { MindMapInstance } from '../types'
-import { inject, onBeforeUnmount, onMounted, ref } from 'vue'
+import { inject, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 // 从中文配置导入
 import {
   alignList as alignListZh,
@@ -354,111 +354,98 @@ onBeforeUnmount(() => {
       </div>
     </el-tooltip>
 
-    <el-tooltip :content="localeText.richTextToolbar.fontFamily" placement="top">
-      <el-popover placement="bottom" trigger="hover">
-        <template #default>
-          <div class="fontOptionsList" :class="{ isDark }">
-            <div
-              v-for="item in fontFamilyList"
-              :key="item.value"
-              class="fontOptionItem"
-              :style="{ fontFamily: item.value }"
-              :class="{ active: formatInfo.font === item.value }"
-              @click="changeFontFamily(item.value)"
-            >
-              {{ item.name }}
-            </div>
+    <el-popover placement="bottom" trigger="hover">
+      <template #default>
+        <div class="fontOptionsList" :class="{ isDark }">
+          <div
+            v-for="item in fontFamilyList"
+            :key="item.value"
+            class="fontOptionItem"
+            :style="{ fontFamily: item.value }"
+            :class="{ active: formatInfo.font === item.value }"
+            @click="changeFontFamily(item.value)"
+          >
+            {{ item.name }}
           </div>
-        </template>
-        <template #reference>
-          <div class="btn">
-            <span class="icon iconfont iconxingzhuang-wenzi" />
-          </div>
-        </template>
-      </el-popover>
-    </el-tooltip>
+        </div>
+      </template>
+      <template #reference>
+        <div class="btn" :title="localeText.richTextToolbar.fontFamily">
+          <span class="icon iconfont iconxingzhuang-wenzi" />
+        </div>
+      </template>
+    </el-popover>
 
-    <el-tooltip :content="localeText.richTextToolbar.fontSize" placement="top">
-      <el-popover placement="bottom" trigger="hover">
-        <template #default>
-          <div class="fontOptionsList" :class="{ isDark }">
-            <div
-              v-for="item in fontSizeList"
-              :key="item"
-              class="fontOptionItem"
-              :style="{
-                fontSize: `${item}px`,
-                height: `${item < 30 ? 30 : item + 10}px`,
-              }"
-              :class="{ active: formatInfo.size === `${item}px` }"
-              @click="changeFontSize(item)"
-            >
-              {{ item }}px
-            </div>
+    <el-popover placement="bottom" trigger="hover">
+      <template #default>
+        <div class="fontOptionsList" :class="{ isDark }">
+          <div
+            v-for="item in fontSizeList"
+            :key="item"
+            class="fontOptionItem"
+            :style="{
+              fontSize: `${item}px`,
+              height: `${item < 30 ? 30 : item + 10}px`,
+            }"
+            :class="{ active: formatInfo.size === `${item}px` }"
+            @click="changeFontSize(item)"
+          >
+            {{ item }}px
           </div>
-        </template>
-        <template #reference>
-          <div class="btn">
-            <span class="icon iconfont iconcase fontColor" />
-          </div>
-        </template>
-      </el-popover>
-    </el-tooltip>
+        </div>
+      </template>
+      <template #reference>
+        <div class="btn" :title="localeText.richTextToolbar.fontSize">
+          <span class="icon iconfont iconcase fontColor" />
+        </div>
+      </template>
+    </el-popover>
 
-    <el-tooltip :content="localeText.richTextToolbar.color" placement="top">
-      <el-popover placement="bottom" trigger="hover" width="260">
-        <template #default>
-          <Color :color="fontColor" @change="changeFontColor" />
-        </template>
-        <template #reference>
-          <div class="btn" :style="{ color: formatInfo.color }">
-            <span class="icon iconfont iconzitiyanse" />
-          </div>
-        </template>
-      </el-popover>
-    </el-tooltip>
+    <el-popover placement="bottom" trigger="hover" width="260">
+      <template #default>
+        <Color :color="fontColor" @change="changeFontColor" />
+      </template>
+      <template #reference>
+        <div class="btn" :style="{ color: formatInfo.color }" :title="localeText.richTextToolbar.color">
+          <span class="icon iconfont iconzitiyanse" />
+        </div>
+      </template>
+    </el-popover>
 
-    <el-tooltip
-      :content="localeText.richTextToolbar.backgroundColor"
-      placement="top"
-    >
-      <el-popover placement="bottom" trigger="hover" width="260">
-        <template #default>
-          <Color
-            :color="fontBackgroundColor"
-            @change="changeFontBackgroundColor"
-          />
-        </template>
-        <template #reference>
-          <div class="btn">
-            <span class="icon iconfont iconbeijingyanse" />
-          </div>
-        </template>
-      </el-popover>
-    </el-tooltip>
+    <el-popover placement="bottom" trigger="hover" width="260">
+      <template #default>
+        <Color
+          :color="fontBackgroundColor"
+          @change="changeFontBackgroundColor"
+        />
+      </template>
+      <template #reference>
+        <div class="btn" :title="localeText.richTextToolbar.backgroundColor">
+          <span class="icon iconfont iconbeijingyanse" />
+        </div>
+      </template>
+    </el-popover>
     <!-- 字体族 -->
-    <el-tooltip :content="localeText.richTextToolbar.textAlign" placement="top">
-      <el-popover placement="bottom" trigger="hover">
-        <template #default>
-          <div class="fontOptionsList" :class="{ isDark }">
-            <div
-              v-for="item in alignList"
-              :key="item.value"
-              class="fontOptionItem"
-              :class="{ active: formatInfo.align === item.value }"
-              @click="changeTextAlign(item.value)"
-            >
-              {{ item.name }}
-            </div>
+    <el-popover placement="bottom" trigger="hover">
+      <template #default>
+        <div class="fontOptionsList" :class="{ isDark }">
+          <div
+            v-for="item in alignList"
+            :key="item.value"
+            class="fontOptionItem"
+            :class="{ active: formatInfo.align === item.value }"
+            @click="changeTextAlign(item.value)"
+          >
+            {{ item.name }}
           </div>
-        </template>
-        <template #reference>
-          <div class="btn">
-            <span class="icon iconfont iconjuzhongduiqi" />
-          </div>
-        </template>
-      </el-popover>
-    </el-tooltip>
+        </div>
+      </template>
+      <template #reference>
+        <div class="btn" :title="localeText.richTextToolbar.textAlign">
+          <span class="icon iconfont iconjuzhongduiqi" />
+        </div>
+      </template>
+    </el-popover>
     <el-tooltip
       :content="hasLink ? linkUrl : (localeText.richTextToolbar.hyperlink || '超链接')"
       placement="top"

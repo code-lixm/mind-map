@@ -627,11 +627,18 @@ class MindMap {
   //  获取思维导图数据，节点树、主题、布局等
   getData(withConfig) {
     let nodeData = this.command.getCopyData()
+    let freeNodes = []
+    if (nodeData && nodeData.freeNodes) {
+      freeNodes = nodeData.freeNodes
+      delete nodeData.freeNodes
+    }
+
     let data = {}
     if (withConfig) {
       data = {
         layout: this.getLayout(),
         root: nodeData,
+        freeNodes,
         theme: {
           template: this.getTheme(),
           config: this.getCustomThemeConfig()
@@ -639,7 +646,16 @@ class MindMap {
         view: this.view.getTransformData()
       }
     } else {
-      data = nodeData
+      // 如果存在自由节点，返回包含 root 和 freeNodes 的对象
+      if (freeNodes.length > 0) {
+        data = {
+          root: nodeData,
+          freeNodes
+        }
+      } else {
+        // 否则仅返回节点树（保持兼容性）
+        data = nodeData
+      }
     }
     return simpleDeepClone(data)
   }

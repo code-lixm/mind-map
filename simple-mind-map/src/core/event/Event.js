@@ -33,6 +33,7 @@ class Event extends EventEmitter {
     this.onBodyMousedown = this.onBodyMousedown.bind(this)
     this.onBodyClick = this.onBodyClick.bind(this)
     this.onDrawClick = this.onDrawClick.bind(this)
+    this.onDblclick = this.onDblclick.bind(this)
     this.onMousedown = this.onMousedown.bind(this)
     this.onMousemove = this.onMousemove.bind(this)
     this.onMouseup = this.onMouseup.bind(this)
@@ -51,6 +52,7 @@ class Event extends EventEmitter {
     document.body.addEventListener('mousedown', this.onBodyMousedown)
     document.body.addEventListener('click', this.onBodyClick)
     this.mindMap.svg.on('click', this.onDrawClick)
+    this.mindMap.svg.on('dblclick', this.onDblclick)
     this.mindMap.el.addEventListener('mousedown', this.onMousedown)
     this.mindMap.svg.on('mousedown', this.onSvgMousedown)
     window.addEventListener('mousemove', this.onMousemove)
@@ -69,6 +71,7 @@ class Event extends EventEmitter {
     document.body.removeEventListener('mousedown', this.onBodyMousedown)
     document.body.removeEventListener('click', this.onBodyClick)
     this.mindMap.svg.off('click', this.onDrawClick)
+    this.mindMap.svg.off('dblclick', this.onDblclick)
     this.mindMap.el.removeEventListener('mousedown', this.onMousedown)
     window.removeEventListener('mousemove', this.onMousemove)
     window.removeEventListener('mouseup', this.onMouseup)
@@ -84,6 +87,11 @@ class Event extends EventEmitter {
   //   画布的单击事件
   onDrawClick(e) {
     this.emit('draw_click', e)
+  }
+
+  // 画布的双击事件
+  onDblclick(e) {
+    this.emit('dblclick', e)
   }
 
   // 页面的鼠标按下事件
