@@ -306,7 +306,10 @@ class MindMap {
 
   // 移除css
   removeCss() {
-    if (this.cssEl) document.head.removeChild(this.cssEl)
+    if (this.cssEl && this.cssEl.parentNode) {
+      this.cssEl.parentNode.removeChild(this.cssEl)
+    }
+    this.cssEl = null
   }
 
   // 检查某个编辑节点类名是否存在，返回索引
@@ -1011,28 +1014,37 @@ class MindMap {
   destroy() {
     this.emit('beforeDestroy')
     // 清除节点编辑框
-    this.renderer.textEdit.hideEditTextBox()
-    this.renderer.textEdit.removeTextEditEl()
-      // 移除插件
-      ;[...MindMap.pluginList].forEach(plugin => {
-        if (
-          this[plugin.instanceName] &&
-          this[plugin.instanceName].beforePluginDestroy
-        ) {
-          this[plugin.instanceName].beforePluginDestroy()
-        }
-        this[plugin.instanceName] = null
-      })
+    if (this.renderer && this.renderer.textEdit) {
+      this.renderer.textEdit.hideEditTextBox()
+      this.renderer.textEdit.removeTextEditEl()
+    }
+    // 移除插件
+    [...MindMap.pluginList].forEach(plugin => {
+      if (
+        this[plugin.instanceName] &&
+        this[plugin.instanceName].beforePluginDestroy
+      ) {
+        this[plugin.instanceName].beforePluginDestroy()
+      }
+      this[plugin.instanceName] = null
+    })
     // 解绑事件
-    this.event.unbind()
+    if (this.event) {
+      this.event.unbind()
+    }
     // 移除画布节点
-    this.svg.remove()
+    if (this.svg) {
+      this.svg.remove()
+    }
     // 去除给容器元素设置的背景样式
-    Style.removeBackgroundStyle(this.el)
-    // 移除给容器元素添加的类名
-    this.el.classList.remove('smm-mind-map-container')
-    this.el.innerHTML = ''
+    if (this.el) {
+      Style.removeBackgroundStyle(this.el)
+      // 移除给容器元素添加的类名
+      this.el.classList.remove('smm-mind-map-container')
+      this.el.innerHTML = ''
+    }
     this.el = null
+    this.svg = null
     this.removeCss()
     MindMap.instanceCount--
   }
