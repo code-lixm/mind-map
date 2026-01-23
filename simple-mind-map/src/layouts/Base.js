@@ -41,9 +41,12 @@ class Base {
 
   // 通过uid缓存节点
   cacheNode(uid, node) {
-    // 记录本次渲染时的节点
+    const existed = this.renderer.nodeCache[uid]
+    // 同一渲染周期出现重复 uid 时，及时销毁旧实例，避免残留 DOM（鬼影）
+    if (existed && existed !== node) {
+      existed.destroy()
+    }
     this.renderer.nodeCache[uid] = node
-    // 缓存所有渲染过的节点
     this.lru.add(uid, node)
   }
 

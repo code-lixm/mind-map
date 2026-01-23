@@ -135,6 +135,47 @@ class Render {
     this.layout = new L(this, layout)
   }
 
+  // 规范化渲染树，解决外部数据重复uid / 残留引用导致的鬼影
+  sanitizeRenderTree() {
+    if (!this.renderTree) return
+    const used = new Set()
+    const visited = new WeakSet()
+    const stack = [this.renderTree]
+    while (stack.length) {
+      const node = stack.pop()
+      if (!node || typeof node !== 'object') continue
+      if (visited.has(node)) continue
+      visited.add(node)
+      node.data = node.data || {}
+      // 清理运行时挂载的引用，避免复用旧实例
+      if (node.data._node) delete node.data._node
+      if (node._node) delete node._node
+      if (node.nodeDataSnapshot) delete node.nodeDataSnapshot
+      if (node.data.nodeDataSnapshot) delete node.data.nodeDataSnapshot
+      if (node.data.parent) delete node.data.parent
+      // 处理概要节点的 uid
+      const generalizationList = formatGetNodeGeneralization(node.data)
+      generalizationList.forEach(g => {
+        if (g._node) delete g._node
+        if (!g.uid || used.has(g.uid)) {
+          g.uid = createUid()
+        }
+        used.add(g.uid)
+      })
+      // 处理当前节点 uid
+      if (!node.data.uid || used.has(node.data.uid)) {
+        node.data.uid = createUid()
+      }
+      used.add(node.data.uid)
+      // 子节点入栈
+      if (Array.isArray(node.children)) {
+        node.children.forEach(child => stack.push(child))
+      } else {
+        node.children = []
+      }
+    }
+  }
+
   // 重新设置思维导图数据
   setData(data) {
     this.renderTree = data || null
@@ -634,10 +675,6 @@ class Render {
 
   // 真正的渲染
   _render() {
-    // 切换主题时，被收起的节点需要添加样式复位的标注
-    if (this.checkHasRenderSource(CONSTANTS.CHANGE_THEME)) {
-      this.resetUnExpandNodeStyle()
-    }
     // 如果当前还没有渲染完毕，不再触发渲染
     if (this.isRendering) {
       // 等待当前渲染完毕后再进行一次渲染
@@ -645,6 +682,12 @@ class Render {
       return
     }
     this.isRendering = true
+    // 渲染前做一次数据规范化，避免同帧重复uid或残留引用导致鬼影
+    this.sanitizeRenderTree()
+    // 切换主题时，被收起的节点需要添加样式复位的标注
+    if (this.checkHasRenderSource(CONSTANTS.CHANGE_THEME)) {
+      this.resetUnExpandNodeStyle()
+    }
     // 节点缓存
     this.lastNodeCache = this.nodeCache
     this.nodeCache = {}
