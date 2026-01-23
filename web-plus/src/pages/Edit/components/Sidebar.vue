@@ -79,8 +79,7 @@ onBeforeUnmount(() => {
     class="sidebarContainer"
     :class="{ show, isDark }"
     :style="{ zIndex }"
-    @click.stop
-  >
+    @click.stop>
     <span class="closeBtn i-ep:close" @click="close" />
     <div v-if="title" class="sidebarHeader flex-start">
       {{ title }}
@@ -153,6 +152,7 @@ onBeforeUnmount(() => {
     flex-shrink: 0;
     font-size: 15px;
     font-weight: 600;
+    color: #000;
   }
 
   .sidebarContent {

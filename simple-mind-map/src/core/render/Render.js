@@ -352,10 +352,10 @@ class Render {
     this.mindMap.command.add('EXPAND_ALL', this.expandAllNode)
     // 收起所有节点
     this.unexpandAllNode = this.unexpandAllNode.bind(this)
-    this.mindMap.command.add('UNEXPAND_ALL', this.unexpandAllNode)
+    this.mindMap.command.add('UN_EXPAND_ALL', this.unexpandAllNode)
     // 展开到指定层级
     this.expandToLevel = this.expandToLevel.bind(this)
-    this.mindMap.command.add('UNEXPAND_TO_LEVEL', this.expandToLevel)
+    this.mindMap.command.add('UN_EXPAND_TO_LEVEL', this.expandToLevel)
     // 设置节点数据
     this.setNodeData = this.setNodeData.bind(this)
     this.mindMap.command.add('SET_NODE_DATA', this.setNodeData)
@@ -1618,14 +1618,14 @@ class Render {
           this.textEdit.hideEditTextBox()
         }
         if (isAppointNodes) list.splice(i, 1)
-        
+
         // 【FreedomNode Hook】处理自由节点删除
         if (node.getData('isFreedomNode') && this.mindMap.freeNode) {
-           this.removeNodeFromActiveList(node)
-           const freeNodeId = node.getData('_freedomNodeId')
-           this.mindMap.freeNode.removeFreeNode(freeNodeId)
-           i--
-           continue
+          this.removeNodeFromActiveList(node)
+          const freeNodeId = node.getData('_freedomNodeId')
+          this.mindMap.freeNode.removeFreeNode(freeNodeId)
+          i--
+          continue
         }
 
         if (node.isGeneralization) {
@@ -1717,7 +1717,7 @@ class Render {
       const node = this.activeNodeList[0]
       // 【FreedomNode Hook】如果节点没有父节点（如自由节点根节点），则没有兄弟节点
       if (!node.parent) return null
-      
+
       const broList = node.parent.children
       const nodeIndex = getNodeIndexInNodeList(node, broList)
       // 如果后面有兄弟节点

@@ -82,16 +82,15 @@ const paddingStyle = ref({
 // 监听 activeSidebar 变化
 watch(
   () => props.activeSidebar,
-  (val) => {
+  val => {
     if (sidebarRef.value) {
       if (val === 'nodeOuterFrameStyle') {
         sidebarRef.value.show = true
-      }
-      else {
+      } else {
         sidebarRef.value.show = false
       }
     }
-  },
+  }
 )
 
 // 外框激活处理
@@ -99,11 +98,10 @@ function onOuterFrameActive(el: any, parentNode: any, range: number[]) {
   // 取范围内第一个节点的外框样式
   const firstNode = parentNode.children[range[0]]
   const firstNodeOuterFrame = firstNode.getData('outerFrame')
-  Object.keys(styleConfig.value).forEach((key) => {
+  Object.keys(styleConfig.value).forEach(key => {
     if (typeof firstNodeOuterFrame[key] !== 'undefined') {
       styleConfig.value[key] = firstNodeOuterFrame[key]
-    }
-    else {
+    } else {
       styleConfig.value[key] = OuterFrame.defaultStyle[key]
     }
   })
@@ -129,7 +127,8 @@ function toggleFontWeight() {
 
 // 切换字体样式
 function toggleFontStyle() {
-  const newValue = styleConfig.value.fontStyle === 'italic' ? 'normal' : 'italic'
+  const newValue =
+    styleConfig.value.fontStyle === 'italic' ? 'normal' : 'italic'
   updateOuterFrame('fontStyle', newValue)
 }
 
@@ -138,8 +137,7 @@ function updatePadding(dir: 'x' | 'y', value: number) {
   const [pl, pt] = styleConfig.value.textFillPadding
   if (dir === 'x') {
     updateOuterFrame('textFillPadding', [value, pt, value, pt])
-  }
-  else if (dir === 'y') {
+  } else if (dir === 'y') {
     updateOuterFrame('textFillPadding', [pl, value, pl, value])
   }
 }
@@ -190,11 +188,12 @@ onBeforeUnmount(() => {
     ref="sidebarRef"
     :title="localeText.nodeOuterFrame.nodeOuterFrameStyle"
     :is-dark="isDark"
-    @update:active-sidebar="handleUpdateActiveSidebar"
-  >
+    @update:active-sidebar="handleUpdateActiveSidebar">
     <div class="sidebarContent" :class="{ isDark }">
       <div class="panelHeader">
-        <span class="name">{{ localeText.nodeOuterFrame.outerFrameSetting }}</span>
+        <span class="name">
+          {{ localeText.nodeOuterFrame.outerFrameSetting }}
+        </span>
         <span class="deleteBtn" @click="deleteOuterFrame">
           {{ localeText.nodeOuterFrame.deleteOuterFrame }}
           <span class="iconfont iconshanchu" />
@@ -214,20 +213,17 @@ onBeforeUnmount(() => {
                 (value: any) => {
                   updateOuterFrame('strokeWidth', value)
                 }
-              "
-            >
+              ">
               <el-option
                 v-for="item in lineWidthList"
                 :key="item"
                 :label="item"
-                :value="item"
-              >
+                :value="item">
                 <span
                   v-if="item > 0"
                   class="borderLine"
                   :class="{ isDark }"
-                  :style="{ height: `${item}px` }"
-                />
+                  :style="{ height: `${item}px` }" />
               </el-option>
             </el-select>
             <!-- 实现虚线 -->
@@ -240,14 +236,12 @@ onBeforeUnmount(() => {
                 (value: any) => {
                   updateOuterFrame('strokeDasharray', value)
                 }
-              "
-            >
+              ">
               <el-option
                 v-for="item in borderDasharrayList"
                 :key="item.value"
                 :label="item.name"
-                :value="item.value"
-              >
+                :value="item.value">
                 <svg width="120" height="34">
                   <line
                     x1="10"
@@ -262,8 +256,7 @@ onBeforeUnmount(() => {
                           ? '#fff'
                           : '#000'
                     "
-                    :stroke-dasharray="item.value"
-                  />
+                    :stroke-dasharray="item.value" />
                 </svg>
               </el-option>
             </el-select>
@@ -276,8 +269,7 @@ onBeforeUnmount(() => {
               <template #reference>
                 <span
                   class="block"
-                  :style="{ backgroundColor: styleConfig.strokeColor }"
-                />
+                  :style="{ backgroundColor: styleConfig.strokeColor }" />
               </template>
               <Color
                 :color="styleConfig.strokeColor"
@@ -285,8 +277,7 @@ onBeforeUnmount(() => {
                   (color: string) => {
                     updateOuterFrame('strokeColor', color)
                   }
-                "
-              />
+                " />
             </el-popover>
           </div>
           <div class="rowItem">
@@ -300,14 +291,12 @@ onBeforeUnmount(() => {
                 (value: any) => {
                   updateOuterFrame('radius', value)
                 }
-              "
-            >
+              ">
               <el-option
                 v-for="item in borderRadiusList"
                 :key="item"
                 :label="item"
-                :value="item"
-              />
+                :value="item" />
             </el-select>
           </div>
         </div>
@@ -318,8 +307,7 @@ onBeforeUnmount(() => {
               <template #reference>
                 <span
                   class="block"
-                  :style="{ backgroundColor: styleConfig.fill }"
-                />
+                  :style="{ backgroundColor: styleConfig.fill }" />
               </template>
               <Color
                 :color="styleConfig.fill"
@@ -327,8 +315,7 @@ onBeforeUnmount(() => {
                   (color: string) => {
                     updateOuterFrame('fill', color)
                   }
-                "
-              />
+                " />
             </el-popover>
           </div>
         </div>
@@ -352,15 +339,13 @@ onBeforeUnmount(() => {
                 (value: any) => {
                   updateOuterFrame('fontFamily', value)
                 }
-              "
-            >
+              ">
               <el-option
                 v-for="item in fontFamilyList"
                 :key="item.value"
                 :label="item.name"
                 :value="item.value"
-                :style="{ fontFamily: item.value }"
-              />
+                :style="{ fontFamily: item.value }" />
             </el-select>
           </div>
         </div>
@@ -372,8 +357,7 @@ onBeforeUnmount(() => {
                   A
                   <span
                     class="colorShow"
-                    :style="{ backgroundColor: styleConfig.color }"
-                  />
+                    :style="{ backgroundColor: styleConfig.color }" />
                 </div>
               </template>
               <Color
@@ -382,34 +366,29 @@ onBeforeUnmount(() => {
                   (color: string) => {
                     updateOuterFrame('color', color)
                   }
-                "
-              />
+                " />
             </el-popover>
             <el-tooltip
               :content="localeText.nodeOuterFrame.fontBold"
-              placement="bottom"
-            >
+              placement="bottom">
               <div
                 class="styleBtn"
                 :class="{
-                  actived: styleConfig.fontWeight === 'bold',
+                  active: styleConfig.fontWeight === 'bold',
                 }"
-                @click="toggleFontWeight"
-              >
+                @click="toggleFontWeight">
                 B
               </div>
             </el-tooltip>
             <el-tooltip
               :content="localeText.nodeOuterFrame.italic"
-              placement="bottom"
-            >
+              placement="bottom">
               <div
                 class="styleBtn i"
                 :class="{
-                  actived: styleConfig.fontStyle === 'italic',
+                  active: styleConfig.fontStyle === 'italic',
                 }"
-                @click="toggleFontStyle"
-              >
+                @click="toggleFontStyle">
                 I
               </div>
             </el-tooltip>
@@ -427,14 +406,12 @@ onBeforeUnmount(() => {
                 (value: any) => {
                   updateOuterFrame('lineHeight', value)
                 }
-              "
-            >
+              ">
               <el-option
                 v-for="item in lineHeightList"
                 :key="item"
                 :label="item"
-                :value="item"
-              />
+                :value="item" />
             </el-select>
           </div>
           <div class="rowItem">
@@ -448,15 +425,13 @@ onBeforeUnmount(() => {
                 (value: any) => {
                   updateOuterFrame('fontSize', value)
                 }
-              "
-            >
+              ">
               <el-option
                 v-for="item in fontSizeList"
                 :key="item"
                 :label="item"
                 :value="item"
-                :style="{ fontSize: `${item}px` }"
-              />
+                :style="{ fontSize: `${item}px` }" />
             </el-select>
           </div>
         </div>
@@ -467,8 +442,7 @@ onBeforeUnmount(() => {
               <template #reference>
                 <span
                   class="block"
-                  :style="{ backgroundColor: styleConfig.textFill }"
-                />
+                  :style="{ backgroundColor: styleConfig.textFill }" />
               </template>
               <Color
                 :color="styleConfig.textFill"
@@ -476,12 +450,13 @@ onBeforeUnmount(() => {
                   (color: string) => {
                     updateOuterFrame('textFill', color)
                   }
-                "
-              />
+                " />
             </el-popover>
           </div>
           <div class="rowItem">
-            <span class="name">{{ localeText.nodeOuterFrame.textFillRadius }}</span>
+            <span class="name">
+              {{ localeText.nodeOuterFrame.textFillRadius }}
+            </span>
             <el-select
               v-model="styleConfig.textFillRadius"
               size="small"
@@ -491,14 +466,12 @@ onBeforeUnmount(() => {
                 (value: any) => {
                   updateOuterFrame('textFillRadius', value)
                 }
-              "
-            >
+              ">
               <el-option
                 v-for="item in borderRadiusList"
                 :key="item"
                 :label="item"
-                :value="item"
-              />
+                :value="item" />
             </el-select>
           </div>
         </div>
@@ -512,8 +485,7 @@ onBeforeUnmount(() => {
                 (value: any) => {
                   updateOuterFrame('textAlign', value)
                 }
-              "
-            >
+              ">
               <el-radio-button label="left" value="left">
                 {{ localeText.nodeOuterFrame.left }}
               </el-radio-button>
@@ -536,8 +508,7 @@ onBeforeUnmount(() => {
                 (value: any) => {
                   updatePadding('x', value)
                 }
-              "
-            />
+              " />
           </div>
         </div>
         <div class="row">
@@ -550,8 +521,7 @@ onBeforeUnmount(() => {
                 (value: any) => {
                   updatePadding('y', value)
                 }
-              "
-            />
+              " />
           </div>
         </div>
       </div>
@@ -687,7 +657,7 @@ onBeforeUnmount(() => {
         cursor: pointer;
         border-radius: 4px;
 
-        &.actived {
+        &.active {
           background-color: #eee;
         }
 

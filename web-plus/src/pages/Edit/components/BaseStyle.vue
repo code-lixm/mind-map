@@ -109,8 +109,7 @@ const backgroundImageForUpload = computed({
   set: (value: any) => {
     if (!value || !value.fileId) {
       update('backgroundImage', '')
-    }
-    else {
+    } else {
       update('backgroundImage', value.fileId)
     }
   },
@@ -120,14 +119,13 @@ const backgroundImageForUpload = computed({
 const lineStyleListShow = computed(() => {
   const list = lineStyleList
   const res: typeof list = []
-  list.forEach((item) => {
+  list.forEach(item => {
     const layoutList = supportLineStyleLayoutsMap[item.value]
     if (layoutList) {
       if (layoutList.includes(currentLayout.value)) {
         res.push(item)
       }
-    }
-    else {
+    } else {
       res.push(item)
     }
   })
@@ -164,8 +162,8 @@ const showNodeUseLineStyle = computed(() => {
 
 const showLineRadius = computed(() => {
   return (
-    style.lineStyle === 'straight'
-    && supportLineRadiusLayouts.includes(currentLayout.value)
+    style.lineStyle === 'straight' &&
+    supportLineRadiusLayouts.includes(currentLayout.value)
   )
 })
 
@@ -176,46 +174,42 @@ const showRootLineKeepSameInCurveLayouts = computed(() => {
 // 监听器
 watch(
   () => props.activeSidebar,
-  (val) => {
+  val => {
     if (val === 'baseStyle') {
-      if (sidebarRef.value)
-        sidebarRef.value.show = true
+      if (sidebarRef.value) sidebarRef.value.show = true
       initStyle()
       initRainbowLines()
       initOuterFramePadding()
       currentLayout.value = props.mindMap.getLayout()
+    } else {
+      if (sidebarRef.value) sidebarRef.value.show = false
     }
-    else {
-      if (sidebarRef.value)
-        sidebarRef.value.show = false
-    }
-  },
+  }
 )
 
 watch(
   lineStyleListShow,
   () => {
-    const has = lineStyleListShow.value.find((item) => {
+    const has = lineStyleListShow.value.find(item => {
       return item.value === style.lineStyle
     })
     if (!has && lineStyleListShow.value.length > 0) {
       style.lineStyle = lineStyleListShow.value[0].value
     }
   },
-  { deep: true },
+  { deep: true }
 )
 
 // 方法
 function onSetData() {
-  if (props.activeSidebar !== 'baseStyle')
-    return
+  if (props.activeSidebar !== 'baseStyle') return
   setTimeout(() => {
     initStyle()
   }, 0)
 }
 
 function initStyle() {
-  Object.keys(style).forEach((key) => {
+  Object.keys(style).forEach(key => {
     style[key] = props.mindMap.getThemeConfig(key)
     if (key === 'backgroundImage' && style[key] === 'none') {
       style[key] = ''
@@ -234,12 +228,14 @@ function initRainbowLines() {
 }
 
 function initOuterFramePadding() {
-  outerFramePadding.outerFramePaddingX = props.mindMap.getConfig('outerFramePaddingX')
-  outerFramePadding.outerFramePaddingY = props.mindMap.getConfig('outerFramePaddingX')
+  outerFramePadding.outerFramePaddingX =
+    props.mindMap.getConfig('outerFramePaddingX')
+  outerFramePadding.outerFramePaddingY =
+    props.mindMap.getConfig('outerFramePaddingX')
 }
 
 function initMarginStyle() {
-  ;['marginX', 'marginY'].forEach((key) => {
+  ;['marginX', 'marginY'].forEach(key => {
     const themeConfig = props.mindMap.getThemeConfig()
     if (themeConfig[marginActiveTab.value]) {
       style[key] = themeConfig[marginActiveTab.value][key]
@@ -250,8 +246,7 @@ function initMarginStyle() {
 function update(key: string, value: any) {
   if (key === 'backgroundImage' && value === 'none') {
     style[key] = ''
-  }
-  else {
+  } else {
     style[key] = value
   }
   eventBus.emit('showLoading')
@@ -271,8 +266,7 @@ function updateRainbowLinesConfig(item: any) {
       open: true,
       colorsList: item.list,
     }
-  }
-  else {
+  } else {
     newConfig = {
       open: false,
     }
@@ -322,98 +316,96 @@ onBeforeUnmount(() => {
   <Sidebar
     ref="sidebarRef"
     :title="localeText.baseStyle?.title || '基础样式'"
-    @update:active-sidebar="handleUpdateActiveSidebar"
-  >
+    @update:active-sidebar="handleUpdateActiveSidebar">
     <div
       v-if="mindMap"
       class="sidebarContent customScrollbar"
-      :class="{ isDark }"
-    >
+      :class="{ isDark }">
       <!-- 背景 -->
       <div class="title noTop">
         {{ localeText.baseStyle?.background || '背景' }}
       </div>
       <div class="row">
         <el-tabs v-model="activeTab" class="tab">
-          <el-tab-pane :label="localeText.baseStyle?.color || '颜色'" name="color">
+          <el-tab-pane
+            :label="localeText.baseStyle?.color || '颜色'"
+            name="color">
             <Color
               :color="style.backgroundColor"
-              @change="(color) => update('backgroundColor', color)"
-            />
+              @change="color => update('backgroundColor', color)" />
           </el-tab-pane>
-          <el-tab-pane :label="localeText.baseStyle?.image || '图片'" name="image">
-            <ImgUpload
-              v-model="backgroundImageForUpload"
-              class="imgUpload"
-            />
+          <el-tab-pane
+            :label="localeText.baseStyle?.image || '图片'"
+            name="image">
+            <ImgUpload v-model="backgroundImageForUpload" class="imgUpload" />
             <!-- 图片重复方式 -->
             <div class="rowItem">
-              <span class="name">{{ localeText.baseStyle?.imageRepeat || '图片重复' }}</span>
+              <span class="name">
+                {{ localeText.baseStyle?.imageRepeat || '图片重复' }}
+              </span>
               <el-select
                 v-model="style.backgroundRepeat"
                 size="small"
                 style="width: 120px"
                 placeholder=""
-                @change="(value) => update('backgroundRepeat', value)"
-              >
+                @change="value => update('backgroundRepeat', value)">
                 <el-option
                   v-for="item in backgroundRepeatListComputed"
                   :key="item.value"
                   :label="item.name"
-                  :value="item.value"
-                />
+                  :value="item.value" />
               </el-select>
             </div>
             <!-- 图片位置 -->
             <div class="rowItem">
-              <span class="name">{{ localeText.baseStyle?.imagePosition || '图片位置' }}</span>
+              <span class="name">
+                {{ localeText.baseStyle?.imagePosition || '图片位置' }}
+              </span>
               <el-select
                 v-model="style.backgroundPosition"
                 size="small"
                 style="width: 120px"
                 placeholder=""
-                @change="(value) => update('backgroundPosition', value)"
-              >
+                @change="value => update('backgroundPosition', value)">
                 <el-option
                   v-for="item in backgroundPositionListComputed"
                   :key="item.value"
                   :label="item.name"
-                  :value="item.value"
-                />
+                  :value="item.value" />
               </el-select>
             </div>
             <!-- 图片大小 -->
             <div class="rowItem">
-              <span class="name">{{ localeText.baseStyle?.imageSize || '图片大小' }}</span>
+              <span class="name">
+                {{ localeText.baseStyle?.imageSize || '图片大小' }}
+              </span>
               <el-select
                 v-model="style.backgroundSize"
                 size="small"
                 style="width: 120px"
                 placeholder=""
-                @change="(value) => update('backgroundSize', value)"
-              >
+                @change="value => update('backgroundSize', value)">
                 <el-option
                   v-for="item in backgroundSizeListComputed"
                   :key="item.value"
                   :label="item.name"
-                  :value="item.value"
-                />
+                  :value="item.value" />
               </el-select>
             </div>
             <!-- 内置背景图片 -->
             <div
               v-if="bgList.length > 0"
               class="rowItem spaceBetween"
-              style="margin-top: 8px; margin-bottom: 8px;"
-            >
+              style="margin-top: 8px; margin-bottom: 8px">
               <div class="name">
-                {{ localeText.baseStyle?.builtInBackgroundImage || '内置背景图片' }}
+                {{
+                  localeText.baseStyle?.builtInBackgroundImage || '内置背景图片'
+                }}
               </div>
               <div
                 class="iconBtn i-ep:arrow-down"
                 :class="{ top: !bgListExpand }"
-                @click="bgListExpand = !bgListExpand"
-              />
+                @click="bgListExpand = !bgListExpand" />
             </div>
             <div class="bgList" :class="{ expand: bgListExpand }">
               <div
@@ -421,9 +413,8 @@ onBeforeUnmount(() => {
                 :key="index"
                 class="bgItem"
                 :class="{ active: style.backgroundImage === item }"
-                @click="useBg(item)"
-              >
-                <img :src="item" alt="">
+                @click="useBg(item)">
+                <img :src="item" alt="" />
               </div>
             </div>
           </el-tab-pane>
@@ -440,13 +431,11 @@ onBeforeUnmount(() => {
             <template #reference>
               <span
                 class="block"
-                :style="{ backgroundColor: style.lineColor }"
-              />
+                :style="{ backgroundColor: style.lineColor }" />
             </template>
             <Color
               :color="style.lineColor"
-              @change="(color) => update('lineColor', color)"
-            />
+              @change="color => update('lineColor', color)" />
           </el-popover>
         </div>
         <div class="rowItem">
@@ -456,20 +445,17 @@ onBeforeUnmount(() => {
             size="small"
             style="width: 80px"
             placeholder=""
-            @change="(value) => update('lineWidth', value)"
-          >
+            @change="value => update('lineWidth', value)">
             <el-option
               v-for="item in lineWidthList"
               :key="item"
               :label="item"
-              :value="item"
-            >
+              :value="item">
               <span
                 v-if="item > 0"
                 class="borderLine"
                 :class="{ isDark }"
-                :style="{ height: `${item}px` }"
-              />
+                :style="{ height: `${item}px` }" />
             </el-option>
           </el-select>
         </div>
@@ -483,8 +469,7 @@ onBeforeUnmount(() => {
             size="small"
             style="width: 80px"
             placeholder=""
-            @change="(value) => update('lineStyle', value)"
-          >
+            @change="value => update('lineStyle', value)">
             <el-option
               v-for="item in lineStyleListShow"
               :key="item.value"
@@ -494,76 +479,78 @@ onBeforeUnmount(() => {
               :class="{
                 isDark,
                 isSelected: style.lineStyle === item.value,
-              }"
-            >
+              }">
               <span v-html="lineStyleMap[item.value]" />
             </el-option>
           </el-select>
         </div>
         <!-- 根节点连线样式 -->
         <div
-          v-if="style.lineStyle === 'curve' && showRootLineKeepSameInCurveLayouts"
-          class="rowItem"
-        >
-          <span class="name">{{ localeText.baseStyle?.rootStyle || '根节点样式' }}</span>
+          v-if="
+            style.lineStyle === 'curve' && showRootLineKeepSameInCurveLayouts
+          "
+          class="rowItem">
+          <span class="name">
+            {{ localeText.baseStyle?.rootStyle || '根节点样式' }}
+          </span>
           <el-select
             v-model="style.rootLineKeepSameInCurve"
             size="small"
             style="width: 80px"
             placeholder=""
-            @change="(value) => update('rootLineKeepSameInCurve', value)"
-          >
+            @change="value => update('rootLineKeepSameInCurve', value)">
             <el-option
               v-for="item in rootLineKeepSameInCurveListComputed"
               :key="String(item.value)"
               :label="item.name"
-              :value="item.value"
-            />
+              :value="item.value" />
           </el-select>
         </div>
         <div v-if="showLineRadius" class="rowItem">
           <!-- 连线圆角大小 -->
-          <span class="name">{{ localeText.baseStyle?.lineRadius || '连线圆角' }}</span>
+          <span class="name">
+            {{ localeText.baseStyle?.lineRadius || '连线圆角' }}
+          </span>
           <el-select
             v-model="style.lineRadius"
             size="small"
             style="width: 80px"
             placeholder=""
-            @change="(value) => update('lineRadius', value)"
-          >
+            @change="value => update('lineRadius', value)">
             <el-option
               v-for="item in [0, 2, 5, 7, 10, 12, 15]"
               :key="item"
               :label="item"
-              :value="item"
-            />
+              :value="item" />
           </el-select>
         </div>
       </div>
       <div class="row">
         <!-- 根节点连线起始位置 -->
         <div
-          v-if="style.lineStyle === 'curve' && showRootLineKeepSameInCurveLayouts"
-          class="rowItem"
-        >
-          <span class="name">{{ localeText.baseStyle?.rootLineStartPos || '根节点连线起始位置' }}</span>
+          v-if="
+            style.lineStyle === 'curve' && showRootLineKeepSameInCurveLayouts
+          "
+          class="rowItem">
+          <span class="name">
+            {{ localeText.baseStyle?.rootLineStartPos || '根节点连线起始位置' }}
+          </span>
           <el-select
             v-model="style.rootLineStartPositionKeepSameInCurve"
             size="small"
             style="width: 80px"
             placeholder=""
-            @change="(value) => update('rootLineStartPositionKeepSameInCurve', value)"
-          >
+            @change="
+              value => update('rootLineStartPositionKeepSameInCurve', value)
+            ">
             <el-option
               key="center"
               :label="localeText.baseStyle?.center || '居中'"
-              :value="false"
-            />
+              :value="false" />
             <el-option
               key="right"
               :label="localeText.baseStyle?.edge || '边缘'"
-              :value="true"
-            />
+              :value="true" />
           </el-select>
         </div>
       </div>
@@ -571,8 +558,7 @@ onBeforeUnmount(() => {
         <div class="rowItem">
           <el-checkbox
             v-model="style.showLineMarker"
-            @change="(value) => update('showLineMarker', value)"
-          >
+            @change="value => update('showLineMarker', value)">
             {{ localeText.baseStyle?.showArrow || '显示箭头' }}
           </el-checkbox>
         </div>
@@ -587,28 +573,26 @@ onBeforeUnmount(() => {
             v-model:visible="rainbowLinesPopoverVisible"
             placement="right"
             trigger="click"
-            width="320"
-          >
+            width="320">
             <div class="rainbowLinesOptionsBox" :class="{ isDark }">
               <div
                 v-for="item in rainbowLinesOptions"
                 :key="item.value"
-                class="optionItem"
-              >
+                class="optionItem">
                 <div
                   v-if="item.list"
                   class="colorsBar"
-                  @click="updateRainbowLinesConfig(item)"
-                >
+                  @click="updateRainbowLinesConfig(item)">
                   <span
                     v-for="color in item.list"
                     :key="color"
                     class="colorItem"
-                    :style="{ backgroundColor: color }"
-                  />
+                    :style="{ backgroundColor: color }" />
                 </div>
                 <span v-else @click="updateRainbowLinesConfig(item)">
-                  {{ localeText.baseStyle?.notUseRainbowLines || '不使用彩虹线条' }}
+                  {{
+                    localeText.baseStyle?.notUseRainbowLines || '不使用彩虹线条'
+                  }}
                 </span>
               </div>
             </div>
@@ -619,10 +603,13 @@ onBeforeUnmount(() => {
                     v-for="color in curRainbowLineColorList"
                     :key="color"
                     class="colorItem"
-                    :style="{ backgroundColor: color }"
-                  />
+                    :style="{ backgroundColor: color }" />
                 </div>
-                <span v-else>{{ localeText.baseStyle?.notUseRainbowLines || '不使用彩虹线条' }}</span>
+                <span v-else>
+                  {{
+                    localeText.baseStyle?.notUseRainbowLines || '不使用彩虹线条'
+                  }}
+                </span>
               </div>
             </template>
           </el-popover>
@@ -639,13 +626,11 @@ onBeforeUnmount(() => {
             <template #reference>
               <span
                 class="block"
-                :style="{ backgroundColor: style.generalizationLineColor }"
-              />
+                :style="{ backgroundColor: style.generalizationLineColor }" />
             </template>
             <Color
               :color="style.generalizationLineColor"
-              @change="(color) => update('generalizationLineColor', color)"
-            />
+              @change="color => update('generalizationLineColor', color)" />
           </el-popover>
         </div>
         <div class="rowItem">
@@ -655,20 +640,17 @@ onBeforeUnmount(() => {
             size="small"
             style="width: 80px"
             placeholder=""
-            @change="(value) => update('generalizationLineWidth', value)"
-          >
+            @change="value => update('generalizationLineWidth', value)">
             <el-option
               v-for="item in lineWidthList"
               :key="item"
               :label="item"
-              :value="item"
-            >
+              :value="item">
               <span
                 v-if="item > 0"
                 class="borderLine"
                 :class="{ isDark }"
-                :style="{ height: `${item}px` }"
-              />
+                :style="{ height: `${item}px` }" />
             </el-option>
           </el-select>
         </div>
@@ -679,41 +661,40 @@ onBeforeUnmount(() => {
       </div>
       <div class="row">
         <div class="rowItem">
-          <span class="name">{{ localeText.baseStyle?.associativeLineColor || '关联线颜色' }}</span>
+          <span class="name">
+            {{ localeText.baseStyle?.associativeLineColor || '关联线颜色' }}
+          </span>
           <el-popover placement="bottom" trigger="click" width="260">
             <template #reference>
               <span
                 class="block"
-                :style="{ backgroundColor: style.associativeLineColor }"
-              />
+                :style="{ backgroundColor: style.associativeLineColor }" />
             </template>
             <Color
               :color="style.associativeLineColor"
-              @change="(color) => update('associativeLineColor', color)"
-            />
+              @change="color => update('associativeLineColor', color)" />
           </el-popover>
         </div>
         <div class="rowItem">
-          <span class="name">{{ localeText.baseStyle?.associativeLineWidth || '关联线宽度' }}</span>
+          <span class="name">
+            {{ localeText.baseStyle?.associativeLineWidth || '关联线宽度' }}
+          </span>
           <el-select
             v-model="style.associativeLineWidth"
             size="small"
             style="width: 80px"
             placeholder=""
-            @change="(value) => update('associativeLineWidth', value)"
-          >
+            @change="value => update('associativeLineWidth', value)">
             <el-option
               v-for="item in lineWidthList"
               :key="item"
               :label="item"
-              :value="item"
-            >
+              :value="item">
               <span
                 v-if="item > 0"
                 class="borderLine"
                 :class="{ isDark }"
-                :style="{ height: `${item}px` }"
-              />
+                :style="{ height: `${item}px` }" />
             </el-option>
           </el-select>
         </div>
@@ -727,13 +708,13 @@ onBeforeUnmount(() => {
             <template #reference>
               <span
                 class="block"
-                :style="{ backgroundColor: style.associativeLineActiveColor }"
-              />
+                :style="{
+                  backgroundColor: style.associativeLineActiveColor,
+                }" />
             </template>
             <Color
               :color="style.associativeLineActiveColor"
-              @change="(color) => update('associativeLineActiveColor', color)"
-            />
+              @change="color => update('associativeLineActiveColor', color)" />
           </el-popover>
         </div>
         <div class="rowItem">
@@ -745,20 +726,17 @@ onBeforeUnmount(() => {
             size="small"
             style="width: 80px"
             placeholder=""
-            @change="(value) => update('associativeLineActiveWidth', value)"
-          >
+            @change="value => update('associativeLineActiveWidth', value)">
             <el-option
               v-for="item in lineWidthList"
               :key="item"
               :label="item"
-              :value="item"
-            >
+              :value="item">
               <span
                 v-if="item > 0"
                 class="borderLine"
                 :class="{ isDark }"
-                :style="{ height: `${item}px` }"
-              />
+                :style="{ height: `${item}px` }" />
             </el-option>
           </el-select>
         </div>
@@ -771,14 +749,12 @@ onBeforeUnmount(() => {
             size="small"
             style="width: 80px"
             placeholder=""
-            @change="(value) => update('associativeLineDasharray', value)"
-          >
+            @change="value => update('associativeLineDasharray', value)">
             <el-option
               v-for="item in borderDasharrayListComputed"
               :key="item.value"
               :label="item.name"
-              :value="item.value"
-            >
+              :value="item.value">
               <svg width="120" height="34">
                 <line
                   x1="10"
@@ -793,8 +769,7 @@ onBeforeUnmount(() => {
                         ? '#fff'
                         : '#000'
                   "
-                  :stroke-dasharray="item.value"
-                />
+                  :stroke-dasharray="item.value" />
               </svg>
             </el-option>
           </el-select>
@@ -806,20 +781,20 @@ onBeforeUnmount(() => {
       </div>
       <div class="row">
         <div class="rowItem">
-          <span class="name">{{ localeText.baseStyle?.fontFamily || '字体' }}</span>
+          <span class="name">
+            {{ localeText.baseStyle?.fontFamily || '字体' }}
+          </span>
           <el-select
             v-model="style.associativeLineTextFontFamily"
             size="small"
             placeholder=""
-            @change="update('associativeLineTextFontFamily', $event)"
-          >
+            @change="update('associativeLineTextFontFamily', $event)">
             <el-option
               v-for="item in fontFamilyListComputed"
               :key="item.value"
               :label="item.name"
               :value="item.value"
-              :style="{ fontFamily: item.value }"
-            />
+              :style="{ fontFamily: item.value }" />
           </el-select>
         </div>
       </div>
@@ -830,31 +805,29 @@ onBeforeUnmount(() => {
             <template #reference>
               <span
                 class="block"
-                :style="{ backgroundColor: style.associativeLineTextColor }"
-              />
+                :style="{ backgroundColor: style.associativeLineTextColor }" />
             </template>
             <Color
               :color="style.associativeLineTextColor"
-              @change="(color) => update('associativeLineTextColor', color)"
-            />
+              @change="color => update('associativeLineTextColor', color)" />
           </el-popover>
         </div>
         <div class="rowItem">
-          <span class="name">{{ localeText.baseStyle?.fontSize || '字号' }}</span>
+          <span class="name">
+            {{ localeText.baseStyle?.fontSize || '字号' }}
+          </span>
           <el-select
             v-model="style.associativeLineTextFontSize"
             size="small"
             style="width: 80px"
             placeholder=""
-            @change="update('associativeLineTextFontSize', $event)"
-          >
+            @change="update('associativeLineTextFontSize', $event)">
             <el-option
               v-for="item in fontSizeList"
               :key="item"
               :label="item"
               :value="item"
-              :style="{ fontSize: `${item}px` }"
-            />
+              :style="{ fontSize: `${item}px` }" />
           </el-select>
         </div>
       </div>
@@ -867,8 +840,7 @@ onBeforeUnmount(() => {
           <div class="rowItem">
             <el-checkbox
               v-model="style.nodeUseLineStyle"
-              @change="(value) => update('nodeUseLineStyle', value)"
-            >
+              @change="value => update('nodeUseLineStyle', value)">
               {{ localeText.baseStyle?.nodeUseLineStyle || '节点使用连线样式' }}
             </el-checkbox>
           </div>
@@ -880,22 +852,24 @@ onBeforeUnmount(() => {
       </div>
       <div class="row noBottom">
         <div class="rowItem">
-          <span class="name">{{ localeText.baseStyle?.horizontal || '水平' }}</span>
+          <span class="name">
+            {{ localeText.baseStyle?.horizontal || '水平' }}
+          </span>
           <el-slider
             v-model="style.paddingX"
             style="width: 200px"
-            @change="(value) => update('paddingX', value)"
-          />
+            @change="value => update('paddingX', value)" />
         </div>
       </div>
       <div class="row">
         <div class="rowItem">
-          <span class="name">{{ localeText.baseStyle?.vertical || '垂直' }}</span>
+          <span class="name">
+            {{ localeText.baseStyle?.vertical || '垂直' }}
+          </span>
           <el-slider
             v-model="style.paddingY"
             style="width: 200px"
-            @change="(value) => update('paddingY', value)"
-          />
+            @change="value => update('paddingY', value)" />
         </div>
       </div>
       <!-- 图片 -->
@@ -904,26 +878,28 @@ onBeforeUnmount(() => {
       </div>
       <div class="row noBottom">
         <div class="rowItem">
-          <span class="name">{{ localeText.baseStyle?.maximumWidth || '最大宽度' }}</span>
+          <span class="name">
+            {{ localeText.baseStyle?.maximumWidth || '最大宽度' }}
+          </span>
           <el-slider
             v-model="style.imgMaxWidth"
             style="width: 140px"
             :min="10"
             :max="500"
-            @change="(value) => update('imgMaxWidth', value)"
-          />
+            @change="value => update('imgMaxWidth', value)" />
         </div>
       </div>
       <div class="row">
         <div class="rowItem">
-          <span class="name">{{ localeText.baseStyle?.maximumHeight || '最大高度' }}</span>
+          <span class="name">
+            {{ localeText.baseStyle?.maximumHeight || '最大高度' }}
+          </span>
           <el-slider
             v-model="style.imgMaxHeight"
             style="width: 140px"
             :min="10"
             :max="500"
-            @change="(value) => update('imgMaxHeight', value)"
-          />
+            @change="value => update('imgMaxHeight', value)" />
         </div>
       </div>
       <!-- 图标 -->
@@ -938,8 +914,7 @@ onBeforeUnmount(() => {
             style="width: 200px"
             :min="12"
             :max="50"
-            @change="(value) => update('iconSize', value)"
-          />
+            @change="value => update('iconSize', value)" />
         </div>
       </div>
       <!-- 二级节点外边距 -->
@@ -950,34 +925,33 @@ onBeforeUnmount(() => {
         <el-tabs
           v-model="marginActiveTab"
           class="tab"
-          @tab-click="initMarginStyle"
-        >
+          @tab-click="initMarginStyle">
           <el-tab-pane
             :label="localeText.baseStyle?.level2Node || '二级节点'"
-            name="second"
-          />
+            name="second" />
           <el-tab-pane
             :label="localeText.baseStyle?.belowLevel2Node || '二级以下节点'"
-            name="node"
-          />
+            name="node" />
         </el-tabs>
         <div class="rowItem">
-          <span class="name">{{ localeText.baseStyle?.horizontal || '水平' }}</span>
+          <span class="name">
+            {{ localeText.baseStyle?.horizontal || '水平' }}
+          </span>
           <el-slider
             v-model="style.marginX"
             :max="200"
             style="width: 200px"
-            @change="(value) => updateMargin('marginX', value)"
-          />
+            @change="value => updateMargin('marginX', value)" />
         </div>
         <div class="rowItem">
-          <span class="name">{{ localeText.baseStyle?.vertical || '垂直' }}</span>
+          <span class="name">
+            {{ localeText.baseStyle?.vertical || '垂直' }}
+          </span>
           <el-slider
             v-model="style.marginY"
             :max="200"
             style="width: 200px"
-            @change="(value) => updateMargin('marginY', value)"
-          />
+            @change="value => updateMargin('marginY', value)" />
         </div>
       </div>
       <!-- 外框内边距 -->
@@ -986,22 +960,28 @@ onBeforeUnmount(() => {
       </div>
       <div class="row noBottom">
         <div class="rowItem">
-          <span class="name">{{ localeText.baseStyle?.horizontal || '水平' }}</span>
+          <span class="name">
+            {{ localeText.baseStyle?.horizontal || '水平' }}
+          </span>
           <el-slider
             v-model="outerFramePadding.outerFramePaddingX"
             style="width: 200px"
-            @change="(value) => updateOuterFramePadding('outerFramePaddingX', value)"
-          />
+            @change="
+              value => updateOuterFramePadding('outerFramePaddingX', value)
+            " />
         </div>
       </div>
       <div class="row">
         <div class="rowItem">
-          <span class="name">{{ localeText.baseStyle?.vertical || '垂直' }}</span>
+          <span class="name">
+            {{ localeText.baseStyle?.vertical || '垂直' }}
+          </span>
           <el-slider
             v-model="outerFramePadding.outerFramePaddingY"
             style="width: 200px"
-            @change="(value) => updateOuterFramePadding('outerFramePaddingY', value)"
-          />
+            @change="
+              value => updateOuterFramePadding('outerFramePaddingY', value)
+            " />
         </div>
       </div>
     </div>
@@ -1128,7 +1108,7 @@ onBeforeUnmount(() => {
       cursor: pointer;
       border-radius: 4px;
 
-      &.actived {
+      &.active {
         background-color: #eee;
       }
 

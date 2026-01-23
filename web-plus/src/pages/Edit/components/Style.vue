@@ -1,6 +1,14 @@
 <script setup lang="ts">
 import type { MindMap } from '../types'
-import { computed, inject, nextTick, onBeforeUnmount, reactive, ref, watch } from 'vue'
+import {
+  computed,
+  inject,
+  nextTick,
+  onBeforeUnmount,
+  reactive,
+  ref,
+  watch,
+} from 'vue'
 import {
   alignList,
   borderDasharrayList,
@@ -92,7 +100,7 @@ const shapeListComputed = computed(() => {
 
 const shapeListMapComputed = computed(() => {
   const map2: Record<string, string> = {}
-  props.mindMap.extendShapeList.forEach((item) => {
+  props.mindMap.extendShapeList.forEach(item => {
     map2[item.name] = item.path
   })
   return {
@@ -118,16 +126,13 @@ const hasHyperlink = computed(() => {
 // 监听器
 watch(
   () => props.activeSidebar,
-  (val) => {
+  val => {
     if (val === 'nodeStyle') {
-      if (sidebarRef.value)
-        sidebarRef.value.show = true
+      if (sidebarRef.value) sidebarRef.value.show = true
+    } else {
+      if (sidebarRef.value) sidebarRef.value.show = false
     }
-    else {
-      if (sidebarRef.value)
-        sidebarRef.value.show = false
-    }
-  },
+  }
 )
 
 // 方法
@@ -139,10 +144,9 @@ function onNodeActive(_node: any, nodes: any[]) {
 }
 
 function initNodeStyle() {
-  if (activeNodes.value.length <= 0)
-    return
+  if (activeNodes.value.length <= 0) return
 
-  Object.keys(style).forEach((item) => {
+  Object.keys(style).forEach(item => {
     style[item] = activeNodes.value[0].getStyle(item, false)
   })
   initLinearGradientDir()
@@ -151,53 +155,47 @@ function initNodeStyle() {
 function initLinearGradientDir() {
   const startDir = activeNodes.value[0].getStyle('startDir', false)
   const endDir = activeNodes.value[0].getStyle('endDir', false)
-  const target = linearGradientDirListComputed.value.find((item) => {
+  const target = linearGradientDirListComputed.value.find(item => {
     return (
-      item.start[0] === startDir[0]
-      && item.start[1] === startDir[1]
-      && item.end[0] === endDir[0]
-      && item.end[1] === endDir[1]
+      item.start[0] === startDir[0] &&
+      item.start[1] === startDir[1] &&
+      item.end[0] === endDir[0] &&
+      item.end[1] === endDir[1]
     )
   })
-  if (target)
-    style.linearGradientDir = target.value
+  if (target) style.linearGradientDir = target.value
 }
 
 function update(prop: string) {
   if (prop === 'linearGradientDir') {
-    const target = linearGradientDirListComputed.value.find((item) => {
+    const target = linearGradientDirListComputed.value.find(item => {
       return item.value === style.linearGradientDir
     })
     if (target) {
-      activeNodes.value.forEach((node) => {
+      activeNodes.value.forEach(node => {
         node.setStyles({
           startDir: [...target.start],
           endDir: [...target.end],
         })
       })
     }
-  }
-  else {
-    activeNodes.value.forEach((node) => {
+  } else {
+    activeNodes.value.forEach(node => {
       node.setStyle(prop, style[prop])
     })
   }
 }
 
 function toggleFontWeight() {
-  if (style.fontWeight === 'bold')
-    style.fontWeight = 'normal'
-  else
-    style.fontWeight = 'bold'
+  if (style.fontWeight === 'bold') style.fontWeight = 'normal'
+  else style.fontWeight = 'bold'
 
   update('fontWeight')
 }
 
 function toggleFontStyle() {
-  if (style.fontStyle === 'italic')
-    style.fontStyle = 'normal'
-  else
-    style.fontStyle = 'italic'
+  if (style.fontStyle === 'italic') style.fontStyle = 'normal'
+  else style.fontStyle = 'italic'
 
   update('fontStyle')
 }
@@ -253,8 +251,7 @@ onBeforeUnmount(() => {
   <Sidebar
     ref="sidebarRef"
     :title="localeText.style?.title || '样式'"
-    @update:active-sidebar="handleUpdateActiveSidebar"
-  >
+    @update:active-sidebar="handleUpdateActiveSidebar">
     <div v-if="activeNodes.length > 0" class="styleBox" :class="{ isDark }">
       <div class="sidebarContent customScrollbar">
         <!-- 文字 -->
@@ -268,15 +265,13 @@ onBeforeUnmount(() => {
               size="small"
               style="width: 100px"
               placeholder=""
-              @change="update('fontFamily')"
-            >
+              @change="update('fontFamily')">
               <el-option
                 v-for="item in fontFamilyListComputed"
                 :key="item.value"
                 :label="item.name"
                 :value="item.value"
-                :style="{ fontFamily: item.value }"
-              />
+                :style="{ fontFamily: item.value }" />
             </el-select>
           </div>
           <div class="rowItem">
@@ -285,15 +280,13 @@ onBeforeUnmount(() => {
               size="small"
               style="width: 60px"
               placeholder=""
-              @change="update('fontSize')"
-            >
+              @change="update('fontSize')">
               <el-option
                 v-for="item in fontSizeList"
                 :key="item"
                 :label="item"
                 :value="item"
-                :style="{ fontSize: `${item}px` }"
-              />
+                :style="{ fontSize: `${item}px` }" />
             </el-select>
           </div>
           <div class="rowItem">
@@ -302,60 +295,63 @@ onBeforeUnmount(() => {
               size="small"
               style="width: 80px"
               placeholder=""
-              @change="update('textAlign')"
-            >
+              @change="update('textAlign')">
               <el-option
                 v-for="item in alignListComputed"
                 :key="item.value"
                 :label="item.name"
-                :value="item.value"
-              />
+                :value="item.value" />
             </el-select>
           </div>
         </div>
         <div class="row">
           <div class="btnGroup">
-            <el-tooltip :content="localeText.style?.color || '颜色'" placement="bottom">
+            <el-tooltip
+              :content="localeText.style?.color || '颜色'"
+              placement="bottom">
               <div class="styleBtn">
                 A
                 <span
                   class="colorShow"
-                  :style="{ backgroundColor: style.color || '#eee' }"
-                />
+                  :style="{ backgroundColor: style.color || '#eee' }" />
               </div>
             </el-tooltip>
-            <el-tooltip :content="localeText.style?.addFontWeight || '加粗'" placement="bottom">
+            <el-tooltip
+              :content="localeText.style?.addFontWeight || '加粗'"
+              placement="bottom">
               <div
                 class="styleBtn"
-                :class="{ actived: style.fontWeight === 'bold' }"
-                @click="toggleFontWeight"
-              >
+                :class="{ active: style.fontWeight === 'bold' }"
+                @click="toggleFontWeight">
                 B
               </div>
             </el-tooltip>
-            <el-tooltip :content="localeText.style?.italic || '斜体'" placement="bottom">
+            <el-tooltip
+              :content="localeText.style?.italic || '斜体'"
+              placement="bottom">
               <div
                 class="styleBtn i"
-                :class="{ actived: style.fontStyle === 'italic' }"
-                @click="toggleFontStyle"
-              >
+                :class="{ active: style.fontStyle === 'italic' }"
+                @click="toggleFontStyle">
                 I
               </div>
             </el-tooltip>
-            <el-tooltip :content="localeText.style?.textDecoration || '下划线'" placement="bottom">
+            <el-tooltip
+              :content="localeText.style?.textDecoration || '下划线'"
+              placement="bottom">
               <div
                 class="styleBtn u"
-                :style="{ textDecoration: style.textDecoration || 'none' }"
-              >
+                :style="{ textDecoration: style.textDecoration || 'none' }">
                 U
               </div>
             </el-tooltip>
-            <el-tooltip :content="localeText.style?.hyperlink || '超链接'" placement="bottom">
+            <el-tooltip
+              :content="localeText.style?.hyperlink || '超链接'"
+              placement="bottom">
               <div
                 class="styleBtn link"
-                :class="{ actived: hasHyperlink }"
-                @click="openHyperlink"
-              >
+                :class="{ active: hasHyperlink }"
+                @click="openHyperlink">
                 🔗
               </div>
             </el-tooltip>
@@ -370,8 +366,7 @@ onBeforeUnmount(() => {
             <el-radio-group
               v-model="style.textDecoration"
               size="small"
-              @change="update('textDecoration')"
-            >
+              @change="update('textDecoration')">
               <el-radio-button label="none" value="none">
                 {{ localeText.style?.none || '无' }}
               </el-radio-button>
@@ -402,8 +397,10 @@ onBeforeUnmount(() => {
               <template #reference>
                 <span
                   class="block"
-                  :style="{ width: '80px', backgroundColor: style.borderColor }"
-                />
+                  :style="{
+                    width: '80px',
+                    backgroundColor: style.borderColor,
+                  }" />
               </template>
             </el-popover>
           </div>
@@ -414,14 +411,12 @@ onBeforeUnmount(() => {
               size="small"
               style="width: 80px"
               placeholder=""
-              @change="update('borderDasharray')"
-            >
+              @change="update('borderDasharray')">
               <el-option
                 v-for="item in borderDasharrayListComputed"
                 :key="item.value"
                 :label="item.name"
-                :value="item.value"
-              >
+                :value="item.value">
                 <svg width="120" height="34">
                   <line
                     x1="10"
@@ -436,8 +431,7 @@ onBeforeUnmount(() => {
                           ? '#fff'
                           : '#000'
                     "
-                    :stroke-dasharray="item.value"
-                  />
+                    :stroke-dasharray="item.value" />
                 </svg>
               </el-option>
             </el-select>
@@ -451,38 +445,35 @@ onBeforeUnmount(() => {
               size="small"
               style="width: 80px"
               placeholder=""
-              @change="update('borderWidth')"
-            >
+              @change="update('borderWidth')">
               <el-option
                 v-for="item in borderWidthList"
                 :key="item"
                 :label="item"
-                :value="item"
-              >
+                :value="item">
                 <span
                   v-if="item > 0"
                   class="borderLine"
                   :class="{ isDark }"
-                  :style="{ height: `${item}px` }"
-                />
+                  :style="{ height: `${item}px` }" />
               </el-option>
             </el-select>
           </div>
           <div v-show="style.shape === 'rectangle'" class="rowItem">
-            <span class="name">{{ localeText.style?.borderRadius || '圆角' }}</span>
+            <span class="name">
+              {{ localeText.style?.borderRadius || '圆角' }}
+            </span>
             <el-select
               v-model="style.borderRadius"
               size="small"
               style="width: 80px"
               placeholder=""
-              @change="update('borderRadius')"
-            >
+              @change="update('borderRadius')">
               <el-option
                 v-for="item in borderRadiusList"
                 :key="item"
                 :label="item"
-                :value="item"
-              />
+                :value="item" />
             </el-select>
           </div>
         </div>
@@ -498,59 +489,59 @@ onBeforeUnmount(() => {
               <template #reference>
                 <span
                   class="block"
-                  :style="{ backgroundColor: style.fillColor }"
-                />
+                  :style="{ backgroundColor: style.fillColor }" />
               </template>
             </el-popover>
-            <span class="name" style="margin-left: 20px;">
+            <span class="name" style="margin-left: 20px">
               {{ localeText.style?.gradientStyle || '渐变' }}
             </span>
             <el-checkbox
               v-model="style.gradientStyle"
-              @change="update('gradientStyle')"
-            />
+              @change="update('gradientStyle')" />
           </div>
         </div>
         <div v-if="style.gradientStyle" class="row">
           <div class="rowItem">
-            <span class="name">{{ localeText.style?.startColor || '起始颜色' }}</span>
+            <span class="name">
+              {{ localeText.style?.startColor || '起始颜色' }}
+            </span>
             <el-popover placement="bottom" trigger="hover" width="260">
               <Color :color="style.startColor" @change="changeStartColor" />
               <template #reference>
                 <span
                   class="block"
-                  :style="{ backgroundColor: style.startColor }"
-                />
+                  :style="{ backgroundColor: style.startColor }" />
               </template>
             </el-popover>
           </div>
           <div class="rowItem">
-            <span class="name">{{ localeText.style?.endColor || '结束颜色' }}</span>
+            <span class="name">
+              {{ localeText.style?.endColor || '结束颜色' }}
+            </span>
             <el-popover placement="bottom" trigger="hover" width="260">
               <Color :color="style.endColor" @change="changeEndColor" />
               <template #reference>
                 <span
                   class="block"
-                  :style="{ backgroundColor: style.endColor }"
-                />
+                  :style="{ backgroundColor: style.endColor }" />
               </template>
             </el-popover>
           </div>
           <div class="rowItem">
-            <span class="name">{{ localeText.style?.direction || '方向' }}</span>
+            <span class="name">
+              {{ localeText.style?.direction || '方向' }}
+            </span>
             <el-select
               v-model="style.linearGradientDir"
               size="small"
               style="width: 80px"
               placeholder=""
-              @change="update('linearGradientDir')"
-            >
+              @change="update('linearGradientDir')">
               <el-option
                 v-for="item in linearGradientDirListComputed"
                 :key="item.value"
                 :label="item.name"
-                :value="item.value"
-              />
+                :value="item.value" />
             </el-select>
           </div>
         </div>
@@ -566,20 +557,21 @@ onBeforeUnmount(() => {
               size="small"
               style="width: 120px"
               placeholder=""
-              @change="update('shape')"
-            >
+              @change="update('shape')">
               <el-option
                 v-for="item in shapeListComputed"
                 :key="item.value"
                 :label="item.name"
                 :value="item.value"
-                style="display: flex; justify-content: center; align-items: center;"
-              >
+                style="
+                  display: flex;
+                  justify-content: center;
+                  align-items: center;
+                ">
                 <svg
                   :width="(item as any).width || 60"
                   :height="(item as any).height || 26"
-                  style="margin-top: 5px"
-                >
+                  style="margin-top: 5px">
                   <path
                     :d="shapeListMapComputed[item.value]"
                     fill="none"
@@ -590,8 +582,7 @@ onBeforeUnmount(() => {
                           ? '#fff'
                           : '#000'
                     "
-                    stroke-width="2"
-                  />
+                    stroke-width="2" />
                 </svg>
               </el-option>
             </el-select>
@@ -609,8 +600,10 @@ onBeforeUnmount(() => {
               <template #reference>
                 <span
                   class="block"
-                  :style="{ width: '80px', backgroundColor: style.lineColor }"
-                />
+                  :style="{
+                    width: '80px',
+                    backgroundColor: style.lineColor,
+                  }" />
               </template>
             </el-popover>
           </div>
@@ -621,14 +614,12 @@ onBeforeUnmount(() => {
               size="small"
               style="width: 80px"
               placeholder=""
-              @change="update('lineDasharray')"
-            >
+              @change="update('lineDasharray')">
               <el-option
                 v-for="item in borderDasharrayListComputed"
                 :key="item.value"
                 :label="item.name"
-                :value="item.value"
-              >
+                :value="item.value">
                 <svg width="120" height="34">
                   <line
                     x1="10"
@@ -643,8 +634,7 @@ onBeforeUnmount(() => {
                           ? '#fff'
                           : '#000'
                     "
-                    :stroke-dasharray="item.value"
-                  />
+                    :stroke-dasharray="item.value" />
                 </svg>
               </el-option>
             </el-select>
@@ -658,42 +648,38 @@ onBeforeUnmount(() => {
               size="small"
               style="width: 80px"
               placeholder=""
-              @change="update('lineWidth')"
-            >
+              @change="update('lineWidth')">
               <el-option
                 v-for="item in borderWidthList"
                 :key="item"
                 :label="item"
-                :value="item"
-              >
+                :value="item">
                 <span
                   v-if="item > 0"
                   class="borderLine"
                   :class="{ isDark }"
-                  :style="{ height: `${item}px` }"
-                />
+                  :style="{ height: `${item}px` }" />
               </el-option>
             </el-select>
           </div>
           <div class="rowItem">
-            <span class="name">{{ localeText.style?.arrowDir || '箭头方向' }}</span>
+            <span class="name">
+              {{ localeText.style?.arrowDir || '箭头方向' }}
+            </span>
             <el-select
               v-model="style.lineMarkerDir"
               size="small"
               style="width: 80px"
               placeholder=""
-              @change="update('lineMarkerDir')"
-            >
+              @change="update('lineMarkerDir')">
               <el-option
                 key="start"
                 :label="localeText.style?.arrowDirStart || '起点'"
-                value="start"
-              />
+                value="start" />
               <el-option
                 key="end"
                 :label="localeText.style?.arrowDirEnd || '终点'"
-                value="end"
-              />
+                value="end" />
             </el-select>
           </div>
         </div>
@@ -703,12 +689,13 @@ onBeforeUnmount(() => {
         </div>
         <div class="row noBottom">
           <div class="rowItem">
-            <span class="name">{{ localeText.style?.horizontal || '水平' }}</span>
+            <span class="name">
+              {{ localeText.style?.horizontal || '水平' }}
+            </span>
             <el-slider
               v-model="style.paddingX"
               style="width: 200px"
-              @change="update('paddingX')"
-            />
+              @change="update('paddingX')" />
           </div>
         </div>
         <div class="row">
@@ -717,8 +704,7 @@ onBeforeUnmount(() => {
             <el-slider
               v-model="style.paddingY"
               style="width: 200px"
-              @change="update('paddingY')"
-            />
+              @change="update('paddingY')" />
           </div>
         </div>
         <!-- 节点图片布局 -->
@@ -727,12 +713,13 @@ onBeforeUnmount(() => {
         </div>
         <div class="row">
           <div class="rowItem">
-            <span class="name">{{ localeText.style?.placement || '位置' }}</span>
+            <span class="name">
+              {{ localeText.style?.placement || '位置' }}
+            </span>
             <el-radio-group
               v-model="style.imgPlacement"
               size="small"
-              @change="update('imgPlacement')"
-            >
+              @change="update('imgPlacement')">
               <el-radio-button label="top" value="top">
                 {{ localeText.style?.top || '上' }}
               </el-radio-button>
@@ -754,12 +741,13 @@ onBeforeUnmount(() => {
         </div>
         <div class="row">
           <div class="rowItem">
-            <span class="name">{{ localeText.style?.placement || '位置' }}</span>
+            <span class="name">
+              {{ localeText.style?.placement || '位置' }}
+            </span>
             <el-radio-group
               v-model="style.tagPlacement"
               size="small"
-              @change="update('tagPlacement')"
-            >
+              @change="update('tagPlacement')">
               <el-radio-button label="right" value="right">
                 {{ localeText.style?.right || '右' }}
               </el-radio-button>
@@ -787,6 +775,9 @@ onBeforeUnmount(() => {
   display: flex;
   flex-direction: column;
 
+  .styleBtn {
+    color: #000;
+  }
   &.isDark {
     .sidebarContent {
       .title {
@@ -903,7 +894,7 @@ onBeforeUnmount(() => {
       cursor: pointer;
       border-radius: 4px;
 
-      &.actived {
+      &.active {
         background-color: #eee;
       }
 

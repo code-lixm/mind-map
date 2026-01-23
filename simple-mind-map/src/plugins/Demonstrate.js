@@ -93,7 +93,7 @@ class Demonstrate {
     if (this.mindMap.renderer.isRendering) {
       wait = true
     }
-    this.mindMap.execCommand('UNEXPAND_ALL', false)
+    this.mindMap.execCommand('UN_EXPAND_ALL', false)
     const onRenderEnd = () => {
       if (wait) {
         wait = false
