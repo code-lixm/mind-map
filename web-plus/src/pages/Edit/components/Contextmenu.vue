@@ -1,6 +1,18 @@
 <script setup lang="ts">
-import type { EventBus, LocaleTextProvider, MindMapInstance, MindMapNode } from '../types'
-import { computed, inject, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
+import type {
+  EventBus,
+  LocaleTextProvider,
+  MindMapInstance,
+  MindMapNode,
+} from '../types'
+import {
+  computed,
+  inject,
+  nextTick,
+  onBeforeUnmount,
+  onMounted,
+  ref,
+} from 'vue'
 import { storeToRefs } from 'pinia'
 import { ElMessage } from 'element-plus'
 import { transformToTxt } from 'simple-mind-map/src/parse/toTxt'
@@ -87,8 +99,8 @@ const upNodeBtnDisabled = computed(() => {
   if (!node.value || node.value.isRoot || node.value.isGeneralization) {
     return true
   }
-  const isFirst
-    = node.value.parent.children.findIndex((item: MindMapNode) => {
+  const isFirst =
+    node.value.parent.children.findIndex((item: MindMapNode) => {
       return item === node.value
     }) === 0
   return isFirst
@@ -99,11 +111,11 @@ const downNodeBtnDisabled = computed(() => {
     return true
   }
   const children = node.value.parent.children
-  const isLast
-    = children.findIndex((item: MindMapNode) => {
+  const isLast =
+    children.findIndex((item: MindMapNode) => {
       return item === node.value
-    })
-    === children.length - 1
+    }) ===
+    children.length - 1
   return isLast
 })
 
@@ -129,8 +141,7 @@ const hasNodeLink = computed(() => {
 
 // Methods
 function getShowPosition(x: number, y: number) {
-  if (!contextmenuRef.value)
-    return { x, y }
+  if (!contextmenuRef.value) return { x, y }
   const rect = contextmenuRef.value.getBoundingClientRect()
   if (x + rect.width > window.innerWidth) {
     x = x - rect.width - 20
@@ -181,8 +192,8 @@ function onMouseup(e: MouseEvent) {
   }
   isMousedown.value = false
   if (
-    Math.abs(mosuedownX.value - e.clientX) > 3
-    || Math.abs(mosuedownY.value - e.clientY) > 3
+    Math.abs(mosuedownX.value - e.clientX) > 3 ||
+    Math.abs(mosuedownY.value - e.clientY) > 3
   ) {
     hide()
     return
@@ -242,12 +253,12 @@ function exec(key: string, disabled?: boolean, ...args: any[]) {
       node.value?.setNote('')
       break
     case 'EXPORT_CUR_NODE_TO_PNG':
-      (props.mindMap as any)?.export(
+      ;(props.mindMap as any)?.export(
         'png',
         true,
         getTextFromHtml(node.value?.getData('text') as string),
         false,
-        node.value,
+        node.value
       )
       break
     case 'UNEXPAND_ALL':
@@ -299,14 +310,12 @@ async function copyToClipboard(copyType: string) {
     if (str) {
       if (enableCopyToClipboardApi) {
         setDataToClipboard(str)
-      }
-      else {
+      } else {
         copy(str)
       }
     }
     ElMessage.success(localeText?.contextmenu?.copySuccess || '复制成功')
-  }
-  catch (error) {
+  } catch (error) {
     console.log(error)
     ElMessage.error(localeText?.contextmenu?.copyFail || '复制失败')
   }
@@ -354,16 +363,13 @@ onBeforeUnmount(() => {
     ref="contextmenuRef"
     class="contextmenuContainer"
     :style="{ left: `${left}px`, top: `${top}px` }"
-    :class="{ isDark }"
-  >
+    :class="{ isDark }">
     <template v-if="type === 'node'">
       <!-- 左右两栏布局 -->
       <div class="panelWrapper" :class="{ isDark }">
         <!-- 左侧：技战法推荐 -->
         <div class="panelSection leftPanel">
-          <div class="panelTitle">
-            技战法推荐
-          </div>
+          <div class="panelTitle">技战法推荐</div>
 
           <!-- 通讯号码研判 -->
           <div class="item" @click="handleTacticsAction('phone')">
@@ -377,10 +383,14 @@ onBeforeUnmount(() => {
               <span class="i-custom:apps tactics-icon" style="color: #22c55e" />
               <span class="name">APP研判</span>
             </div>
-            <div class="tactics-sub-item" @click="handleTacticsAction('app-device')">
+            <div
+              class="tactics-sub-item"
+              @click="handleTacticsAction('app-device')">
               APP包名获取设备/Wi-Fi
             </div>
-            <div class="tactics-sub-item" @click="handleTacticsAction('app-mds')">
+            <div
+              class="tactics-sub-item"
+              @click="handleTacticsAction('app-mds')">
               文件MDS提取终端画像(FR)
             </div>
           </div>
@@ -396,13 +406,19 @@ onBeforeUnmount(() => {
           <!-- 出口路由研判 -->
           <div class="tactics-group">
             <div class="tactics-group-title">
-              <span class="i-custom:router tactics-icon" style="color: #f97316" />
+              <span
+                class="i-custom:router tactics-icon"
+                style="color: #f97316" />
               <span class="name">出口路由研判</span>
             </div>
-            <div class="tactics-sub-item" @click="handleTacticsAction('router-list')">
+            <div
+              class="tactics-sub-item"
+              @click="handleTacticsAction('router-list')">
               出口路由列表
             </div>
-            <div class="tactics-sub-item" @click="handleTacticsAction('router-fr')">
+            <div
+              class="tactics-sub-item"
+              @click="handleTacticsAction('router-fr')">
               出口路由提取终端画像(FR)
             </div>
           </div>
@@ -418,10 +434,14 @@ onBeforeUnmount(() => {
             <div class="tactics-sub-item" @click="handleTacticsAction('ip-fr')">
               IP提取终端画像(FR)
             </div>
-            <div class="tactics-sub-item" @click="handleTacticsAction('ip-device')">
+            <div
+              class="tactics-sub-item"
+              @click="handleTacticsAction('ip-device')">
               IP获取设备/Wi-Fi
             </div>
-            <div class="tactics-sub-item" @click="handleTacticsAction('ip-trace')">
+            <div
+              class="tactics-sub-item"
+              @click="handleTacticsAction('ip-trace')">
               IP溯源
             </div>
           </div>
@@ -431,13 +451,19 @@ onBeforeUnmount(() => {
           <!-- 网站研判 -->
           <div class="tactics-group">
             <div class="tactics-group-title">
-              <span class="i-custom:website tactics-icon" style="color: #14b8a6" />
+              <span
+                class="i-custom:website tactics-icon"
+                style="color: #14b8a6" />
               <span class="name">网站研判</span>
             </div>
-            <div class="tactics-sub-item" @click="handleTacticsAction('website-info')">
+            <div
+              class="tactics-sub-item"
+              @click="handleTacticsAction('website-info')">
               网站基础信息识别
             </div>
-            <div class="tactics-sub-item" @click="handleTacticsAction('website-fr')">
+            <div
+              class="tactics-sub-item"
+              @click="handleTacticsAction('website-fr')">
               网址域名获取终端画像(FR)
             </div>
           </div>
@@ -446,7 +472,9 @@ onBeforeUnmount(() => {
 
           <!-- 虚拟身份获取终端画像 -->
           <div class="item" @click="handleTacticsAction('virtual-identity')">
-            <span class="i-custom:virtual tactics-icon" style="color: #a855f7" />
+            <span
+              class="i-custom:virtual tactics-icon"
+              style="color: #a855f7" />
             <span class="name">虚拟身份获取终端画像(FR)</span>
           </div>
 
@@ -470,106 +498,137 @@ onBeforeUnmount(() => {
 
         <!-- 右侧：脑图菜单 -->
         <div class="panelSection rightPanel">
-          <div class="panelTitle">
-            脑图菜单
-          </div>
+          <div class="panelTitle">脑图菜单</div>
           <div
             class="item"
             :class="{ disabled: insertNodeBtnDisabled }"
-            @click="exec('INSERT_NODE', insertNodeBtnDisabled)"
-          >
-            <span class="name">{{ localeText?.contextmenu?.insertSiblingNode || '插入同级节点' }}</span>
+            @click="exec('INSERT_NODE', insertNodeBtnDisabled)">
+            <span class="name">
+              {{ localeText?.contextmenu?.insertSiblingNode || '插入同级节点' }}
+            </span>
             <span class="desc">Enter</span>
           </div>
           <div
             class="item"
             :class="{ disabled: isGeneralization }"
-            @click="exec('INSERT_CHILD_NODE')"
-          >
-            <span class="name">{{ localeText?.contextmenu?.insertChildNode || '插入子节点' }}</span>
+            @click="exec('INSERT_CHILD_NODE')">
+            <span class="name">
+              {{ localeText?.contextmenu?.insertChildNode || '插入子节点' }}
+            </span>
             <span class="desc">Tab</span>
           </div>
           <div
             class="item"
             :class="{ disabled: insertNodeBtnDisabled }"
-            @click="exec('INSERT_PARENT_NODE')"
-          >
-            <span class="name">{{ localeText?.contextmenu?.insertParentNode || '插入父节点' }}</span>
+            @click="exec('INSERT_PARENT_NODE')">
+            <span class="name">
+              {{ localeText?.contextmenu?.insertParentNode || '插入父节点' }}
+            </span>
             <span class="desc">Shift + Tab</span>
           </div>
           <div
             class="item"
             :class="{ disabled: insertNodeBtnDisabled }"
-            @click="exec('ADD_GENERALIZATION')"
-          >
-            <span class="name">{{ localeText?.contextmenu?.insertSummary || '插入概要' }}</span>
+            @click="exec('ADD_GENERALIZATION')">
+            <span class="name">
+              {{ localeText?.contextmenu?.insertSummary || '插入概要' }}
+            </span>
             <span class="desc">Ctrl + G</span>
           </div>
           <div class="splitLine" />
           <div
             class="item"
             :class="{ disabled: upNodeBtnDisabled }"
-            @click="exec('UP_NODE')"
-          >
-            <span class="name">{{ localeText?.contextmenu?.moveUpNode || '上移节点' }}</span>
+            @click="exec('UP_NODE')">
+            <span class="name">
+              {{ localeText?.contextmenu?.moveUpNode || '上移节点' }}
+            </span>
             <span class="desc">Ctrl + ↑</span>
           </div>
           <div
             class="item"
             :class="{ disabled: downNodeBtnDisabled }"
-            @click="exec('DOWN_NODE')"
-          >
-            <span class="name">{{ localeText?.contextmenu?.moveDownNode || '下移节点' }}</span>
+            @click="exec('DOWN_NODE')">
+            <span class="name">
+              {{ localeText?.contextmenu?.moveDownNode || '下移节点' }}
+            </span>
             <span class="desc">Ctrl + ↓</span>
           </div>
           <div class="item" @click="exec('UNEXPAND_ALL')">
-            <span class="name">{{ localeText?.contextmenu?.unExpandNodeChild || '收起子节点' }}</span>
+            <span class="name">
+              {{ localeText?.contextmenu?.unExpandNodeChild || '收起子节点' }}
+            </span>
           </div>
           <div class="item" @click="exec('EXPAND_ALL')">
-            <span class="name">{{ localeText?.contextmenu?.expandNodeChild || '展开子节点' }}</span>
+            <span class="name">
+              {{ localeText?.contextmenu?.expandNodeChild || '展开子节点' }}
+            </span>
           </div>
           <div class="splitLine" />
           <div class="item danger" @click="exec('REMOVE_NODE')">
-            <span class="name">{{ localeText?.contextmenu?.deleteNode || '删除节点' }}</span>
+            <span class="name">
+              {{ localeText?.contextmenu?.deleteNode || '删除节点' }}
+            </span>
             <span class="desc">Delete</span>
           </div>
           <div class="item danger" @click="exec('REMOVE_CURRENT_NODE')">
-            <span class="name">{{ localeText?.contextmenu?.deleteCurrentNode || '仅删除当前节点' }}</span>
+            <span class="name">
+              {{
+                localeText?.contextmenu?.deleteCurrentNode || '仅删除当前节点'
+              }}
+            </span>
             <span class="desc">Shift + Backspace</span>
           </div>
           <div class="splitLine" />
           <div
             class="item"
             :class="{ disabled: isGeneralization }"
-            @click="exec('COPY_NODE')"
-          >
-            <span class="name">{{ localeText?.contextmenu?.copyNode || '复制节点' }}</span>
+            @click="exec('COPY_NODE')">
+            <span class="name">
+              {{ localeText?.contextmenu?.copyNode || '复制节点' }}
+            </span>
             <span class="desc">Ctrl + C</span>
           </div>
           <div
             class="item"
             :class="{ disabled: isGeneralization }"
-            @click="exec('CUT_NODE')"
-          >
-            <span class="name">{{ localeText?.contextmenu?.cutNode || '剪切节点' }}</span>
+            @click="exec('CUT_NODE')">
+            <span class="name">
+              {{ localeText?.contextmenu?.cutNode || '剪切节点' }}
+            </span>
             <span class="desc">Ctrl + X</span>
           </div>
           <div class="item" @click="exec('PASTE_NODE')">
-            <span class="name">{{ localeText?.contextmenu?.pasteNode || '粘贴节点' }}</span>
+            <span class="name">
+              {{ localeText?.contextmenu?.pasteNode || '粘贴节点' }}
+            </span>
             <span class="desc">Ctrl + V</span>
           </div>
           <div class="splitLine" />
-          <div v-if="hasHyperlink" class="item" @click="exec('REMOVE_HYPERLINK')">
-            <span class="name">{{ localeText?.contextmenu?.removeHyperlink || '删除超链接' }}</span>
+          <div
+            v-if="hasHyperlink"
+            class="item"
+            @click="exec('REMOVE_HYPERLINK')">
+            <span class="name">
+              {{ localeText?.contextmenu?.removeHyperlink || '删除超链接' }}
+            </span>
           </div>
           <div v-if="hasNote" class="item" @click="exec('REMOVE_NOTE')">
-            <span class="name">{{ localeText?.contextmenu?.removeNote || '删除备注' }}</span>
+            <span class="name">
+              {{ localeText?.contextmenu?.removeNote || '删除备注' }}
+            </span>
           </div>
           <div class="item" @click="exec('REMOVE_CUSTOM_STYLES')">
-            <span class="name">{{ localeText?.contextmenu?.removeCustomStyles || '清除自定义样式' }}</span>
+            <span class="name">
+              {{
+                localeText?.contextmenu?.removeCustomStyles || '清除自定义样式'
+              }}
+            </span>
           </div>
           <div class="item" @click="exec('EXPORT_CUR_NODE_TO_PNG')">
-            <span class="name">{{ localeText?.contextmenu?.exportNodeToPng || '导出为PNG' }}</span>
+            <span class="name">
+              {{ localeText?.contextmenu?.exportNodeToPng || '导出为PNG' }}
+            </span>
           </div>
           <!-- <div v-if="enableAi" class="splitLine" />
           <div v-if="enableAi" class="item" @click="aiCreate">
@@ -581,67 +640,82 @@ onBeforeUnmount(() => {
     <template v-if="type === 'svg'">
       <div class="listBox svgContextMenu" :class="{ isDark }">
         <div class="item" @click="exec('RETURN_CENTER')">
-          <span class="name">{{ localeText?.contextmenu?.backCenter || '回到中心' }}</span>
+          <span class="name">
+            {{ localeText?.contextmenu?.backCenter || '回到中心' }}
+          </span>
           <span class="desc">Ctrl + Enter</span>
         </div>
         <div class="splitLine" />
         <div class="item" @click="exec('EXPAND_ALL')">
-          <span class="name">{{ localeText?.contextmenu?.expandAll || '展开所有' }}</span>
+          <span class="name">
+            {{ localeText?.contextmenu?.expandAll || '展开所有' }}
+          </span>
         </div>
         <div class="item" @click="exec('UNEXPAND_ALL')">
-          <span class="name">{{ localeText?.contextmenu?.unExpandAll || '收起所有' }}</span>
+          <span class="name">
+            {{ localeText?.contextmenu?.unExpandAll || '收起所有' }}
+          </span>
         </div>
         <div class="item">
-          <span class="name">{{ localeText?.contextmenu?.expandTo || '展开到' }}</span>
+          <span class="name">
+            {{ localeText?.contextmenu?.expandTo || '展开到' }}
+          </span>
           <span class="i-ep:arrow-right" />
           <div
             class="subItems listBox"
             :class="{ isDark, showLeft: subItemsShowLeft }"
-            style="top: -10px"
-          >
+            style="top: -10px">
             <div
               v-for="(item, index) in expandList"
               :key="item"
               class="item"
-              @click="exec('UNEXPAND_TO_LEVEL', false, index + 1)"
-            >
+              @click="exec('UNEXPAND_TO_LEVEL', false, index + 1)">
               {{ item }}
             </div>
           </div>
         </div>
         <div class="splitLine" />
         <div class="item" @click="exec('RESET_LAYOUT')">
-          <span class="name">{{ localeText?.contextmenu?.arrangeLayout || '整理布局' }}</span>
+          <span class="name">
+            {{ localeText?.contextmenu?.arrangeLayout || '整理布局' }}
+          </span>
           <span class="desc">Ctrl + L</span>
         </div>
         <div class="item" @click="exec('FIT_CANVAS')">
-          <span class="name">{{ localeText?.contextmenu?.fitCanvas || '适应画布' }}</span>
+          <span class="name">
+            {{ localeText?.contextmenu?.fitCanvas || '适应画布' }}
+          </span>
           <span class="desc">Ctrl + i</span>
         </div>
         <div class="item" @click="exec('TOGGLE_ZEN_MODE')">
-          <span class="name">{{ localeText?.contextmenu?.zenMode || '禅模式' }}</span>
+          <span class="name">
+            {{ localeText?.contextmenu?.zenMode || '禅模式' }}
+          </span>
           {{ isZenMode ? '√' : '' }}
         </div>
         <div class="splitLine" />
         <div class="item" @click="exec('REMOVE_ALL_NODE_CUSTOM_STYLES')">
-          <span class="name">{{
-            localeText?.contextmenu?.removeAllNodeCustomStyles || '清除所有节点自定义样式'
-          }}</span>
+          <span class="name">
+            {{
+              localeText?.contextmenu?.removeAllNodeCustomStyles ||
+              '清除所有节点自定义样式'
+            }}
+          </span>
         </div>
         <div class="item">
-          <span class="name">{{ localeText?.contextmenu?.copyToClipboard || '复制到剪贴板' }}</span>
+          <span class="name">
+            {{ localeText?.contextmenu?.copyToClipboard || '复制到剪贴板' }}
+          </span>
           <span class="i-ep:arrow-right" />
           <div
             class="subItems listBox"
             :class="{ isDark, showLeft: subItemsShowLeft }"
-            style="top: -130px"
-          >
+            style="top: -130px">
             <div
               v-for="item in copyList"
               :key="item.value"
               class="item"
-              @click="copyToClipboard(item.value)"
-            >
+              @click="copyToClipboard(item.value)">
               {{ item.name }}
             </div>
           </div>
@@ -833,6 +907,7 @@ onBeforeUnmount(() => {
     width: 250px;
     padding: 8px 8px;
     border-radius: 4px;
+    box-shadow: 0 4px 12px 0 hsla(0, 0%, 69%, 0.5);
   }
 
   .splitLine {

@@ -1,8 +1,7 @@
 <template>
   <div
-    class="container"
-    :class="{ isDark: isDark, activeSidebar: activeSidebar }"
-  >
+    class="w-full h-full"
+    :class="{ isDark: isDark, activeSidebar: activeSidebar }">
     <template v-if="show">
       <MindMapContainer
         :model-value="mindMapData"
@@ -12,10 +11,11 @@
         :is-zen-mode="localConfig.isZenMode"
         :open-node-rich-text="localConfig.openNodeRichText"
         :is-show-scrollbar="localConfig.isShowScrollbar"
-        :use-left-key-selection-right-key-drag="localConfig.useLeftKeySelectionRightKeyDrag"
+        :use-left-key-selection-right-key-drag="
+          localConfig.useLeftKeySelectionRightKeyDrag
+        "
         @update:model-value="handleDataChange"
-        @ready="handleMindMapReady"
-      />
+        @ready="handleMindMapReady" />
     </template>
   </div>
 </template>
@@ -48,7 +48,7 @@ function initLocalConfig() {
   if (config) {
     store.setLocalConfig({
       ...localConfig.value,
-      ...config
+      ...config,
     })
   }
 }
@@ -81,12 +81,10 @@ onMounted(async () => {
   initLocalConfig()
   const loading = ElLoading.service({
     lock: true,
-    text: t('other.loading')
+    text: t('other.loading'),
   })
-  
   // 初始化思维导图数据
   mindMapData.value = getData()
-  
   show.value = true
   loading.close()
   setBodyDark()
