@@ -58,6 +58,16 @@ module.exports = {
     }
   },
   devServer: {
+    before(app) {
+      app.get('/traversalWorker.js', (req, res) => {
+        const workerPath = path.resolve(
+          __dirname,
+          '../simple-mind-map/src/utils/traversalWorker.js'
+        )
+        res.type('application/javascript')
+        res.sendFile(workerPath)
+      })
+    },
     proxy: {
       '^/api/v3/': {
         target: 'http://ark.cn-beijing.volces.com',

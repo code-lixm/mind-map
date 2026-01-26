@@ -12,6 +12,14 @@
     <script>
       // 自定义静态资源的路径
       window.externalPublicPath = './dist/'
+      // 开发环境下，显式指定 Worker URL，避免请求到 index.html
+      if (
+        window.location.hostname === 'localhost' ||
+        window.location.hostname === '127.0.0.1'
+      ) {
+        window.simpleMindMapWorkerUrl =
+          window.location.origin + '/traversalWorker.js'
+      }
       // 接管应用
       window.takeOverApp = false
     </script>

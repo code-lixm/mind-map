@@ -372,6 +372,8 @@ class Fishbone extends Base {
   //  绘制连线，连接该节点到其子节点
   renderLine(node, lines, style) {
     if (node.layerIndex !== 1 && node.children.length <= 0) {
+      // 没有子节点时，清理所有额外线条
+      this.cleanupExtraLines(node, lines, 0)
       return []
     }
     let { top, height, expandBtnSize } = node
@@ -384,17 +386,19 @@ class Fishbone extends Base {
       // 当前节点是根节点
       // 根节点的子节点是和根节点同一水平线排列
       let maxx = -Infinity
-      node.children.forEach(item => {
+      let extraIndex = 0
+      node.children.forEach((item, index) => {
         if (item.left > maxx) {
           maxx = item.left
         }
-        // 水平线段到二级节点的连线
+        // 水平线段到二级节点的连线（额外线条，从索引 0 开始）
         let marginY = this.getMarginY(item.layerIndex)
         let nodeLineX = item.left
         let offset =
           node.height / 2 + marginY - (this.isFishbone2() ? node.height / 4 : 0)
         let offsetX = offset / Math.tan(degToRad(this.mindMap.opt.fishboneDeg))
-        let line = this.lineDraw.path()
+        let line = this.getOrCreateExtraLine(node, lines, extraIndex)
+        extraIndex++
         if (this.checkIsTop(item)) {
           line.plot(
             this.transformPath(
@@ -413,13 +417,14 @@ class Fishbone extends Base {
           )
         }
         node.style.line(line)
-        node._lines.push(line)
+        line.show()
         style && style(line, node)
       })
-      // 从根节点出发的水平线
+      // 从根节点出发的水平线（额外线条，索引 = 子节点数量）
       let nodeHalfTop = node.top + node.height / 2
       let offset = node.height / 2 + this.getMarginY(node.layerIndex + 1)
-      let line = this.lineDraw.path()
+      let line = this.getOrCreateExtraLine(node, lines, extraIndex)
+      extraIndex++
       const lineEndX = this.isFishbone2()
         ? this.maxx
         : maxx - offset / Math.tan(degToRad(this.mindMap.opt.fishboneDeg))
@@ -431,8 +436,10 @@ class Fishbone extends Base {
         )
       )
       node.style.line(line)
-      node._lines.push(line)
+      line.show()
       style && style(line, node)
+      // 清理多余的额外线条
+      this.cleanupExtraLines(node, lines, extraIndex)
     } else {
       // 当前节点为非根节点
       let maxy = -Infinity
@@ -456,9 +463,10 @@ class Fishbone extends Base {
           this.setLineStyle(style, lines[index], path, item)
         }
       })
-      // 斜线
+      // 斜线（额外线条 0）
+      let extraCount = 0
       if (len >= 0) {
-        let line = this.lineDraw.path()
+        let line = this.getOrCreateExtraLine(node, lines, 0)
         expandBtnSize = len > 0 ? expandBtnSize : 0
         let lineLength = maxx - node.left - node.width * this.indent
         lineLength = Math.max(lineLength, 0)
@@ -480,9 +488,12 @@ class Fishbone extends Base {
           utils.bottom.renderLine(params)
         }
         node.style.line(line)
-        node._lines.push(line)
+        line.show()
         style && style(line, node)
+        extraCount = 1
       }
+      // 清理多余的额外线条
+      this.cleanupExtraLines(node, lines, extraCount)
     }
   }
 

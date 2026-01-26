@@ -1,3 +1,4 @@
+/* eslint-disable no-undef */
 // 遍历所有js文件
 const path = require('path')
 const fs = require('fs')
@@ -24,23 +25,22 @@ const transformFile = file => {
 }
 
 // 统计代码行数
-let totalLines = 0
+// let totalLines = 0
 const countCodeLines = content => {
   totalLines += content.split(/\n/).length
 }
 
 // 转换注释类型
-const transformComments = (file, content) => {
-  console.log('当前转换文件：', file)
-  content = content.replace(/\/\*\*[^/]+\*\//g, str => {
-    let res = /@Desc:([^\n]+)\n/g.exec(str)
-    if (res.length > 0) {
-      return '// ' + res[1]
-    }
-  })
-  fs.writeFileSync(file, content)
-}
+// const transformComments = (file, content) => {
+//   console.log('当前转换文件：', file)
+//   content = content.replace(/\/\*\*[^/]+\*\//g, str => {
+//     let res = /@Desc:([^\n]+)\n/g.exec(str)
+//     if (res.length > 0) {
+//       return '// ' + res[1]
+//     }
+//   })
+//   fs.writeFileSync(file, content)
+// }
 
 transform(entryPath)
 transformFile(path.join(__dirname, '../index.js'))
-console.log(totalLines)

@@ -12,6 +12,7 @@ import drawBackgroundImageToCanvas from '../utils/simulateCSSBackgroundInCanvas'
 import { transformToMarkdown } from '../parse/toMarkdown'
 import { ERROR_TYPES } from '../constants/constant'
 import { transformToTxt } from '../parse/toTxt'
+import WorkerManager from '../utils/WorkerManager'
 
 //  导出插件
 class Export {
@@ -532,7 +533,13 @@ class Export {
   // markdown文件
   async md() {
     const data = this.mindMap.getData()
-    const content = transformToMarkdown(data)
+    let content = ''
+    try {
+      content = await WorkerManager.transformToMarkdown(data)
+    } catch (e) {
+      console.warn('Worker transformToMarkdown failed, fallback to main thread', e)
+      content = transformToMarkdown(data)
+    }
     const blob = new Blob([content])
     const res = await readBlob(blob)
     return res
@@ -541,7 +548,13 @@ class Export {
   // txt文件
   async txt() {
     const data = this.mindMap.getData()
-    const content = transformToTxt(data)
+    let content = ''
+    try {
+      content = await WorkerManager.transformToTxt(data)
+    } catch (e) {
+      console.warn('Worker transformToTxt failed, fallback to main thread', e)
+      content = transformToTxt(data)
+    }
     const blob = new Blob([content])
     const res = await readBlob(blob)
     return res

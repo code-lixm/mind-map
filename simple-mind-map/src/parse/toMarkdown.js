@@ -31,7 +31,7 @@ export const transformToMarkdown = root => {
       if (Array.isArray(generalization)) {
         content += generalization.map(item => {
           return ` [${getNodeText(item)}]`
-        })
+        }).join('')
       } else if (generalization && generalization.text) {
         const generalizationText = getNodeText(generalization)
         content += ` [${generalizationText}]`

@@ -39,6 +39,51 @@ class Base {
   //  概要节点
   renderGeneralization() { }
 
+  // 获取或创建额外线条（用于布局类中子节点连线之外的辅助线条）
+  // node: 节点实例
+  // lines: MindMapNode.renderLine 传入的线条数组（已包含子节点数量的线条）
+  // extraIndex: 额外线条的索引（0 表示第一条额外线，1 表示第二条额外线，以此类推）
+  getOrCreateExtraLine(node, lines, extraIndex) {
+    const baseCount = lines.length
+    const targetIndex = baseCount + extraIndex
+    // 如果该位置已有线条，直接复用
+    if (node._lines[targetIndex]) {
+      return node._lines[targetIndex]
+    }
+    // 创建新线条
+    const line = this.lineDraw.path()
+    // 确保 _lines 数组长度足够
+    while (node._lines.length <= targetIndex) {
+      node._lines.push(null)
+    }
+    node._lines[targetIndex] = line
+    return line
+  }
+
+  // 清理多余的额外线条
+  // node: 节点实例
+  // lines: MindMapNode.renderLine 传入的线条数组
+  // expectedExtraCount: 期望的额外线条数量
+  cleanupExtraLines(node, lines, expectedExtraCount) {
+    const baseCount = lines.length
+    const expectedTotal = baseCount + expectedExtraCount
+    // 删除超出预期数量的线条
+    if (node._lines.length > expectedTotal) {
+      for (let i = expectedTotal; i < node._lines.length; i++) {
+        if (node._lines[i]) {
+          node._lines[i].remove()
+        }
+      }
+      node._lines.length = expectedTotal
+    }
+    // 清理数组中的 null 值（如果有的话）
+    for (let i = baseCount; i < expectedTotal; i++) {
+      if (!node._lines[i]) {
+        node._lines[i] = this.lineDraw.path()
+      }
+    }
+  }
+
   // 通过uid缓存节点
   cacheNode(uid, node) {
     const existed = this.renderer.nodeCache[uid]
@@ -681,52 +726,81 @@ class Base {
   getNodeBoundaries(node, dir) {
     let { generalizationLineMargin, generalizationNodeMargin } =
       this.mindMap.themeConfig
-    let walk = root => {
-      let _left = Infinity
-      let _right = -Infinity
-      let _top = Infinity
-      let _bottom = -Infinity
-      if (root.children && root.children.length > 0) {
-        root.children.forEach(child => {
-          let { left, right, top, bottom } = walk(child)
-          // 概要内容的宽度
-          let generalizationWidth =
-            child.checkHasGeneralization() && child.getData('expand')
-              ? child._generalizationNodeWidth + generalizationNodeMargin
-              : 0
-          // 概要内容的高度
-          let generalizationHeight =
-            child.checkHasGeneralization() && child.getData('expand')
-              ? child._generalizationNodeHeight + generalizationNodeMargin
-              : 0
-          if (left - (dir === 'h' ? generalizationWidth : 0) < _left) {
-            _left = left - (dir === 'h' ? generalizationWidth : 0)
-          }
-          if (right + (dir === 'h' ? generalizationWidth : 0) > _right) {
-            _right = right + (dir === 'h' ? generalizationWidth : 0)
-          }
-          if (top < _top) {
-            _top = top
-          }
-          if (bottom + (dir === 'v' ? generalizationHeight : 0) > _bottom) {
-            _bottom = bottom + (dir === 'v' ? generalizationHeight : 0)
-          }
-        })
-      }
-      let cur = {
-        left: root.left,
-        right: root.left + root.width,
-        top: root.top,
-        bottom: root.top + root.height
-      }
-      return {
-        left: cur.left < _left ? cur.left : _left,
-        right: cur.right > _right ? cur.right : _right,
-        top: cur.top < _top ? cur.top : _top,
-        bottom: cur.bottom > _bottom ? cur.bottom : _bottom
+    
+    // 使用 Map 存储计算结果，避免递归爆栈
+    const boundaries = new Map()
+    const stack = [{ node, processed: false }]
+
+    while (stack.length > 0) {
+      const item = stack[stack.length - 1]
+      // 注意：将 node 重命名为 root 以保持与原递归版本 walk = root => {...} 的命名风格一致
+      const { node: root, processed } = item
+
+      if (!processed) {
+        item.processed = true
+        // 将子节点压入栈中 (注意顺序，虽然这里计算是聚合，顺序不影响结果，但保持一致性)
+        if (root.children && root.children.length > 0) {
+          root.children.forEach(child => {
+            stack.push({ node: child, processed: false })
+          })
+        }
+      } else {
+        stack.pop()
+        
+        let _left = Infinity
+        let _right = -Infinity
+        let _top = Infinity
+        let _bottom = -Infinity
+
+        if (root.children && root.children.length > 0) {
+          root.children.forEach(child => {
+            const childBounds = boundaries.get(child)
+            if (!childBounds) return
+
+            let { left, right, top, bottom } = childBounds
+            // 概要内容的宽度
+            let generalizationWidth =
+              child.checkHasGeneralization() && child.getData('expand')
+                ? child._generalizationNodeWidth + generalizationNodeMargin
+                : 0
+            // 概要内容的高度
+            let generalizationHeight =
+              child.checkHasGeneralization() && child.getData('expand')
+                ? child._generalizationNodeHeight + generalizationNodeMargin
+                : 0
+            if (left - (dir === 'h' ? generalizationWidth : 0) < _left) {
+              _left = left - (dir === 'h' ? generalizationWidth : 0)
+            }
+            if (right + (dir === 'h' ? generalizationWidth : 0) > _right) {
+              _right = right + (dir === 'h' ? generalizationWidth : 0)
+            }
+            if (top < _top) {
+              _top = top
+            }
+            if (bottom + (dir === 'v' ? generalizationHeight : 0) > _bottom) {
+              _bottom = bottom + (dir === 'v' ? generalizationHeight : 0)
+            }
+          })
+        }
+
+        let cur = {
+          left: root.left,
+          right: root.left + root.width,
+          top: root.top,
+          bottom: root.top + root.height
+        }
+        
+        const res = {
+          left: cur.left < _left ? cur.left : _left,
+          right: cur.right > _right ? cur.right : _right,
+          top: cur.top < _top ? cur.top : _top,
+          bottom: cur.bottom > _bottom ? cur.bottom : _bottom
+        }
+        boundaries.set(root, res)
       }
     }
-    let { left, right, top, bottom } = walk(node)
+
+    let { left, right, top, bottom } = boundaries.get(node)
     return {
       left,
       right,

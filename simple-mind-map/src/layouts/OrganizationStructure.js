@@ -168,6 +168,8 @@ class OrganizationStructure extends Base {
 
   //  曲线风格连线
   renderLineCurve(node, lines, style) {
+    // 清理可能存在的额外线条（从其他线型切换过来时）
+    this.cleanupExtraLines(node, lines, 0)
     if (node.children.length <= 0) {
       return []
     }
@@ -209,6 +211,8 @@ class OrganizationStructure extends Base {
 
   //  圆弧风格连线
   renderLineCurve2(node, lines, style) {
+    // 清理可能存在的额外线条（从其他线型切换过来时）
+    this.cleanupExtraLines(node, lines, 0)
     if (node.children.length <= 0) {
       return []
     }
@@ -248,6 +252,8 @@ class OrganizationStructure extends Base {
 
   //  直连风格
   renderLineDirect(node, lines, style) {
+    // 清理可能存在的额外线条（从其他线型切换过来时）
+    this.cleanupExtraLines(node, lines, 0)
     if (node.children.length <= 0) {
       return []
     }
@@ -270,6 +276,8 @@ class OrganizationStructure extends Base {
   //  直线风格连线
   renderLineStraight(node, lines, style) {
     if (node.children.length <= 0) {
+      // 没有子节点时，清理所有额外线条
+      this.cleanupExtraLines(node, lines, 0)
       return []
     }
     let { left, top, width, height, expandBtnSize, isRoot } = node
@@ -302,23 +310,27 @@ class OrganizationStructure extends Base {
     })
     minx = Math.min(x1, minx)
     maxx = Math.max(x1, maxx)
-    // 父节点的竖线
-    let line1 = this.lineDraw.path()
+    // 父节点的竖线（额外线条 0）
+    let line1 = this.getOrCreateExtraLine(node, lines, 0)
     node.style.line(line1)
     expandBtnSize = len > 0 && !isRoot ? expandBtnSize : 0
     line1.plot(
       this.transformPath(`M ${x1},${y1 + expandBtnSize} L ${x1},${y1 + s1}`)
     )
-    node._lines.push(line1)
+    line1.show()
     style && style(line1, node)
-    // 水平线
+    // 水平线（额外线条 1）
+    let extraCount = 1
     if (len > 0) {
-      let lin2 = this.lineDraw.path()
+      let lin2 = this.getOrCreateExtraLine(node, lines, 1)
       node.style.line(lin2)
       lin2.plot(this.transformPath(`M ${minx},${y1 + s1} L ${maxx},${y1 + s1}`))
-      node._lines.push(lin2)
+      lin2.show()
       style && style(lin2, node)
+      extraCount = 2
     }
+    // 清理多余的额外线条
+    this.cleanupExtraLines(node, lines, extraCount)
   }
 
   //  渲染按钮

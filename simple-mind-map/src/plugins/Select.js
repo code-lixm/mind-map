@@ -197,6 +197,9 @@ class Select {
     let maxx = Math.max(this.mouseDownX, this.mouseMoveX)
     let maxy = Math.max(this.mouseDownY, this.mouseMoveY)
 
+    const nodesToAdd = []
+    const nodesToRemove = []
+
     const check = node => {
       let { left, top, width, height } = node
       let right = (left + width) * scaleX + translateX
@@ -209,14 +212,9 @@ class Select {
         if (node.getData('isActive')) {
           return
         }
-        this.mindMap.renderer.addNodeToActiveList(node)
-        this.mindMap.renderer.emitNodeActiveEvent()
+        nodesToAdd.push(node)
       } else if (node.getData('isActive')) {
-        if (!node.getData('isActive')) {
-          return
-        }
-        this.mindMap.renderer.removeNodeFromActiveList(node)
-        this.mindMap.renderer.emitNodeActiveEvent()
+        nodesToRemove.push(node)
       }
     }
 
@@ -229,6 +227,16 @@ class Select {
         })
       }
     })
+
+    if (nodesToAdd.length > 0) {
+      this.mindMap.renderer.addNodesToActiveList(nodesToAdd)
+    }
+    if (nodesToRemove.length > 0) {
+      this.mindMap.renderer.removeNodesFromActiveList(nodesToRemove)
+    }
+    if (nodesToAdd.length > 0 || nodesToRemove.length > 0) {
+      this.mindMap.renderer.emitNodeActiveEvent()
+    }
   }
 
   // 是否存在选区
