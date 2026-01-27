@@ -7,6 +7,7 @@ import {
 } from '../utils/index'
 import MindMapNode from '../core/render/node/MindMapNode'
 import { CONSTANTS } from '../constants/constant'
+import WorkerManager from '../utils/WorkerManager'
 
 // 搜索插件
 class Search {
@@ -27,6 +28,12 @@ class Search {
     this.notResetSearchText = false
     // 是否自动跳转下一个匹配节点
     this.isJumpNext = false
+    // 是否正在处理数据变化（防止并发执行导致的竞态条件）
+    this.isProcessingDataChange = false
+    // 是否有新的数据变化等待处理
+    this.hasPendingDataChange = false
+    // 搜索版本号，用于防止过期的搜索结果覆盖最新的结果
+    this.searchVersion = 0
 
     this.bindEvent()
   }
@@ -44,17 +51,33 @@ class Search {
   }
 
   // 节点数据改变了，需要重新搜索
-  onDataChange() {
-    if (this.isJumpNext) {
-      this.isJumpNext = false
-      this.search(this.searchText)
+  async onDataChange() {
+    // 防止并发执行导致的竞态条件
+    // 如果正在处理，忽略新的请求（事件发射器不会等待异步回调）
+    if (this.isProcessingDataChange) {
+      this.hasPendingDataChange = true
       return
     }
-    if (this.notResetSearchText) {
-      this.notResetSearchText = false
-      return
+
+    this.isProcessingDataChange = true
+    try {
+      if (this.isJumpNext) {
+        this.isJumpNext = false
+        await this.search(this.searchText)
+        return
+      }
+      if (this.notResetSearchText) {
+        this.notResetSearchText = false
+        return
+      }
+      this.searchText = ''
+    } finally {
+      this.isProcessingDataChange = false
+      if (this.hasPendingDataChange) {
+        this.hasPendingDataChange = false
+        this.onDataChange()
+      }
     }
-    this.searchText = ''
   }
 
   // 监听只读模式切换
@@ -66,12 +89,16 @@ class Search {
       this.isSearching &&
       this.matchNodeList[this.currentIndex]
     ) {
-      this.matchNodeList[this.currentIndex].closeHighlight()
+      const currentNode = this.matchNodeList[this.currentIndex]
+      // 只有节点实例才有 closeHighlight 方法
+      if (this.isNodeInstance(currentNode)) {
+        currentNode.closeHighlight()
+      }
     }
   }
 
   // 搜索
-  search(text, options = {}, callback = () => {}) {
+  async search(text, options = {}, callback = () => {}) {
     if (isUndef(text)) return this.endSearch()
     text = String(text)
     const newSearchType = options.type || 'text'
@@ -89,8 +116,10 @@ class Search {
       this.searchNext(callback)
     } else {
       // 只要文本或类型有一个不一样，就重新开始搜索
+      // 递增搜索版本号，使之前的搜索请求失效
+      this.searchVersion++
       this.searchText = text
-      this.doSearch()
+      await this.doSearch()
       this.searchNext(callback)
     }
     this.emitEvent()
@@ -106,7 +135,11 @@ class Search {
   endSearch() {
     if (!this.isSearching) return
     if (this.mindMap.opt.readonly && this.matchNodeList[this.currentIndex]) {
-      this.matchNodeList[this.currentIndex].closeHighlight()
+      const currentNode = this.matchNodeList[this.currentIndex]
+      // 只有节点实例才有 closeHighlight 方法
+      if (this.isNodeInstance(currentNode)) {
+        currentNode.closeHighlight()
+      }
     }
     this.searchText = ''
     this.updateMatchNodeList([])
@@ -116,48 +149,57 @@ class Search {
     this.emitEvent()
   }
 
-  // 搜索匹配的节点
-  doSearch() {
-    this.clearHighlightOnReadonly()
-    this.updateMatchNodeList([])
-    this.currentIndex = -1
-    const { isOnlySearchCurrentRenderNodes } = this.mindMap.opt
-    // 如果要搜索收起来的节点，那么要遍历渲染树而不是节点树
-    const tree = isOnlySearchCurrentRenderNodes
-      ? this.mindMap.renderer.root
-      : this.mindMap.renderer.renderTree
-    if (!tree) return
+  // 主线程搜索（降级方案）
+  doSearchMainThread(tree, isOnlySearchCurrentRenderNodes) {
     const matchList = []
+    // 转换为小写以进行不区分大小写的搜索（与 Worker 保持一致）
+    const lowerSearchText = this.searchText ? String(this.searchText).toLowerCase() : ''
+    // 注意：tree 始终是纯数据结构（与 Worker 路径保持一致）
     bfsWalk(tree, node => {
-      let { richText, text, generalization, tag } =
-        isOnlySearchCurrentRenderNodes ? node.getData() : node.data
+      // 纯数据结构中，node 是 { data: {...}, children: [...] } 结构
+      let { richText, text, generalization, tag } = node.data
 
       // 根据搜索类型进行匹配
       let isMatch = false
-      console.log('doSearch,searchType:' + this.searchType)
       if (this.searchType === 'tag') {
         // 标签搜索
         if (tag && Array.isArray(tag)) {
           // 处理标签可能是字符串或对象的情况
           isMatch = tag.some(t => {
             if (typeof t === 'string') {
-              return t.includes(this.searchText)
+              return t.toLowerCase().includes(lowerSearchText)
             } else if (t && t.text) {
-              return String(t.text).includes(this.searchText)
+              return String(t.text).toLowerCase().includes(lowerSearchText)
             }
             return false
           })
         }
       } else {
         // 文本搜索
+        if (!text) {
+          text = ''
+        }
         if (richText) {
           text = getTextFromHtml(text)
         }
-        isMatch = text.includes(this.searchText)
+        isMatch = String(text).toLowerCase().includes(lowerSearchText)
       }
 
       if (isMatch) {
-        matchList.push(node)
+        // 纯数据结构中，node 是 { data: {...}, children: [...] } 结构
+        // 需要提取 data 部分，并尝试查找对应的节点实例
+        if (isOnlySearchCurrentRenderNodes) {
+          // 尝试查找节点实例（如果已渲染）
+          const nodeInstance = this.mindMap.renderer.findNodeByUid(node.data.uid)
+          if (nodeInstance) {
+            matchList.push(nodeInstance)
+          } else {
+            // 未渲染，使用数据对象
+            matchList.push({ data: node.data })
+          }
+        } else {
+          matchList.push({ data: node.data })
+        }
       }
 
       // 概要节点
@@ -166,10 +208,8 @@ class Search {
       })
       generalizationList.forEach(gNode => {
         let { richText, text, uid, tag } = gNode
-        if (
-          isOnlySearchCurrentRenderNodes &&
-          !this.mindMap.renderer.findNodeByUid(uid)
-        ) {
+        // 检查节点是否已渲染（仅当 isOnlySearchCurrentRenderNodes 为 true 时）
+        if (isOnlySearchCurrentRenderNodes && !this.mindMap.renderer.findNodeByUid(uid)) {
           return
         }
 
@@ -180,19 +220,22 @@ class Search {
           if (tag && Array.isArray(tag)) {
             isMatch = tag.some(t => {
               if (typeof t === 'string') {
-                return t.includes(this.searchText)
+                return t.toLowerCase().includes(lowerSearchText)
               } else if (t && t.text) {
-                return String(t.text).includes(this.searchText)
+                return String(t.text).toLowerCase().includes(lowerSearchText)
               }
               return false
             })
           }
         } else {
           // 文本搜索
+          if (!text) {
+            text = ''
+          }
           if (richText) {
             text = getTextFromHtml(text)
           }
-          isMatch = text.includes(this.searchText)
+          isMatch = String(text).toLowerCase().includes(lowerSearchText)
         }
 
         if (isMatch) {
@@ -202,12 +245,161 @@ class Search {
         }
       })
     })
+
     this.updateMatchNodeList(matchList)
+  }
+
+  // 搜索匹配的节点
+  async doSearch() {
+    this.clearHighlightOnReadonly()
+    this.updateMatchNodeList([])
+    this.currentIndex = -1
+    const { isOnlySearchCurrentRenderNodes } = this.mindMap.opt
+    // 如果要搜索收起来的节点，那么要遍历渲染树而不是节点树
+    // 注意：Worker 需要纯数据对象
+    let tree = null
+    if (isOnlySearchCurrentRenderNodes) {
+      // 如果只搜索当前渲染节点，且 root 存在，则使用 root.getPureData()
+      if (this.mindMap.renderer.root) {
+        tree = this.mindMap.renderer.root.getPureData()
+      }
+    } else {
+      // 否则使用 renderTree (纯数据)
+      tree = this.mindMap.renderer.renderTree
+    }
+
+    if (!tree) return
+
+    // 保存当前搜索的版本号和参数，用于验证结果是否仍然有效
+    const currentVersion = this.searchVersion
+    const currentSearchText = this.searchText
+    const currentSearchType = this.searchType
+
+    try {
+      // 使用 Worker 进行搜索
+      const resultList = await WorkerManager.searchNodes(tree, currentSearchText, currentSearchType)
+      
+      // 检查搜索是否已被新的搜索请求取代
+      if (this.searchVersion !== currentVersion || 
+          this.searchText !== currentSearchText || 
+          this.searchType !== currentSearchType) {
+        // 搜索已被新的请求取代，忽略此结果
+        return
+      }
+
+      // 将 Worker 返回的 UID 转换为节点实例或数据对象
+      const matchList = []
+      resultList.forEach(item => {
+        const { uid, isGeneralization } = item
+
+        // 尝试在渲染器缓存中查找节点实例
+        // 注意：findNodeByUid 只能找到已渲染（即在缓存中）的节点
+        // 如果 isOnlySearchCurrentRenderNodes 为 false，我们需要处理未渲染的节点
+        // 但目前的 Search 插件逻辑似乎倾向于操作 "节点" 用于高亮等
+        // 如果节点未渲染，execCommand('GO_TARGET_NODE') 会负责展开并渲染它
+
+        const node = this.mindMap.renderer.findNodeByUid(uid)
+
+        if (isGeneralization) {
+          // 概要节点特殊处理
+          // 如果找到了渲染的节点（概要节点也是 MindMapNode）
+          if (node) {
+            matchList.push({ data: node.getData() })
+          } else {
+            // 未渲染，从 renderTree 中查找完整的节点数据
+            const nodeData = this.findNodeDataByUid(tree, uid)
+            if (nodeData) {
+              matchList.push({ data: nodeData })
+            } else {
+              // 如果仍然找不到，至少保留 uid 供后续 GO_TARGET_NODE 使用
+              matchList.push({ data: { uid } })
+            }
+          }
+        } else {
+          if (node) {
+            matchList.push(node)
+          } else {
+            // 未渲染的普通节点，从 renderTree 中查找完整的节点数据
+            const nodeData = this.findNodeDataByUid(tree, uid)
+            if (nodeData) {
+              matchList.push({ data: nodeData })
+            } else {
+              // 如果仍然找不到，至少保留 uid 供后续 GO_TARGET_NODE 使用
+              matchList.push({ data: { uid } })
+            }
+          }
+        }
+      })
+
+      // 在更新结果前再次检查搜索是否已被新的搜索请求取代
+      // 防止在构建 matchList 的过程中搜索被取代
+      if (this.searchVersion !== currentVersion || 
+          this.searchText !== currentSearchText || 
+          this.searchType !== currentSearchType) {
+        // 搜索已被新的请求取代，忽略此结果
+        return
+      }
+
+      this.updateMatchNodeList(matchList)
+    } catch (e) {
+      // 检查搜索是否已被新的搜索请求取代
+      if (this.searchVersion !== currentVersion || 
+          this.searchText !== currentSearchText || 
+          this.searchType !== currentSearchType) {
+        // 搜索已被新的请求取代，忽略此错误
+        return
+      }
+      
+      console.warn('Worker search failed, fallback to main thread', e)
+      // 降级到主线程搜索
+      // 使用与 Worker 路径相同的数据结构（纯数据），确保一致性
+      // tree 已经在上面根据 isOnlySearchCurrentRenderNodes 正确设置了
+      if (tree) {
+        // 再次检查搜索是否已被新的搜索请求取代
+        if (this.searchVersion !== currentVersion || 
+            this.searchText !== currentSearchText || 
+            this.searchType !== currentSearchType) {
+          return
+        }
+        this.doSearchMainThread(tree, isOnlySearchCurrentRenderNodes)
+      }
+    }
   }
 
   // 判断对象是否是节点实例
   isNodeInstance(node) {
     return node instanceof MindMapNode
+  }
+
+  // 从 renderTree 中根据 uid 查找节点数据（包括概要节点）
+  findNodeDataByUid(tree, uid) {
+    if (!tree || !uid) return null
+    
+    // 使用广度优先遍历查找节点
+    const stack = [tree]
+    while (stack.length > 0) {
+      const node = stack.shift()
+      
+      // 检查当前节点
+      if (node.data && node.data.uid === uid) {
+        return node.data
+      }
+      
+      // 检查概要节点
+      const generalizationList = formatGetNodeGeneralization(node.data || {})
+      for (const gNode of generalizationList) {
+        if (gNode.uid === uid) {
+          return gNode
+        }
+      }
+      
+      // 继续遍历子节点
+      if (node.children && node.children.length > 0) {
+        stack.push(...node.children)
+      }
+    }
+    
+    return null
   }
 
   // 搜索下一个或指定索引，定位到下一个匹配节点
@@ -289,10 +481,26 @@ class Search {
     let currentNode = this.matchNodeList[this.currentIndex]
     if (!currentNode) return
     // 如果当前搜索文本是替换文本的子串，那么该节点还是符合搜索结果的
-    const keep = replaceText.includes(this.searchText)
+    // 使用不区分大小写的匹配，与搜索功能保持一致
+    const keep = String(replaceText).toLowerCase().includes(String(this.searchText).toLowerCase())
     const text = this.getReplacedText(currentNode, this.searchText, replaceText)
     this.notResetSearchText = true
-    currentNode.setText(text, currentNode.getData('richText'))
+    // 根据节点类型选择不同的更新方式
+    if (this.isNodeInstance(currentNode)) {
+      currentNode.setText(text, currentNode.getData('richText'))
+    } else {
+      // 对于数据对象，直接更新数据
+      currentNode.data.text = text
+      // 如果节点已渲染，需要更新渲染
+      const nodeInstance = this.mindMap.renderer.findNodeByUid(currentNode.data.uid)
+      if (nodeInstance) {
+        const data = { text }
+        this.mindMap.renderer.setNodeDataRender(nodeInstance, data, true)
+      }
+      // 无论节点是否已渲染，都需要触发渲染和命令历史（与 replaceAll 保持一致）
+      this.mindMap.render()
+      this.mindMap.command.addHistory()
+    }
     if (keep) {
       this.updateMatchNodeList(this.matchNodeList)
       return
@@ -320,7 +528,8 @@ class Search {
       return
     replaceText = String(replaceText)
     // 如果当前搜索文本是替换文本的子串，那么该节点还是符合搜索结果的
-    const keep = replaceText.includes(this.searchText)
+    // 使用不区分大小写的匹配，与搜索功能保持一致
+    const keep = String(replaceText).toLowerCase().includes(String(this.searchText).toLowerCase())
     this.notResetSearchText = true
     this.matchNodeList.forEach(node => {
       const text = this.getReplacedText(node, this.searchText, replaceText)
@@ -346,11 +555,19 @@ class Search {
   getReplacedText(node, searchText, replaceText) {
     let { richText, text } = this.isNodeInstance(node)
       ? node.getData()
-      : node.data
+      : (node.data || {})
+    
+    // 防御性检查：如果 text 不存在或不是字符串，返回空字符串或原始值
+    if (text === undefined || text === null) {
+      text = ''
+    }
+    text = String(text)
+    
     if (richText) {
       return replaceHtmlText(text, searchText, replaceText)
     } else {
-      return text.replace(new RegExp(searchText, 'g'), replaceText)
+      // 使用不区分大小写的正则表达式，与搜索功能保持一致
+      return text.replace(new RegExp(searchText, 'gi'), replaceText)
     }
   }
 

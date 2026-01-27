@@ -86,8 +86,12 @@ class Render {
     this.reRender = false
     // 是否正在渲染中
     this.isRendering = false
-    // 是否存在等待渲染
-    this.hasWaitRendering = false
+    // 是否需要重新渲染（渲染期间有新的渲染请求）
+    this.needRerender = false
+    // 延迟清理线条容器的标记，确保在同一轮渲染内完成，避免中间态缺线
+    this.needClearLineDraw = false
+    // RAF 调度 ID
+    this.rafId = null
     // 用于缓存节点
     this.nodeCache = {}
     this.lastNodeCache = {}
@@ -99,7 +103,6 @@ class Render {
     this.activeNodeList = []
     // 防抖定时器
     this.emitNodeActiveEventTimer = null
-    this.renderTimer = null
     // 根节点
     this.root = null
     // 文本编辑框，需要再bindEvent之前实例化，否则单击事件只能触发隐藏文本编辑框，而无法保存文本修改
@@ -111,6 +114,8 @@ class Render {
     this.highlightBoxNodeStyle = null
     // 上一次节点激活数据
     this.lastActiveNodeList = []
+    // 渲染树结构是否发生变化（脏标记）
+    this.isStructuralDirty = true
     // 布局
     this.setLayout()
     // 绑定事件
@@ -133,11 +138,55 @@ class Render {
       this.mindMap.opt.layout = CONSTANTS.LAYOUT.LOGICAL_STRUCTURE
     }
     this.layout = new L(this, layout)
+    // 布局切换时标记结构变化，确保下次渲染时调用 sanitizeRenderTree 清理旧的 _node 引用
+    this.isStructuralDirty = true
+  }
+
+  // 规范化渲染树，解决外部数据重复uid / 残留引用导致的鬼影
+  sanitizeRenderTree() {
+    if (!this.renderTree) return
+    const used = new Set()
+    const visited = new WeakSet()
+    const stack = [this.renderTree]
+    while (stack.length) {
+      const node = stack.pop()
+      if (!node || typeof node !== 'object') continue
+      if (visited.has(node)) continue
+      visited.add(node)
+      node.data = node.data || {}
+      // 清理运行时挂载的引用，避免复用旧实例
+      if (node.data._node) delete node.data._node
+      if (node._node) delete node._node
+      if (node.nodeDataSnapshot) delete node.nodeDataSnapshot
+      if (node.data.nodeDataSnapshot) delete node.data.nodeDataSnapshot
+      if (node.data.parent) delete node.data.parent
+      // 处理概要节点的 uid
+      const generalizationList = formatGetNodeGeneralization(node.data)
+      generalizationList.forEach(g => {
+        if (g._node) delete g._node
+        if (!g.uid || used.has(g.uid)) {
+          g.uid = createUid()
+        }
+        used.add(g.uid)
+      })
+      // 处理当前节点 uid
+      if (!node.data.uid || used.has(node.data.uid)) {
+        node.data.uid = createUid()
+      }
+      used.add(node.data.uid)
+      // 子节点入栈
+      if (Array.isArray(node.children)) {
+        node.children.forEach(child => stack.push(child))
+      } else {
+        node.children = []
+      }
+    }
   }
 
   // 重新设置思维导图数据
   setData(data) {
     this.renderTree = data || null
+    this.isStructuralDirty = true
   }
 
   //   绑定事件
@@ -575,6 +624,13 @@ class Render {
     this.layout.lru.clear()
     this.nodeCache = {}
     this.lastNodeCache = {}
+    // 同步清理线条容器由下一轮渲染执行，避免清空后未立即渲染导致的“无线”中间态
+    this.needClearLineDraw = true
+    if (this.mindMap.opt && this.mindMap.opt.debugRender) {
+      console.warn('[smm-debug][render] clearCache set needClearLineDraw')
+    }
+    // 标记结构变化，确保下次渲染时调用 sanitizeRenderTree 清理渲染树中的 _node 引用
+    this.isStructuralDirty = true
   }
 
   // 保存触发渲染的参数
@@ -630,25 +686,37 @@ class Render {
   // 渲染
   render(callback, source) {
     this.addRenderParams(callback, source)
-    clearTimeout(this.renderTimer)
-    this.renderTimer = setTimeout(() => {
+    // 如果正在渲染，只标记需要重渲染，由渲染完成回调处理
+    if (this.isRendering) {
+      this.needRerender = true
+      return
+    }
+    // 使用 RAF 调度，天然合并同一帧内的所有调用
+    if (this.rafId) return // 已经调度过了
+    this.rafId = requestAnimationFrame(() => {
+      this.rafId = null
       this._render()
-    }, 0)
+    })
   }
 
   // 真正的渲染
   _render() {
+    // 双重保险：RAF 回调时再检查一次（理论上不会进入，但防御性编程）
+    if (this.isRendering) {
+      this.needRerender = true
+      return
+    }
+    this.isRendering = true
+    this.needRerender = false
+    // 渲染前做一次数据规范化，避免同帧重复uid或残留引用导致鬼影
+    if (this.isStructuralDirty) {
+      this.sanitizeRenderTree()
+      this.isStructuralDirty = false
+    }
     // 切换主题时，被收起的节点需要添加样式复位的标注
     if (this.checkHasRenderSource(CONSTANTS.CHANGE_THEME)) {
       this.resetUnExpandNodeStyle()
     }
-    // 如果当前还没有渲染完毕，不再触发渲染
-    if (this.isRendering) {
-      // 等待当前渲染完毕后再进行一次渲染
-      this.hasWaitRendering = true
-      return
-    }
-    this.isRendering = true
     // 节点缓存
     this.lastNodeCache = this.nodeCache
     this.nodeCache = {}
@@ -667,6 +735,27 @@ class Render {
     // 计算布局
     this.root = null
     this.layout.doLayout(root => {
+      // 如需清理线条，放在布局完成后、节点渲染前执行，保证同一帧内清空再重画
+      if (this.needClearLineDraw && this.mindMap.lineDraw) {
+        if (this.mindMap.opt && this.mindMap.opt.debugRender) {
+          const cacheSize = Object.keys(this.nodeCache).length
+          const lastCacheSize = Object.keys(this.lastNodeCache).length
+          console.warn(
+            '[smm-debug][render] clear lineDraw before render',
+            { cacheSize, lastCacheSize }
+          )
+        }
+        this.mindMap.lineDraw.clear()
+        const resetLines = node => {
+          if (node && node._lines) node._lines = []
+        }
+        Object.values(this.nodeCache).forEach(resetLines)
+        Object.values(this.lastNodeCache).forEach(resetLines)
+        this.needClearLineDraw = false
+        if (this.mindMap.opt && this.mindMap.opt.debugRender) {
+          console.warn('[smm-debug][render] clear lineDraw done')
+        }
+      }
       // 删除本次渲染时不再需要的节点
       Object.keys(this.lastNodeCache).forEach(uid => {
         if (!this.nodeCache[uid]) {
@@ -694,8 +783,9 @@ class Render {
         // 【FreedomNode Hook】渲染后钩子，用于渲染自由节点
         this.mindMap.emit('after_node_render')
         this.isRendering = false
-        if (this.hasWaitRendering) {
-          this.hasWaitRendering = false
+        // 渲染期间如果有新请求，自动重新渲染
+        if (this.needRerender) {
+          this.needRerender = false
           this.render()
           return
         }
@@ -740,10 +830,14 @@ class Render {
     if (this.activeNodeList.length <= 0) {
       return
     }
+    this.mindMap.command.startBatch()
     const list = [...this.activeNodeList]
+    this.activeNodeList = []
     list.forEach(node => {
-      this.removeNodeFromActiveList(node)
+      this.mindMap.execCommand('SET_NODE_ACTIVE', node, false)
+      this.emitNodeInactiveEvent(node, [])
     })
+    this.mindMap.command.endBatch()
   }
 
   // 添加节点到激活列表里
@@ -765,6 +859,22 @@ class Render {
     }
   }
 
+  // 批量添加节点到激活列表里
+  addNodesToActiveList(nodes) {
+    if (nodes.length <= 0) return
+
+    // 触发一次 before_node_active 事件，确保 TextEdit 等组件能正常响应
+    // 只需要触发一次，避免 O(N^2) 开销
+    const cleanedActiveNodeList = this.cleanNodeListForEvent(this.activeNodeList)
+    this.mindMap.emit('before_node_active', nodes[0], cleanedActiveNodeList)
+
+    this.mindMap.command.startBatch()
+    nodes.forEach(node => {
+      this.addNodeToActiveList(node, true)
+    })
+    this.mindMap.command.endBatch()
+  }
+
   // 在激活列表里移除某个节点
   removeNodeFromActiveList(node) {
     let index = this.findActiveNodeIndex(node)
@@ -774,6 +884,21 @@ class Render {
     this.mindMap.execCommand('SET_NODE_ACTIVE', node, false)
     this.activeNodeList.splice(index, 1)
     this.emitNodeInactiveEvent(node, this.activeNodeList)
+  }
+
+  // 批量从激活列表里移除节点
+  removeNodesFromActiveList(nodes) {
+    this.mindMap.command.startBatch()
+    const uidSet = new Set(nodes.map(node => node.getData('uid')))
+    // 过滤出新的激活列表
+    const newActiveNodeList = this.activeNodeList.filter(node => !uidSet.has(node.getData('uid')))
+    this.activeNodeList = newActiveNodeList
+    
+    nodes.forEach(node => {
+        this.mindMap.execCommand('SET_NODE_ACTIVE', node, false)
+        this.emitNodeInactiveEvent(node, this.activeNodeList)
+    })
+    this.mindMap.command.endBatch()
   }
 
   // 手动激活多个节点，激活单个节点请直接调用节点实例的active()方法
@@ -806,19 +931,20 @@ class Render {
   //  全选
   selectAll() {
     if (this.mindMap.opt.readonly) return
+    const nodes = []
     walk(
       this.root,
       null,
       node => {
         if (!node.getData('isActive')) {
-          this.addNodeToActiveList(node)
+          nodes.push(node)
         }
         // 概要节点
         if (node._generalizationList && node._generalizationList.length > 0) {
           node._generalizationList.forEach(item => {
             const gNode = item.generalizationNode
             if (!gNode.getData('isActive')) {
-              this.addNodeToActiveList(gNode)
+              nodes.push(gNode)
             }
           })
         }
@@ -828,6 +954,7 @@ class Render {
       0,
       0
     )
+    this.addNodesToActiveList(nodes)
     this.emitNodeActiveEvent()
   }
 
@@ -843,13 +970,20 @@ class Render {
 
   // 前进回退
   backForward(type, step) {
-    this.mindMap.execCommand('CLEAR_ACTIVE_NODE')
-    const data = this.mindMap.command[type](step)
-    if (data) {
-      this.renderTree = data
-      this.mindMap.render()
+    // 暂停历史记录收集，避免回退/前进触发的渲染产生新的历史记录
+    this.mindMap.command.pause()
+    try {
+      this.mindMap.execCommand('CLEAR_ACTIVE_NODE')
+      const data = this.mindMap.command[type](step)
+      if (data) {
+        this.renderTree = data
+        this.isStructuralDirty = true
+        this.mindMap.render()
+      }
+      this.mindMap.emit('data_change', data)
+    } finally {
+      this.mindMap.command.recovery()
     }
-    this.mindMap.emit('data_change', data)
   }
 
   // 获取创建新节点的行为
@@ -893,63 +1027,70 @@ class Render {
     if (this.activeNodeList.length <= 0 && appointNodes.length <= 0) {
       return
     }
-    this.textEdit.hideEditTextBox()
-    const {
-      defaultInsertSecondLevelNodeText,
-      defaultInsertBelowSecondLevelNodeText
-    } = this.mindMap.opt
-    const list = appointNodes.length > 0 ? appointNodes : this.activeNodeList
-    const handleMultiNodes = list.length > 1
-    const isRichText = this.hasRichTextPlugin()
-    const { focusNewNode, inserting } = this.getNewNodeBehavior(
-      openEdit,
-      handleMultiNodes
-    )
-    const params = {
-      expand: true,
-      richText: isRichText,
-      isActive: focusNewNode // 如果同时对多个节点插入子节点，那么需要把新增的节点设为激活状态。如果不进入编辑状态，那么也需要手动设为激活状态
+    // 使用批次操作，确保整个插入过程只产生一个历史记录
+    this.mindMap.command.startBatch()
+    try {
+      this.textEdit.hideEditTextBox()
+      const {
+        defaultInsertSecondLevelNodeText,
+        defaultInsertBelowSecondLevelNodeText
+      } = this.mindMap.opt
+      const list = appointNodes.length > 0 ? appointNodes : this.activeNodeList
+      const handleMultiNodes = list.length > 1
+      const isRichText = this.hasRichTextPlugin()
+      const { focusNewNode, inserting } = this.getNewNodeBehavior(
+        openEdit,
+        handleMultiNodes
+      )
+      const params = {
+        expand: true,
+        richText: isRichText,
+        isActive: focusNewNode // 如果同时对多个节点插入子节点，那么需要把新增的节点设为激活状态。如果不进入编辑状态，那么也需要手动设为激活状态
+      }
+      if (isRichText) params.resetRichText = true
+      // 动态指定的子节点数据也需要添加相关属性
+      appointChildren = addDataToAppointNodes(appointChildren, params)
+      const alreadyIsRichText = appointData && appointData.richText
+      let createNewId = false
+      list.forEach(node => {
+        if (node.isGeneralization || node.isRoot) {
+          return
+        }
+        appointChildren = simpleDeepClone(appointChildren)
+        const parent = node.parent
+        const isOneLayer = node.layerIndex === 1
+        // 新插入节点的默认文本
+        const text = isOneLayer
+          ? defaultInsertSecondLevelNodeText
+          : defaultInsertBelowSecondLevelNodeText
+        // 计算插入位置
+        const index = getNodeDataIndex(node)
+        // 如果指定的数据就是富文本格式，那么不需要重新创建
+        if (alreadyIsRichText && params.resetRichText) {
+          delete params.resetRichText
+        }
+        const newNodeData = {
+          inserting,
+          data: {
+            text: text,
+            ...params,
+            uid: createUid(),
+            ...(appointData || {})
+          },
+          children: [...createUidForAppointNodes(appointChildren, createNewId)]
+        }
+        createNewId = true
+        parent.nodeData.children.splice(index + 1, 0, newNodeData)
+      })
+      // 如果同时对多个节点插入子节点，需要清除原来激活的节点
+      if (focusNewNode) {
+        this.clearActiveNodeList()
+      }
+      this.isStructuralDirty = true
+      this.mindMap.render()
+    } finally {
+      this.mindMap.command.endBatch()
     }
-    if (isRichText) params.resetRichText = true
-    // 动态指定的子节点数据也需要添加相关属性
-    appointChildren = addDataToAppointNodes(appointChildren, params)
-    const alreadyIsRichText = appointData && appointData.richText
-    let createNewId = false
-    list.forEach(node => {
-      if (node.isGeneralization || node.isRoot) {
-        return
-      }
-      appointChildren = simpleDeepClone(appointChildren)
-      const parent = node.parent
-      const isOneLayer = node.layerIndex === 1
-      // 新插入节点的默认文本
-      const text = isOneLayer
-        ? defaultInsertSecondLevelNodeText
-        : defaultInsertBelowSecondLevelNodeText
-      // 计算插入位置
-      const index = getNodeDataIndex(node)
-      // 如果指定的数据就是富文本格式，那么不需要重新创建
-      if (alreadyIsRichText && params.resetRichText) {
-        delete params.resetRichText
-      }
-      const newNodeData = {
-        inserting,
-        data: {
-          text: text,
-          ...params,
-          uid: createUid(),
-          ...(appointData || {})
-        },
-        children: [...createUidForAppointNodes(appointChildren, createNewId)]
-      }
-      createNewId = true
-      parent.nodeData.children.splice(index + 1, 0, newNodeData)
-    })
-    // 如果同时对多个节点插入子节点，需要清除原来激活的节点
-    if (focusNewNode) {
-      this.clearActiveNodeList()
-    }
-    this.mindMap.render()
   }
 
   // 插入多个同级节点
@@ -959,34 +1100,40 @@ class Render {
     if (this.activeNodeList.length <= 0 && appointNodes.length <= 0) {
       return
     }
-    this.textEdit.hideEditTextBox()
-    const list = appointNodes.length > 0 ? appointNodes : this.activeNodeList
-    const isRichText = this.hasRichTextPlugin()
-    const { focusNewNode } = this.getNewNodeBehavior(false, true)
-    const params = {
-      expand: true,
-      richText: isRichText,
-      isActive: focusNewNode
-    }
-    if (isRichText) params.resetRichText = true
-    nodeList = addDataToAppointNodes(nodeList, params)
-    let createNewId = false
-    list.forEach(node => {
-      if (node.isGeneralization || node.isRoot) {
-        return
+    // 使用批次操作，确保整个插入过程只产生一个历史记录
+    this.mindMap.command.startBatch()
+    try {
+      this.textEdit.hideEditTextBox()
+      const list = appointNodes.length > 0 ? appointNodes : this.activeNodeList
+      const isRichText = this.hasRichTextPlugin()
+      const { focusNewNode } = this.getNewNodeBehavior(false, true)
+      const params = {
+        expand: true,
+        richText: isRichText,
+        isActive: focusNewNode
       }
-      nodeList = simpleDeepClone(nodeList)
-      const parent = node.parent
-      // 计算插入位置
-      const index = getNodeDataIndex(node)
-      const newNodeList = createUidForAppointNodes(nodeList, createNewId)
-      createNewId = true
-      parent.nodeData.children.splice(index + 1, 0, ...newNodeList)
-    })
-    if (focusNewNode) {
-      this.clearActiveNodeList()
+      if (isRichText) params.resetRichText = true
+      nodeList = addDataToAppointNodes(nodeList, params)
+      let createNewId = false
+      list.forEach(node => {
+        if (node.isGeneralization || node.isRoot) {
+          return
+        }
+        nodeList = simpleDeepClone(nodeList)
+        const parent = node.parent
+        // 计算插入位置
+        const index = getNodeDataIndex(node)
+        const newNodeList = createUidForAppointNodes(nodeList, createNewId)
+        createNewId = true
+        parent.nodeData.children.splice(index + 1, 0, ...newNodeList)
+      })
+      if (focusNewNode) {
+        this.clearActiveNodeList()
+      }
+      this.mindMap.render()
+    } finally {
+      this.mindMap.command.endBatch()
     }
-    this.mindMap.render()
   }
 
   //  插入子节点
@@ -1000,65 +1147,72 @@ class Render {
     if (this.activeNodeList.length <= 0 && appointNodes.length <= 0) {
       return
     }
-    this.textEdit.hideEditTextBox()
-    const {
-      defaultInsertSecondLevelNodeText,
-      defaultInsertBelowSecondLevelNodeText
-    } = this.mindMap.opt
-    const list = appointNodes.length > 0 ? appointNodes : this.activeNodeList
-    const handleMultiNodes = list.length > 1
-    const isRichText = this.hasRichTextPlugin()
-    const { focusNewNode, inserting } = this.getNewNodeBehavior(
-      openEdit,
-      handleMultiNodes
-    )
-    const params = {
-      expand: true,
-      richText: isRichText,
-      isActive: focusNewNode
-    }
-    if (isRichText) params.resetRichText = true
-    // 动态指定的子节点数据也需要添加相关属性
-    appointChildren = addDataToAppointNodes(appointChildren, params)
-    const alreadyIsRichText = appointData && appointData.richText
-    let createNewId = false
-    list.forEach(node => {
-      if (node.isGeneralization) {
-        return
+    // 使用批次操作，确保整个插入过程只产生一个历史记录
+    this.mindMap.command.startBatch()
+    try {
+      this.textEdit.hideEditTextBox()
+      const {
+        defaultInsertSecondLevelNodeText,
+        defaultInsertBelowSecondLevelNodeText
+      } = this.mindMap.opt
+      const list = appointNodes.length > 0 ? appointNodes : this.activeNodeList
+      const handleMultiNodes = list.length > 1
+      const isRichText = this.hasRichTextPlugin()
+      const { focusNewNode, inserting } = this.getNewNodeBehavior(
+        openEdit,
+        handleMultiNodes
+      )
+      const params = {
+        expand: true,
+        richText: isRichText,
+        isActive: focusNewNode
       }
-      appointChildren = simpleDeepClone(appointChildren)
-      if (!node.nodeData.children) {
-        node.nodeData.children = []
-      }
-      const text = node.isRoot
-        ? defaultInsertSecondLevelNodeText
-        : defaultInsertBelowSecondLevelNodeText
-      // 如果指定的数据就是富文本格式，那么不需要重新创建
-      if (alreadyIsRichText && params.resetRichText) {
-        delete params.resetRichText
-      }
-      const newNode = {
-        inserting,
-        data: {
-          text: text,
-          uid: createUid(),
-          ...params,
-          ...(appointData || {})
-        },
-        children: [...createUidForAppointNodes(appointChildren, createNewId)]
-      }
-      createNewId = true
-      node.nodeData.children.push(newNode)
-      // 插入子节点时自动展开子节点
-      node.setData({
-        expand: true
+      if (isRichText) params.resetRichText = true
+      // 动态指定的子节点数据也需要添加相关属性
+      appointChildren = addDataToAppointNodes(appointChildren, params)
+      const alreadyIsRichText = appointData && appointData.richText
+      let createNewId = false
+      list.forEach(node => {
+        if (node.isGeneralization) {
+          return
+        }
+        appointChildren = simpleDeepClone(appointChildren)
+        if (!node.nodeData.children) {
+          node.nodeData.children = []
+        }
+        const text = node.isRoot
+          ? defaultInsertSecondLevelNodeText
+          : defaultInsertBelowSecondLevelNodeText
+        // 如果指定的数据就是富文本格式，那么不需要重新创建
+        if (alreadyIsRichText && params.resetRichText) {
+          delete params.resetRichText
+        }
+        const newNode = {
+          inserting,
+          data: {
+            text: text,
+            uid: createUid(),
+            ...params,
+            ...(appointData || {})
+          },
+          children: [...createUidForAppointNodes(appointChildren, createNewId)]
+        }
+        createNewId = true
+        node.nodeData.children.push(newNode)
+        // 插入子节点时自动展开子节点
+        node.setData({
+          expand: true
+        })
       })
-    })
-    // 如果同时对多个节点插入子节点，需要清除原来激活的节点
-    if (focusNewNode) {
-      this.clearActiveNodeList()
+      // 如果同时对多个节点插入子节点，需要清除原来激活的节点
+      if (focusNewNode) {
+        this.clearActiveNodeList()
+      }
+      this.isStructuralDirty = true
+      this.mindMap.render()
+    } finally {
+      this.mindMap.command.endBatch()
     }
-    this.mindMap.render()
   }
 
   // 插入多个子节点
@@ -1068,39 +1222,45 @@ class Render {
     if (this.activeNodeList.length <= 0 && appointNodes.length <= 0) {
       return
     }
-    this.textEdit.hideEditTextBox()
-    const list = appointNodes.length > 0 ? appointNodes : this.activeNodeList
-    const isRichText = this.hasRichTextPlugin()
-    const { focusNewNode } = this.getNewNodeBehavior(false, true)
-    const params = {
-      expand: true,
-      richText: isRichText,
-      isActive: focusNewNode
-    }
-    if (isRichText) params.resetRichText = true
-    childList = addDataToAppointNodes(childList, params)
-    let createNewId = false
-    list.forEach(node => {
-      if (node.isGeneralization) {
-        return
+    // 使用批次操作，确保整个插入过程只产生一个历史记录
+    this.mindMap.command.startBatch()
+    try {
+      this.textEdit.hideEditTextBox()
+      const list = appointNodes.length > 0 ? appointNodes : this.activeNodeList
+      const isRichText = this.hasRichTextPlugin()
+      const { focusNewNode } = this.getNewNodeBehavior(false, true)
+      const params = {
+        expand: true,
+        richText: isRichText,
+        isActive: focusNewNode
       }
-      childList = simpleDeepClone(childList)
-      if (!node.nodeData.children) {
-        node.nodeData.children = []
-      }
-      childList = createUidForAppointNodes(childList, createNewId)
-      // 第一个引用不需要重新创建uid，后面的需要重新创建，否则id会重复
-      createNewId = true
-      node.nodeData.children.push(...childList)
-      // 插入子节点时自动展开子节点
-      node.setData({
-        expand: true
+      if (isRichText) params.resetRichText = true
+      childList = addDataToAppointNodes(childList, params)
+      let createNewId = false
+      list.forEach(node => {
+        if (node.isGeneralization) {
+          return
+        }
+        childList = simpleDeepClone(childList)
+        if (!node.nodeData.children) {
+          node.nodeData.children = []
+        }
+        childList = createUidForAppointNodes(childList, createNewId)
+        // 第一个引用不需要重新创建uid，后面的需要重新创建，否则id会重复
+        createNewId = true
+        node.nodeData.children.push(...childList)
+        // 插入子节点时自动展开子节点
+        node.setData({
+          expand: true
+        })
       })
-    })
-    if (focusNewNode) {
-      this.clearActiveNodeList()
+      if (focusNewNode) {
+        this.clearActiveNodeList()
+      }
+      this.mindMap.render()
+    } finally {
+      this.mindMap.command.endBatch()
     }
-    this.mindMap.render()
   }
 
   // 插入父节点
@@ -1109,57 +1269,63 @@ class Render {
     if (this.activeNodeList.length <= 0 && appointNodes.length <= 0) {
       return
     }
-    this.textEdit.hideEditTextBox()
-    const {
-      defaultInsertSecondLevelNodeText,
-      defaultInsertBelowSecondLevelNodeText
-    } = this.mindMap.opt
-    const list = appointNodes.length > 0 ? appointNodes : this.activeNodeList
-    const handleMultiNodes = list.length > 1
-    const isRichText = this.hasRichTextPlugin()
-    const { focusNewNode, inserting } = this.getNewNodeBehavior(
-      openEdit,
-      handleMultiNodes
-    )
-    const params = {
-      expand: true,
-      richText: isRichText,
-      isActive: focusNewNode
+    // 使用批次操作，确保整个插入过程只产生一个历史记录
+    this.mindMap.command.startBatch()
+    try {
+      this.textEdit.hideEditTextBox()
+      const {
+        defaultInsertSecondLevelNodeText,
+        defaultInsertBelowSecondLevelNodeText
+      } = this.mindMap.opt
+      const list = appointNodes.length > 0 ? appointNodes : this.activeNodeList
+      const handleMultiNodes = list.length > 1
+      const isRichText = this.hasRichTextPlugin()
+      const { focusNewNode, inserting } = this.getNewNodeBehavior(
+        openEdit,
+        handleMultiNodes
+      )
+      const params = {
+        expand: true,
+        richText: isRichText,
+        isActive: focusNewNode
+      }
+      if (isRichText) params.resetRichText = true
+      const alreadyIsRichText = appointData && appointData.richText
+      list.forEach(node => {
+        if (node.isGeneralization || node.isRoot) {
+          return
+        }
+        const text =
+          node.layerIndex === 1
+            ? defaultInsertSecondLevelNodeText
+            : defaultInsertBelowSecondLevelNodeText
+        // 如果指定的数据就是富文本格式，那么不需要重新创建
+        if (alreadyIsRichText && params.resetRichText) {
+          delete params.resetRichText
+        }
+        const newNode = {
+          inserting,
+          data: {
+            text: text,
+            uid: createUid(),
+            ...params,
+            ...(appointData || {})
+          },
+          children: [node.nodeData]
+        }
+        const parent = node.parent
+        // 获取当前节点所在位置
+        const index = getNodeDataIndex(node)
+        parent.nodeData.children.splice(index, 1, newNode)
+      })
+      // 如果同时对多个节点插入子节点，需要清除原来激活的节点
+      if (focusNewNode) {
+        this.clearActiveNodeList()
+      }
+      this.mindMap.render()
+    } finally {
+      this.mindMap.command.endBatch()
     }
-    if (isRichText) params.resetRichText = true
-    const alreadyIsRichText = appointData && appointData.richText
-    list.forEach(node => {
-      if (node.isGeneralization || node.isRoot) {
-        return
-      }
-      const text =
-        node.layerIndex === 1
-          ? defaultInsertSecondLevelNodeText
-          : defaultInsertBelowSecondLevelNodeText
-      // 如果指定的数据就是富文本格式，那么不需要重新创建
-      if (alreadyIsRichText && params.resetRichText) {
-        delete params.resetRichText
-      }
-      const newNode = {
-        inserting,
-        data: {
-          text: text,
-          uid: createUid(),
-          ...params,
-          ...(appointData || {})
-        },
-        children: [node.nodeData]
-      }
-      const parent = node.parent
-      // 获取当前节点所在位置
-      const index = getNodeDataIndex(node)
-      parent.nodeData.children.splice(index, 1, newNode)
-    })
-    // 如果同时对多个节点插入子节点，需要清除原来激活的节点
-    if (focusNewNode) {
-      this.clearActiveNodeList()
-    }
-    this.mindMap.render()
   }
 
   //  上移节点，多个节点只会操作第一个节点
@@ -1593,32 +1759,35 @@ class Render {
     if (this.activeNodeList.length <= 0 && appointNodes.length <= 0) {
       return
     }
-    // 删除节点后需要激活的节点
-    let needActiveNode = null
-    let isAppointNodes = appointNodes.length > 0
-    let list = isAppointNodes ? appointNodes : this.activeNodeList
-    let root = list.find(node => {
-      return node.isRoot && !node.getData('isFreedomNode')
-    })
-    if (root) {
-      this.clearActiveNodeList()
-      root.children = []
-      root.nodeData.children = []
-    } else {
-      // 如果只选中了一个节点，删除后激活其兄弟节点或者父节点
-      needActiveNode = this.getNextActiveNode(list)
-      for (let i = 0; i < list.length; i++) {
-        const node = list[i]
-        const currentEditNode = this.textEdit.getCurrentEditNode()
-        if (
-          currentEditNode &&
-          currentEditNode.getData('uid') === node.getData('uid')
-        ) {
-          // 如果当前节点正在编辑中，那么先完成编辑
-          this.textEdit.hideEditTextBox()
-        }
-        if (isAppointNodes) list.splice(i, 1)
-
+    // 使用批次操作，确保整个删除过程只产生一个历史记录
+    this.mindMap.command.startBatch()
+    try {
+      // 删除节点后需要激活的节点
+      let needActiveNode = null
+      let isAppointNodes = appointNodes.length > 0
+      let list = isAppointNodes ? appointNodes : this.activeNodeList
+      let root = list.find(node => {
+        return node.isRoot && !node.getData('isFreedomNode')
+      })
+      if (root) {
+        this.clearActiveNodeList()
+        root.children = []
+        root.nodeData.children = []
+      } else {
+        // 如果只选中了一个节点，删除后激活其兄弟节点或者父节点
+        needActiveNode = this.getNextActiveNode(list)
+        for (let i = 0; i < list.length; i++) {
+          const node = list[i]
+          const currentEditNode = this.textEdit.getCurrentEditNode()
+          if (
+            currentEditNode &&
+            currentEditNode.getData('uid') === node.getData('uid')
+          ) {
+            // 如果当前节点正在编辑中，那么先完成编辑
+            this.textEdit.hideEditTextBox()
+          }
+          if (isAppointNodes) list.splice(i, 1)
+  
         // 【FreedomNode Hook】处理自由节点删除
         if (node.getData('isFreedomNode') && this.mindMap.freeNode) {
           this.removeNodeFromActiveList(node)
@@ -1629,23 +1798,27 @@ class Render {
         }
 
         if (node.isGeneralization) {
-          this.deleteNodeGeneralization(node)
-          this.removeNodeFromActiveList(node)
-          i--
-        } else {
-          this.removeNodeFromActiveList(node)
-          removeFromParentNodeData(node)
-          i--
+            this.deleteNodeGeneralization(node)
+            this.removeNodeFromActiveList(node)
+            i--
+          } else {
+            this.removeNodeFromActiveList(node)
+            removeFromParentNodeData(node)
+            i--
+          }
         }
       }
+      this.activeNodeList = []
+      // 激活被删除节点的兄弟节点或父节点
+      if (needActiveNode) {
+        this.addNodeToActiveList(needActiveNode)
+      }
+      this.emitNodeActiveEvent()
+      this.isStructuralDirty = true
+      this.mindMap.render()
+    } finally {
+      this.mindMap.command.endBatch()
     }
-    this.activeNodeList = []
-    // 激活被删除节点的兄弟节点或父节点
-    if (needActiveNode) {
-      this.addNodeToActiveList(needActiveNode)
-    }
-    this.emitNodeActiveEvent()
-    this.mindMap.render()
   }
 
   // 删除概要节点，即从所属节点里删除该概要
@@ -1782,16 +1955,24 @@ class Render {
     nodeList = nodeList.filter(item => {
       return !item.isRoot
     })
-    nodeList.forEach(item => {
-      this.removeNodeFromActiveList(item)
-      removeFromParentNodeData(item)
-      toNode.setData({
-        expand: true
+    if (nodeList.length === 0) return
+    // 使用批次操作，确保整个移动过程只产生一个历史记录
+    this.mindMap.command.startBatch()
+    try {
+      nodeList.forEach(item => {
+        this.removeNodeFromActiveList(item)
+        removeFromParentNodeData(item)
+        toNode.setData({
+          expand: true
+        })
+        toNode.nodeData.children.push(item.nodeData)
       })
-      toNode.nodeData.children.push(item.nodeData)
-    })
-    this.emitNodeActiveEvent()
-    this.mindMap.render()
+      this.emitNodeActiveEvent()
+      this.isStructuralDirty = true
+      this.mindMap.render()
+    } finally {
+      this.mindMap.command.endBatch()
+    }
   }
 
   //   粘贴节点到节点
@@ -2225,6 +2406,9 @@ class Render {
   // 移动节点到画布中心
   // resetScale参数指定是否要将画布缩放值复位为100%，当你没有显式传递时，默认值为undefined，因为实例化选项的resetScaleOnMoveNodeToCenter配置也会决定是否复位缩放，所以当你没有显式传递时使用resetScaleOnMoveNodeToCenter配置，否则使用resetScale配置
   moveNodeToCenter(node, resetScale) {
+    if (!node) {
+      return
+    }
     let { resetScaleOnMoveNodeToCenter } = this.mindMap.opt
     if (resetScale !== undefined) {
       resetScaleOnMoveNodeToCenter = resetScale

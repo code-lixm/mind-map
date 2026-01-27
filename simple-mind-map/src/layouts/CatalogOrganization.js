@@ -208,6 +208,8 @@ class CatalogOrganization extends Base {
   //  绘制连线，连接该节点到其子节点
   renderLine(node, lines, style) {
     if (node.children.length <= 0) {
+      // 没有子节点时，清理所有额外线条
+      this.cleanupExtraLines(node, lines, 0)
       return []
     }
     let { left, top, width, height, expandBtnSize } = node
@@ -245,22 +247,26 @@ class CatalogOrganization extends Base {
       })
       minx = Math.min(minx, x1)
       maxx = Math.max(maxx, x1)
-      // 父节点的竖线
-      let line1 = this.lineDraw.path()
+      // 父节点的竖线（额外线条 0）
+      let line1 = this.getOrCreateExtraLine(node, lines, 0)
       node.style.line(line1)
       line1.plot(this.transformPath(`M ${x1},${y1} L ${x1},${y1 + s1}`))
-      node._lines.push(line1)
+      line1.show()
       style && style(line1, node)
-      // 水平线
+      // 水平线（额外线条 1）
+      let extraCount = 1
       if (len > 0) {
-        let lin2 = this.lineDraw.path()
+        let lin2 = this.getOrCreateExtraLine(node, lines, 1)
         node.style.line(lin2)
         lin2.plot(
           this.transformPath(`M ${minx},${y1 + s1} L ${maxx},${y1 + s1}`)
         )
-        node._lines.push(lin2)
+        lin2.show()
         style && style(lin2, node)
+        extraCount = 2
       }
+      // 清理多余的额外线条
+      this.cleanupExtraLines(node, lines, extraCount)
     } else {
       // 非根节点
       let y1 = top + height
@@ -313,9 +319,10 @@ class CatalogOrganization extends Base {
         path += nodeUseLineStylePath
         this.setLineStyle(style, lines[index], path, item)
       })
-      // 竖线
+      // 竖线（额外线条 0）
+      let extraCount = 0
       if (len > 0) {
-        let lin2 = this.lineDraw.path()
+        let lin2 = this.getOrCreateExtraLine(node, lines, 0)
         expandBtnSize = len > 0 ? expandBtnSize : 0
         node.style.line(lin2)
         if (maxy < y1 + expandBtnSize) {
@@ -326,9 +333,11 @@ class CatalogOrganization extends Base {
           )
           lin2.show()
         }
-        node._lines.push(lin2)
         style && style(lin2, node)
+        extraCount = 1
       }
+      // 清理多余的额外线条
+      this.cleanupExtraLines(node, lines, extraCount)
     }
   }
 

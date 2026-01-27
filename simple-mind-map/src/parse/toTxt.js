@@ -22,7 +22,7 @@ export const transformToTxt = root => {
       if (Array.isArray(generalization)) {
         content += generalization.map(item => {
           return ` [${getNodeText(item)}]`
-        })
+        }).join('')
       } else if (generalization && generalization.text) {
         content += ` [${getNodeText(generalization)}]`
       }

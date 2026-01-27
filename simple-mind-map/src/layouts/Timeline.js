@@ -236,6 +236,8 @@ class Timeline extends Base {
   //  绘制连线，连接该节点到其子节点
   renderLine(node, lines, style) {
     if (node.children.length <= 0) {
+      // 没有子节点时，清理所有额外线条
+      this.cleanupExtraLines(node, lines, 0)
       return []
     }
     let { left, top, width, height, expandBtnSize } = node
@@ -256,6 +258,8 @@ class Timeline extends Base {
         this.setLineStyle(style, lines[index], path, item)
         prevBother = item
       })
+      // 根节点没有额外线条，清理可能存在的额外线条
+      this.cleanupExtraLines(node, lines, 0)
     } else {
       // 当前节点为非根节点
       let maxy = -Infinity
@@ -273,9 +277,10 @@ class Timeline extends Base {
         let path = `M ${x},${y} L ${item.left},${y}`
         this.setLineStyle(style, lines[index], path, item)
       })
-      // 竖线
+      // 竖线（额外线条 0）
+      let extraCount = 0
       if (len > 0) {
-        let line = this.lineDraw.path()
+        let line = this.getOrCreateExtraLine(node, lines, 0)
         expandBtnSize = len > 0 ? expandBtnSize : 0
         if (
           node.parent &&
@@ -291,9 +296,12 @@ class Timeline extends Base {
           )
         }
         node.style.line(line)
-        node._lines.push(line)
+        line.show()
         style && style(line, node)
+        extraCount = 1
       }
+      // 清理多余的额外线条
+      this.cleanupExtraLines(node, lines, extraCount)
     }
   }
 

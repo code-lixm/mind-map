@@ -67,6 +67,80 @@ export const bfsWalk = (root, callback) => {
   }
 }
 
+// 深度优先遍历树（迭代版本，防栈溢出）
+export const walkIterative = (
+  root,
+  beforeCallback,
+  afterCallback
+) => {
+  if (!root) return
+
+  // 模拟调用栈
+  const stack = [{
+    node: root,
+    parent: null,
+    isRoot: true,
+    layerIndex: 0,
+    index: 0,
+    ancestors: [],
+    processed: false // 标记是否已处理过子节点（用于模拟后续遍历）
+  }]
+
+  while (stack.length > 0) {
+    const stackItem = stack[stack.length - 1]
+    const { node, parent, isRoot, layerIndex, index, ancestors, processed } = stackItem
+
+    if (!processed) {
+      // 前置回调 (Pre-order)
+      let stop = false
+      if (beforeCallback) {
+        stop = beforeCallback(node, parent, isRoot, layerIndex, index, ancestors)
+      }
+
+      stackItem.processed = true
+
+      // 如果回调返回 true 或者是停止信号，则不再深入子节点
+      if (stop) {
+        // 如果需要立即停止整个遍历，可以在这里处理，但目前的 walk 逻辑是停止当前分支
+        // 这里模仿原 walk 的 behavior: stop 只是不遍历 children
+        stack.pop() 
+        // 注意：原 walk 函数如果 stop=true，也不会执行 afterCallback。
+        // 原逻辑：if (!stop && root.children...) { ... } afterCallback()
+        // 所以如果 stop 了，children 不遍历，但 afterCallback 依然会执行
+        if (afterCallback) {
+          afterCallback(node, parent, isRoot, layerIndex, index, ancestors)
+        }
+        continue
+      }
+
+      // 将子节点压入栈中
+      // 注意：为了保证从左到右遍历，需要倒序压栈
+      if (node.children && node.children.length > 0) {
+        const nextLayerIndex = layerIndex + 1
+        const nextAncestors = [...ancestors, node]
+        for (let i = node.children.length - 1; i >= 0; i--) {
+          stack.push({
+            node: node.children[i],
+            parent: node,
+            isRoot: false,
+            layerIndex: nextLayerIndex,
+            index: i,
+            ancestors: nextAncestors,
+            processed: false
+          })
+        }
+      }
+    } else {
+      // 后置回调 (Post-order)
+      // 当子节点都处理完后（或者没有子节点），会再次回到栈顶的这个节点
+      if (afterCallback) {
+        afterCallback(node, parent, isRoot, layerIndex, index, ancestors)
+      }
+      stack.pop()
+    }
+  }
+}
+
 // 按原比例缩放图片
 export const resizeImgSizeByOriginRatio = (
   width,
@@ -151,12 +225,28 @@ export const getStrWithBrFromHtml = str => {
   return str
 }
 
+// 导入 polyfill（作为后备方案）
+import structuredClonePolyfill from '@ungap/structured-clone'
+
+// 优先使用原生 structuredClone，如果不存在则使用 polyfill
+// 注意：不要直接赋值给全局作用域（如 globalThis.structuredClone = ...），
+// 避免在已有原生实现的环境中造成无限循环
+// 原生实现性能更好且支持更多类型（如 Blob、File 等）
+const structuredCloneImpl = typeof globalThis.structuredClone === 'function'
+  ? globalThis.structuredClone  // 使用原生实现（约 95% 的现代浏览器支持）
+  : structuredClonePolyfill     // 降级到 polyfill（用于旧浏览器）
+
 //  极简的深拷贝
 export const simpleDeepClone = data => {
   try {
-    return JSON.parse(JSON.stringify(data))
+    return structuredCloneImpl(data)
   } catch (error) {
-    return null
+    try {
+      return JSON.parse(JSON.stringify(data))
+    } catch (fallbackError) {
+      // 如果两种方法都失败，返回 null 以保持原有契约
+      return null
+    }
   }
 }
 
@@ -176,9 +266,33 @@ export const copyRenderTree = (tree, root, removeActiveState = false) => {
       tree.children[index] = copyRenderTree({}, item, removeActiveState)
     })
   }
-  // data、children外的其他字段
+  // data、children外的其他字段（排除临时运行时属性）
+  const excludeKeys = [
+    'data',
+    'children',
+    'inserting',
+    'parent',
+    'left',
+    'top',
+    'width',
+    'height',
+    'x',
+    'y',
+    'layerIndex',
+    'index',
+    'depth',
+    'direction',
+    'layout',
+    'isDrag',
+    'isDragging',
+    'isScrolling',
+    'offsetX',
+    'offsetY',
+    'targetX',
+    'targetY'
+  ] // 运行时状态，不应保存到历史
   Object.keys(root).forEach(key => {
-    if (!['data', 'children'].includes(key) && !/^_/.test(key)) {
+    if (!excludeKeys.includes(key) && !/^_/.test(key)) {
       tree[key] = root[key]
     }
   })
@@ -284,7 +398,7 @@ export const downloadFile = (file, fileName) => {
 //  节流函数
 export const throttle = (fn, time = 300, ctx) => {
   let timer = null
-  return (...args) => {
+  const throttled = (...args) => {
     if (timer) {
       return
     }
@@ -293,6 +407,13 @@ export const throttle = (fn, time = 300, ctx) => {
       timer = null
     }, time)
   }
+  throttled.cancel = () => {
+    if (timer) {
+      clearTimeout(timer)
+      timer = null
+    }
+  }
+  return throttled
 }
 
 // 防抖函数

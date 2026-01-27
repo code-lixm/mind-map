@@ -225,7 +225,9 @@ class View {
   transform() {
     try {
       this.limitMindMapInCanvas()
-    } catch (error) {}
+    } catch (error) {
+      console.error('transform error', error)
+    }
     this.mindMap.draw.transform({
       origin: [0, 0],
       scale: this.scale,
@@ -327,7 +329,7 @@ class View {
   }
 
   // 适应画布大小
-  fit(getRbox = () => {}, enlarge = false, fitPadding) {
+  fit(getRbox = () => { }, enlarge = false, fitPadding) {
     fitPadding =
       fitPadding === undefined ? this.mindMap.opt.fitPadding : fitPadding
     const draw = this.mindMap.draw
@@ -377,13 +379,13 @@ class View {
       flag = 1
     } else {
       let newWidth = 0
-      let newHeight = 0
+      // let newHeight = 0
       if (drawRatio > elRatio) {
         newWidth = elWidth
-        newHeight = elWidth / drawRatio
+        // newHeight = elWidth / drawRatio
         flag = 2
       } else {
-        newHeight = elHeight
+        // newHeight = elHeight
         newWidth = elHeight * drawRatio
         flag = 3
       }
@@ -496,8 +498,10 @@ class View {
     switch (type) {
       case 'scale':
         this.mindMap.emit('scale', this.scale)
+        break
       case 'translate':
         this.mindMap.emit('translate', this.x, this.y)
+        break
     }
   }
 }

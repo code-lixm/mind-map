@@ -49,37 +49,48 @@ class Event extends EventEmitter {
 
   //  绑定事件
   bind() {
-    document.body.addEventListener('mousedown', this.onBodyMousedown)
-    document.body.addEventListener('click', this.onBodyClick)
-    this.mindMap.svg.on('click', this.onDrawClick)
-    this.mindMap.svg.on('dblclick', this.onDblclick)
-    this.mindMap.el.addEventListener('mousedown', this.onMousedown)
-    this.mindMap.svg.on('mousedown', this.onSvgMousedown)
+    if (document.body) {
+      document.body.addEventListener('mousedown', this.onBodyMousedown)
+      document.body.addEventListener('click', this.onBodyClick)
+    }
+    if (this.mindMap.svg) {
+      this.mindMap.svg.on('click', this.onDrawClick)
+      this.mindMap.svg.on('mousedown', this.onSvgMousedown)
+      this.mindMap.svg.on('contextmenu', this.onContextmenu)
+      this.mindMap.svg.on('mouseenter', this.onMouseenter)
+      this.mindMap.svg.on('mouseleave', this.onMouseleave)
+    }
+    if (this.mindMap.el) {
+      this.mindMap.el.addEventListener('mousedown', this.onMousedown)
+      this.mindMap.el.addEventListener('wheel', this.onMousewheel)
+    }
     window.addEventListener('mousemove', this.onMousemove)
     window.addEventListener('mouseup', this.onMouseup)
     this.on('node_mouseup', this.onNodeMouseup)
-    this.mindMap.el.addEventListener('wheel', this.onMousewheel)
-    this.mindMap.svg.on('contextmenu', this.onContextmenu)
-    this.mindMap.svg.on('mouseenter', this.onMouseenter)
-    this.mindMap.svg.on('mouseleave', this.onMouseleave)
     window.addEventListener('keyup', this.onKeyup)
     window.addEventListener('keydown', this.onKeydown)
   }
 
   //  解绑事件
   unbind() {
-    document.body.removeEventListener('mousedown', this.onBodyMousedown)
-    document.body.removeEventListener('click', this.onBodyClick)
-    this.mindMap.svg.off('click', this.onDrawClick)
-    this.mindMap.svg.off('dblclick', this.onDblclick)
-    this.mindMap.el.removeEventListener('mousedown', this.onMousedown)
+    if (document.body) {
+      document.body.removeEventListener('mousedown', this.onBodyMousedown)
+      document.body.removeEventListener('click', this.onBodyClick)
+    }
+    if (this.mindMap.svg) {
+      this.mindMap.svg.off('click', this.onDrawClick)
+      this.mindMap.svg.off('mousedown', this.onSvgMousedown)
+      this.mindMap.svg.off('contextmenu', this.onContextmenu)
+      this.mindMap.svg.off('mouseenter', this.onMouseenter)
+      this.mindMap.svg.off('mouseleave', this.onMouseleave)
+    }
+    if (this.mindMap.el) {
+      this.mindMap.el.removeEventListener('mousedown', this.onMousedown)
+      this.mindMap.el.removeEventListener('wheel', this.onMousewheel)
+    }
     window.removeEventListener('mousemove', this.onMousemove)
     window.removeEventListener('mouseup', this.onMouseup)
     this.off('node_mouseup', this.onNodeMouseup)
-    this.mindMap.el.removeEventListener('wheel', this.onMousewheel)
-    this.mindMap.svg.off('contextmenu', this.onContextmenu)
-    this.mindMap.svg.off('mouseenter', this.onMouseenter)
-    this.mindMap.svg.off('mouseleave', this.onMouseleave)
     window.removeEventListener('keyup', this.onKeyup)
     window.removeEventListener('keydown', this.onKeydown)
   }
