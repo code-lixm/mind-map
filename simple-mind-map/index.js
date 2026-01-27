@@ -49,6 +49,7 @@ class MindMap {
     // 容器元素
     this.el = this.opt.el
     if (!this.el) throw new Error('缺少容器元素el')
+    this.instanceId = createUid()
 
     // 获取容器尺寸位置信息
     this.getElRectInfo()
@@ -227,22 +228,38 @@ class MindMap {
   // 创建容器元素
   initContainer() {
     const { associativeLineIsAlwaysAboveNode } = this.opt
+    if (this.opt.debugRender) {
+      const existingSvg = this.el.querySelector('svg[data-smm-instance]')
+      console.warn('[smm-debug][initContainer] called', this.instanceId)
+      console.warn('[smm-debug][initContainer] stack', new Error().stack)
+      if (existingSvg) {
+        console.warn(
+          '[smm-debug][initContainer] existing svg instance',
+          existingSvg.getAttribute('data-smm-instance'),
+          this.instanceId
+        )
+      }
+    }
     // 给容器元素添加一个类名
     this.el.classList.add('smm-mind-map-container')
     // 节点关联线容器
     const createAssociativeLineDraw = () => {
       this.associativeLineDraw = this.draw.group()
       this.associativeLineDraw.addClass('smm-associative-line-container')
+      this.associativeLineDraw.attr('data-smm-instance', this.instanceId)
     }
     // 画布
     this.svg = SVG().addTo(this.el).size(this.width, this.height)
+    this.svg.attr('data-smm-instance', this.instanceId)
 
     // 容器
     this.draw = this.svg.group()
     this.draw.addClass('smm-container')
+    this.draw.attr('data-smm-instance', this.instanceId)
     // 节点连线容器
     this.lineDraw = this.draw.group()
     this.lineDraw.addClass('smm-line-container')
+    this.lineDraw.attr('data-smm-instance', this.instanceId)
     // 默认处于节点下方
     if (!associativeLineIsAlwaysAboveNode) {
       createAssociativeLineDraw()
@@ -250,6 +267,7 @@ class MindMap {
     // 节点容器
     this.nodeDraw = this.draw.group()
     this.nodeDraw.addClass('smm-node-container')
+    this.nodeDraw.attr('data-smm-instance', this.instanceId)
     // 关联线始终处于节点上方
     if (associativeLineIsAlwaysAboveNode) {
       createAssociativeLineDraw()
@@ -257,6 +275,7 @@ class MindMap {
     // 其他内容的容器
     this.otherDraw = this.draw.group()
     this.otherDraw.addClass('smm-other-container')
+    this.otherDraw.attr('data-smm-instance', this.instanceId)
   }
 
   // 清空各容器

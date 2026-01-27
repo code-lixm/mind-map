@@ -13,27 +13,49 @@ class ExportPDF {
   async pdf(img) {
     return new Promise((resolve, reject) => {
       const image = new Image()
+      
+      // 清理资源的辅助函数
+      const cleanup = () => {
+        try {
+          if (image) {
+            image.onload = null
+            image.onerror = null
+            image.src = ''
+          }
+        } catch (e) {
+          // 忽略清理过程中的错误
+        }
+      }
+      
       image.onload = async () => {
-        const imageWidth = image.width
-        const imageHeight = image.height
-        // 创建pdf页面，尺寸设置为图片的大小
-        const pdfDoc = await PDFDocument.create()
-        const page = pdfDoc.addPage()
-        page.setSize(imageWidth, imageHeight)
-        // 添加图片到pdf
-        const pngImage = await pdfDoc.embedPng(img)
-        page.drawImage(pngImage, {
-          x: 0,
-          y: 0,
-          width: imageWidth,
-          height: imageHeight
-        })
-        const pdfBytes = await pdfDoc.save()
-        const blob = new Blob([pdfBytes])
-        const res = await readBlob(blob)
-        resolve(res)
+        try {
+          const imageWidth = image.width
+          const imageHeight = image.height
+          // 创建pdf页面，尺寸设置为图片的大小
+          const pdfDoc = await PDFDocument.create()
+          const page = pdfDoc.addPage()
+          page.setSize(imageWidth, imageHeight)
+          // 添加图片到pdf
+          const pngImage = await pdfDoc.embedPng(img)
+          page.drawImage(pngImage, {
+            x: 0,
+            y: 0,
+            width: imageWidth,
+            height: imageHeight
+          })
+          const pdfBytes = await pdfDoc.save()
+          const blob = new Blob([pdfBytes])
+          const res = await readBlob(blob)
+          // 清理资源
+          cleanup()
+          resolve(res)
+        } catch (error) {
+          cleanup()
+          reject(error)
+        }
       }
       image.onerror = e => {
+        cleanup()
         reject(
           new Error(
             `Failed to load image for PDF export. ${e.message || 'Unknown error'}`

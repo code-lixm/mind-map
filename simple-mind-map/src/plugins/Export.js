@@ -191,12 +191,44 @@ class Export {
   ) {
     const { maxCanvasSize, minExportImgCanvasScale } = this.mindMap.opt
     return new Promise((resolve, reject) => {
-      const img = new Image()
+      let img = new Image()
       // 跨域图片需要添加这个属性，否则画布被污染了无法导出图片
       img.setAttribute('crossOrigin', 'anonymous')
+      let canvas = null
+      let ctx = null
+      let bgImg = null
+      
+      // 清理资源的辅助函数
+      const cleanup = () => {
+        try {
+          if (canvas && ctx) {
+            // 清空 canvas 上下文
+            ctx.clearRect(0, 0, canvas.width, canvas.height)
+            // 重置 canvas 尺寸以释放内存
+            canvas.width = 0
+            canvas.height = 0
+            canvas = null
+            ctx = null
+          }
+          if (img) {
+            img.onload = null
+            img.onerror = null
+            img.src = ''
+          }
+          if (bgImg) {
+            bgImg.onload = null
+            bgImg.onerror = null
+            bgImg.src = ''
+            bgImg = null
+          }
+        } catch (e) {
+          // 忽略清理过程中的错误
+        }
+      }
+      
       img.onload = async () => {
         try {
-          const canvas = document.createElement('canvas')
+          canvas = document.createElement('canvas')
           const dpr = Math.max(window.devicePixelRatio, minExportImgCanvasScale)
           // 图片原始大小
           let imgWidth = img.width
@@ -216,7 +248,7 @@ class Export {
           const { backgroundImage } = this.mindMap.themeConfig
           if (fitBg && backgroundImage && !transparent) {
             const bgImgSize = await new Promise(resolve => {
-              const bgImg = new Image()
+              bgImg = new Image()
               bgImg.onload = () => {
                 resolve([bgImg.width, bgImg.height])
               }
@@ -235,6 +267,13 @@ class Export {
                 fitBgImgHeight = imgHeight
                 fitBgImgWidth = imgHeight * bgRatio
               }
+            }
+            // 清理背景图片对象
+            if (bgImg) {
+              bgImg.onload = null
+              bgImg.onerror = null
+              bgImg.src = ''
+              bgImg = null
             }
           }
           // 检查是否超出canvas支持的像素上限
@@ -272,7 +311,7 @@ class Export {
           // canvas元素实际上的大小
           canvas.style.width = styleWidth + 'px'
           canvas.style.height = styleHeight + 'px'
-          const ctx = canvas.getContext('2d')
+          ctx = canvas.getContext('2d')
           ctx.scale(dpr, dpr)
           // 绘制背景
           if (!transparent) {
@@ -305,12 +344,17 @@ class Export {
               imgHeight * scaleY
             )
           }
-          resolve(canvas.toDataURL(format))
+          const dataUrl = canvas.toDataURL(format)
+          // 清理资源
+          cleanup()
+          resolve(dataUrl)
         } catch (error) {
+          cleanup()
           reject(error)
         }
       }
       img.onerror = e => {
+        cleanup()
         reject(e)
       }
       img.src = svgSrc

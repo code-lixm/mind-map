@@ -88,6 +88,8 @@ class Render {
     this.isRendering = false
     // 是否需要重新渲染（渲染期间有新的渲染请求）
     this.needRerender = false
+    // 延迟清理线条容器的标记，确保在同一轮渲染内完成，避免中间态缺线
+    this.needClearLineDraw = false
     // RAF 调度 ID
     this.rafId = null
     // 用于缓存节点
@@ -136,6 +138,8 @@ class Render {
       this.mindMap.opt.layout = CONSTANTS.LAYOUT.LOGICAL_STRUCTURE
     }
     this.layout = new L(this, layout)
+    // 布局切换时标记结构变化，确保下次渲染时调用 sanitizeRenderTree 清理旧的 _node 引用
+    this.isStructuralDirty = true
   }
 
   // 规范化渲染树，解决外部数据重复uid / 残留引用导致的鬼影
@@ -616,6 +620,13 @@ class Render {
     this.layout.lru.clear()
     this.nodeCache = {}
     this.lastNodeCache = {}
+    // 同步清理线条容器由下一轮渲染执行，避免清空后未立即渲染导致的“无线”中间态
+    this.needClearLineDraw = true
+    if (this.mindMap.opt && this.mindMap.opt.debugRender) {
+      console.warn('[smm-debug][render] clearCache set needClearLineDraw')
+    }
+    // 标记结构变化，确保下次渲染时调用 sanitizeRenderTree 清理渲染树中的 _node 引用
+    this.isStructuralDirty = true
   }
 
   // 保存触发渲染的参数
@@ -718,6 +729,27 @@ class Render {
     // 计算布局
     this.root = null
     this.layout.doLayout(root => {
+      // 如需清理线条，放在布局完成后、节点渲染前执行，保证同一帧内清空再重画
+      if (this.needClearLineDraw && this.mindMap.lineDraw) {
+        if (this.mindMap.opt && this.mindMap.opt.debugRender) {
+          const cacheSize = Object.keys(this.nodeCache).length
+          const lastCacheSize = Object.keys(this.lastNodeCache).length
+          console.warn(
+            '[smm-debug][render] clear lineDraw before render',
+            { cacheSize, lastCacheSize }
+          )
+        }
+        this.mindMap.lineDraw.clear()
+        const resetLines = node => {
+          if (node && node._lines) node._lines = []
+        }
+        Object.values(this.nodeCache).forEach(resetLines)
+        Object.values(this.lastNodeCache).forEach(resetLines)
+        this.needClearLineDraw = false
+        if (this.mindMap.opt && this.mindMap.opt.debugRender) {
+          console.warn('[smm-debug][render] clear lineDraw done')
+        }
+      }
       // 删除本次渲染时不再需要的节点
       Object.keys(this.lastNodeCache).forEach(uid => {
         if (!this.nodeCache[uid]) {

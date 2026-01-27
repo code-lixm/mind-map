@@ -40,6 +40,10 @@ function createGeneralizationNode() {
     if (!cur) {
       cur = this._generalizationList[index] = {}
     }
+    // 确保概要数据持久化 uid，便于跨渲染复用并清理同 uid 的旧节点
+    if (!item.uid) {
+      item.uid = createUid()
+    }
     // 所属节点
     cur.node = this
     // 区间范围
@@ -54,10 +58,17 @@ function createGeneralizationNode() {
           inserting: item.inserting,
           data: item
         },
-        uid: createUid(),
+        uid: item.uid,
         renderer: this.renderer,
         mindMap: this.mindMap,
         isGeneralization: true
+      })
+    } else {
+      // 已存在的概要节点也需要同步最新 uid / 数据，避免复用旧状态
+      cur.generalizationNode.uid = item.uid
+      cur.generalizationNode.nodeData = cur.generalizationNode.handleData({
+        inserting: item.inserting,
+        data: item
       })
     }
     delete item.inserting

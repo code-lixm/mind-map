@@ -685,9 +685,31 @@ class MindMapNode {
       this.isRoot
     ) {
       if (!this.group) {
+        // 渲染前清理画布上可能存在的同 uid 孤立 group，避免重影
+        if (this.uid) {
+          const orphans = this.nodeDraw.find(`.smm-node[data-uid="${this.uid}"]`)
+          orphans.forEach(g => g.remove())
+          // 清理孤立的连线
+          if (this.lineDraw) {
+            this.lineDraw
+              .find(`path[data-owner-uid="${this.uid}"]`)
+              .forEach(line => {
+                // 如果当前 line 不在 this._lines 中，则删除
+                const isExist = this._lines.find(item => item === line || item.node === line.node)
+                if (!isExist) {
+                  line.remove()
+                }
+              })
+          }
+          // 清理孤立的概要节点
+          this.nodeDraw
+            .find(`.generalization_${this.uid}`)
+            .forEach(g => g.remove())
+        }
         // 创建组
         this.group = new G()
         this.group.addClass('smm-node')
+        this.group.attr('data-uid', this.uid)
         this.group.css({
           cursor: 'default'
         })
@@ -696,6 +718,16 @@ class MindMapNode {
         this.layout()
         this.update(forceRender)
       } else {
+        this.group.attr('data-uid', this.uid)
+        // 确保画布上没有使用相同 uid 的其他 group（重影防护）
+        if (this.uid) {
+          const existing = this.nodeDraw.find(`.smm-node[data-uid="${this.uid}"]`)
+          existing.forEach(g => {
+            if (g !== this.group) {
+              g.remove()
+            }
+          })
+        }
         if (!this.nodeDraw.has(this.group)) {
           this.nodeDraw.add(this.group)
         }
@@ -899,10 +931,20 @@ class MindMapNode {
         childrenLen = 0
       }
     }
+    // 检查 _lines 中的线条是否仍然有效（在 lineDraw 中），清理失效引用
+    if (this._lines.length > 0 && this.lineDraw) {
+      const validLines = this._lines.filter(line => this.lineDraw.has(line))
+      if (validLines.length !== this._lines.length) {
+        // 有失效的线条引用，需要清理
+        this._lines = validLines
+      }
+    }
     if (childrenLen > this._lines.length) {
       // 创建缺少的线
       new Array(childrenLen - this._lines.length).fill(0).forEach(() => {
-        this._lines.push(this.lineDraw.path())
+        const line = this.lineDraw.path()
+        if (this.uid) line.attr('data-owner-uid', this.uid)
+        this._lines.push(line)
       })
     } else if (childrenLen < this._lines.length) {
       // 删除多余的线
@@ -910,6 +952,14 @@ class MindMapNode {
         line.remove()
       })
       this._lines = this._lines.slice(0, childrenLen)
+    }
+    // 确保所有线条都有 data-owner-uid 属性
+    if (this.uid) {
+      this._lines.forEach(line => {
+        if (line && line.attr('data-owner-uid') !== this.uid) {
+          line.attr('data-owner-uid', this.uid)
+        }
+      })
     }
     // 画线
     this.renderer.layout.renderLine(
