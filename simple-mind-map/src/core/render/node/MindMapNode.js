@@ -933,7 +933,9 @@ class MindMapNode {
     }
     // 检查 _lines 中的线条是否仍然有效（在 lineDraw 中），清理失效引用
     if (this._lines.length > 0 && this.lineDraw) {
-      const validLines = this._lines.filter(line => this.lineDraw.has(line))
+      const validLines = this._lines.filter(line => {
+        return line && line.node && this.lineDraw.has(line)
+      })
       if (validLines.length !== this._lines.length) {
         // 有失效的线条引用，需要清理
         this._lines = validLines
