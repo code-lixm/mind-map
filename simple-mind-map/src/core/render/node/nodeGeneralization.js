@@ -49,7 +49,8 @@ function createGeneralizationNode() {
     // 区间范围
     cur.range = item.range
     // 线和节点
-    if (!cur.generalizationLine) {
+    if (!cur.generalizationLine || !this.lineDraw.has(cur.generalizationLine)) {
+      if (cur.generalizationLine) cur.generalizationLine.remove()
       cur.generalizationLine = this.lineDraw.path()
     }
     if (!cur.generalizationNode) {
@@ -111,7 +112,7 @@ function renderGeneralization(forceRender) {
   this.renderer.layout.renderGeneralization(this._generalizationList)
   this._generalizationList.forEach(item => {
     this.style.generalizationLine(item.generalizationLine)
-    item.generalizationNode.render(() => {}, forceRender)
+    item.generalizationNode.render(() => { }, forceRender)
   })
 }
 
@@ -204,8 +205,8 @@ function handleGeneralizationMouseenter() {
   const color = hoverRectColor || this.mindMap.opt.hoverRectColor
   const style = color
     ? {
-        stroke: color
-      }
+      stroke: color
+    }
     : null
   // 区间概要，框子节点
   if (

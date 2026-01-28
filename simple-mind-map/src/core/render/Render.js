@@ -885,10 +885,10 @@ class Render {
     // 过滤出新的激活列表
     const newActiveNodeList = this.activeNodeList.filter(node => !uidSet.has(node.getData('uid')))
     this.activeNodeList = newActiveNodeList
-    
+
     nodes.forEach(node => {
-        this.mindMap.execCommand('SET_NODE_ACTIVE', node, false)
-        this.emitNodeInactiveEvent(node, this.activeNodeList)
+      this.mindMap.execCommand('SET_NODE_ACTIVE', node, false)
+      this.emitNodeInactiveEvent(node, this.activeNodeList)
     })
     this.mindMap.command.endBatch()
   }
@@ -2365,10 +2365,11 @@ class Render {
   }
 
   // 重新节点某个节点，判断节点大小是否发生了改变，是的话触发重绘
+
   reRenderNodeCheckChange(node, notRender) {
-    let changed = node.reRender()
-    if (changed) {
-      if (!notRender) this.mindMap.render()
+    node.reRender()
+    if (!notRender) {
+      this.mindMap.render()
     } else {
       this.mindMap.emit('node_tree_render_end')
     }
