@@ -2367,10 +2367,10 @@ class Render {
   // 重新节点某个节点，判断节点大小是否发生了改变，是的话触发重绘
 
   reRenderNodeCheckChange(node, notRender) {
-    node.reRender()
     if (!notRender) {
       this.mindMap.render()
     } else {
+      node.reRender()
       this.mindMap.emit('node_tree_render_end')
     }
   }

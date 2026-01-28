@@ -341,7 +341,7 @@ function createTextNode(specifyText) {
     this.style.text(node)
     node.y(
       fontSize * noneRichTextNodeLineHeight * index +
-        ((noneRichTextNodeLineHeight - 1) * fontSize) / 2
+      ((noneRichTextNodeLineHeight - 1) * fontSize) / 2
     )
     g.add(node)
   })
