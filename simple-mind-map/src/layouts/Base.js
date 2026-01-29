@@ -123,6 +123,8 @@ class Base {
       lastData.expand = curData.expand
       lastData = JSON.stringify(lastData)
     } else {
+      // 如果没有上一次的数据，但是有当前的数据，那么肯定是变了
+      if (curData) return true
       // 只在都有数据时才进行对比
       return false
     }
