@@ -92,9 +92,9 @@ onBeforeUnmount(() => {
 
 <style lang="scss" scoped>
 .sidebarContainer {
-  position: fixed;
+  position: absolute;
   right: -300px;
-  top: 150px;
+  top: 100px;
   bottom: 75px;
   width: 300px;
   background-color: #fff;

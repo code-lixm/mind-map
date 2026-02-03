@@ -1787,17 +1787,17 @@ class Render {
             this.textEdit.hideEditTextBox()
           }
           if (isAppointNodes) list.splice(i, 1)
-  
-        // 【FreedomNode Hook】处理自由节点删除
-        if (node.getData('isFreedomNode') && this.mindMap.freeNode) {
-          this.removeNodeFromActiveList(node)
-          const freeNodeId = node.getData('_freedomNodeId')
-          this.mindMap.freeNode.removeFreeNode(freeNodeId)
-          i--
-          continue
-        }
 
-        if (node.isGeneralization) {
+          // 【FreedomNode Hook】处理自由节点删除
+          if (node.getData('isFreedomNode') && this.mindMap.freeNode) {
+            this.removeNodeFromActiveList(node)
+            const freeNodeId = node.getData('_freedomNodeId')
+            this.mindMap.freeNode.removeFreeNode(freeNodeId)
+            i--
+            continue
+          }
+
+          if (node.isGeneralization) {
             this.deleteNodeGeneralization(node)
             this.removeNodeFromActiveList(node)
             i--
