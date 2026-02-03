@@ -482,6 +482,28 @@ class Drag extends Base {
     this.placeholder.size(0, 0)
     this.placeHolderLine.hide()
     this.removeExtraLines()
+
+    // 自由节点吸附检查
+    const isFreedomNode =
+      this.beingDragNodeList.length > 0 &&
+      this.beingDragNodeList[0].getData('isFreedomNode')
+    if (isFreedomNode) {
+      const { scaleX, scaleY, translateX, translateY } = this.drawTransform
+      const x = (this.mouseMoveX - this.offsetX - translateX) / scaleX
+      const y = (this.mouseMoveY - this.offsetY - translateY) / scaleY
+
+      const targetNode = this.checkSnapToTree(this.beingDragNodeList[0], {
+        x,
+        y
+      })
+      if (targetNode) {
+        this.overlapNode = targetNode
+        this.handleOverlapNode()
+        return
+      }
+      return
+    }
+
     this.nodeList.forEach(node => {
       if (node.getData('isActive')) {
         this.mindMap.execCommand('SET_NODE_ACTIVE', node, false)

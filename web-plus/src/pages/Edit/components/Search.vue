@@ -89,6 +89,12 @@ watch(searchText, (val) => {
   }
 })
 
+watch(() => props.isReadonly, (val) => {
+  if (val) {
+    hideReplaceInput()
+  }
+})
+
 // 处理搜索信息变化
 interface SearchInfoData {
   currentIndex: number
@@ -255,18 +261,20 @@ onBeforeUnmount(() => {
         @focus="onFocus"
         @blur="onBlur"
       >
-        <template v-if="!isUndef(searchText)" #append>
+        <template #suffix>
+          <div v-if="showSearchInfo && !isUndef(searchText)" class="searchInfo">
+            {{ currentIndex }} / {{ total }}
+          </div>
+        </template>
+        <template v-if="!isUndef(searchText) && !isReadonly" #append>
           <el-button size="small" @click="showReplaceInput = true">
             {{ localeText.search.replace }}
           </el-button>
         </template>
       </el-input>
-      <div v-if="showSearchInfo && !isUndef(searchText)" class="searchInfo">
-        {{ currentIndex }} / {{ total }}
-      </div>
     </div>
     <el-input
-      v-if="showReplaceInput"
+      v-if="showReplaceInput && !isReadonly"
       ref="replaceInputRef"
       v-model="replaceText"
       :placeholder="localeText.search.replacePlaceholder"
@@ -285,7 +293,7 @@ onBeforeUnmount(() => {
         </el-button>
       </template>
     </el-input>
-    <div v-if="showReplaceInput" class="btnList">
+    <div v-if="showReplaceInput && !isReadonly" class="btnList">
       <el-button size="small" :disabled="isReadonly" @click="replace">
         {{ localeText.search.replace }}
       </el-button>
@@ -367,14 +375,14 @@ onBeforeUnmount(() => {
   .searchInputBox {
     position: relative;
 
-    .searchInfo {
-      position: absolute;
-      right: 70px;
-      top: 50%;
-      transform: translateY(-50%);
-      color: #909090;
-      font-size: 14px;
-    }
+    // .searchInfo {
+    //   position: absolute;
+    //   right: 70px;
+    //   top: 50%;
+    //   transform: translateY(-50%);
+    //   color: #909090;
+    //   font-size: 14px;
+    // }
   }
 
   .searchResultList {

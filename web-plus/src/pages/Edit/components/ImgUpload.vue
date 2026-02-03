@@ -3,7 +3,6 @@ import type { UploadFile, UploadInstance, UploadRawFile, UploadRequestOptions } 
 import { computed, inject, ref, watch } from 'vue'
 import { UploadFilled } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox, genFileId } from 'element-plus'
-import COMMON_API from '@/api/common'
 
 // Props & Emits
 interface FileInfo {
@@ -182,20 +181,28 @@ function beforeUpload(file: UploadRawFile) {
   return true
 }
 
-// 处理上传
-async function handleHttpRequest({ file, onSuccess, onError }: UploadRequestOptions) {
-  try {
-    const formData = new FormData()
-    formData.append('file', file)
-    const res = await COMMON_API.upload(formData)
-    if (res) {
-      onSuccess(res)
+// 处理上传：本地转为 base64，不依赖业务上传接口
+function handleHttpRequest({ file, onSuccess, onError }: UploadRequestOptions): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => {
+      const dataUrl = reader.result as string
+      onSuccess({
+        fileId: dataUrl,
+        fileName: file.name,
+        fileSize: String(file.size),
+        fileType: file.type || '',
+      })
+      resolve()
     }
-  }
-  catch (error: any) {
-    onError(error)
-    ElMessage.error(error.message || '文件上传失败')
-  }
+    reader.onerror = () => {
+      const err = new Error('文件读取失败') as any
+      onError(err)
+      ElMessage.error('文件读取失败')
+      reject(err)
+    }
+    reader.readAsDataURL(file)
+  })
 }
 
 // 获取图片大小

@@ -1203,7 +1203,8 @@ class MindMapNode {
     }
   }
 
-  // 高亮节点
+  // 高亮节点（仅对当前节点加 class，O(1)）
+  // 需「单选高亮」时由调用方先执行 renderer.clearAllNodeHighlight() 一次，再调用本方法
   highlight() {
     if (this.group) this.group.addClass('smm-node-highlight')
   }

@@ -25,6 +25,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 | 时间 | 操作 | 说明 |
 |------|------|------|
 | 2026-01-17T22:28:39+0800 | 初始化 | AI 上下文首次初始化，完成全仓扫描 |
+| 2026-02-03 | 优化 | 侧边栏按 activeSidebar 按需挂载，减少 el-popper-container 下 el-popover 预加载；补充 Popover 最佳实践说明 |
 
 ---
 
@@ -194,6 +195,12 @@ pnpm preview      # 预览构建结果
 | 添加 UI 组件 | `web-plus/src/pages/Edit/components/` |
 | 添加 API | `web-plus/src/api/` |
 | 添加国际化文本 | `web-plus/src/lang/` |
+
+### ElPopover / el-popper-container 最佳实践
+
+- **问题**：Element Plus 的 `el-popover` 在组件挂载时就会把内容渲染到 `el-popper-container`，若大量侧边栏/面板同时挂载，会导致大量 popover 预加载，影响首屏与内存。
+- **做法**：对由 `activeSidebar` 控制的侧边栏（Style、BaseStyle、Theme、Structure、Setting 等），在 `MindMapContainer` 中按需挂载：仅当 `activeSidebar === '对应值'` 时再挂载该组件（`v-if="mindMapInstance && activeSidebar === 'xxx'"`），避免未打开的侧边栏及其内部 popover 一起加载。
+- **例外**：依赖事件监听才能打开的面板（如 NodeOuterFrame 监听 `outer_frame_active`）需常驻挂载，不能按 activeSidebar 懒挂载。
 
 ### 安全注意事项
 

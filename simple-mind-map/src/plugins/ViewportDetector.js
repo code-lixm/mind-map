@@ -102,6 +102,7 @@ class ViewportDetector {
    * @returns {Object} 可见性信息
    */
   check() {
+    this.mindMap.getElRectInfo()
     if (!this.enabled) {
       return this.getVisibility()
     }

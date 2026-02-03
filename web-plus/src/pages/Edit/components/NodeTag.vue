@@ -39,7 +39,8 @@ function handleNodeActive(_node: any, nodes: any[]) {
   activeNodes.value = nodes ? [...nodes] : []
   if (activeNodes.value.length > 0) {
     const firstNode = activeNodes.value[0]
-    tagArr.value = firstNode.getData('tag') || []
+    const tags = firstNode.getData('tag')
+    tagArr.value = tags ? [...tags] : []
   }
   else {
     tagArr.value = []
@@ -51,6 +52,14 @@ function handleNodeActive(_node: any, nodes: any[]) {
 function handleShowNodeTag() {
   if (eventBus) {
     eventBus.emit('startTextEdit')
+  }
+  if (activeNodes.value.length > 0) {
+    const firstNode = activeNodes.value[0]
+    const tags = firstNode.getData('tag')
+    tagArr.value = tags ? [...tags] : []
+  }
+  else {
+    tagArr.value = []
   }
   dialogVisible.value = true
 }
@@ -103,7 +112,7 @@ onBeforeUnmount(() => {
     v-model="dialogVisible"
     class="nodeTagDialog"
     :title="localeText.nodeTag.title"
-    :width="isMobileDevice ? '90%' : '50%'"
+    :width="isMobileDevice ? '90%' : '500px'"
     :top="isMobileDevice ? '20px' : '15vh'"
   >
     <el-input

@@ -29,7 +29,7 @@ const MAX_FILE_SIZE = 100 * 1024 * 1024
 
 const supportFileStr = computed(() => {
   // 注释掉:移除 .smm 格式支持
-  return '.json,.xmind,.md' // 原来是 '.smm,.json,.xmind,.md'
+  return '.xmind' // 原来是 '.smm,.json,.xmind,.md'
 })
 
 watch(dialogVisible, (val, oldVal) => {

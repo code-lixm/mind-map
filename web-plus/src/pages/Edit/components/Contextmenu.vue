@@ -19,7 +19,11 @@ import { transformToTxt } from 'simple-mind-map/src/parse/toTxt'
 import { getTextFromHtml, imgToDataUrl } from 'simple-mind-map/src/utils'
 import { transformToMarkdown } from 'simple-mind-map/src/parse/toMarkdown'
 import { useEditorState } from '@/composables/useEditorState'
-import { copy, setDataToClipboard, setImgToClipboard } from '@/utils'
+import {
+  setDataToClipboard,
+  setImgToClipboard,
+  isClipboardWriteAvailable,
+} from '@/utils'
 
 interface Props {
   mindMap?: MindMapInstance
@@ -46,7 +50,6 @@ const type = ref('')
 const isMousedown = ref(false)
 const mousedownX = ref(0)
 const mousedownY = ref(0)
-const enableCopyToClipboardApi = navigator.clipboard
 const numberType = ref('')
 const numberLevel = ref('')
 const subItemsShowLeft = ref(false)
@@ -82,7 +85,8 @@ const copyList = computed(() => {
       value: 'txt',
     },
   ]
-  if (enableCopyToClipboardApi) {
+  // 仅安全上下文（HTTPS/localhost）且支持 clipboard.write 时显示「复制为PNG」
+  if (isClipboardWriteAvailable()) {
     list.push({
       name: localeText?.contextmenu?.copyToPng || '复制为PNG',
       value: 'png',
@@ -282,9 +286,8 @@ async function copyToClipboard(copyType: string) {
     hide()
     let data: any
     let str: string | undefined
+    let blob: Blob | undefined
     switch (copyType) {
-      // 注释掉:移除 .smm 格式支持
-      // case 'smm':
       case 'json':
         data = props.mindMap?.getData(true)
         str = JSON.stringify(data)
@@ -300,23 +303,25 @@ async function copyToClipboard(copyType: string) {
       case 'png':
         {
           const png = await (props.mindMap as any)?.export('png', false)
-          const blob = await imgToDataUrl(png, true)
-          setImgToClipboard(blob)
+          blob = await imgToDataUrl(png, true)
         }
         break
       default:
         break
     }
+    let ok = false
     if (str) {
-      if (enableCopyToClipboardApi) {
-        setDataToClipboard(str)
-      } else {
-        copy(str)
-      }
+      ok = await setDataToClipboard(str)
+    } else if (blob) {
+      ok = await setImgToClipboard(blob)
     }
-    ElMessage.success(localeText?.contextmenu?.copySuccess || '复制成功')
+    if (ok) {
+      ElMessage.success(localeText?.contextmenu?.copySuccess || '复制成功')
+    } else {
+      ElMessage.error(localeText?.contextmenu?.copyFail || '复制失败')
+    }
   } catch (error) {
-    console.log(error)
+    console.warn('copyToClipboard error:', error)
     ElMessage.error(localeText?.contextmenu?.copyFail || '复制失败')
   }
 }

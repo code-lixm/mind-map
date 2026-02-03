@@ -39,6 +39,7 @@ const visibility = ref<ViewportVisibility | null>(null)
 
 // 处理视口变化事件
 function handleViewportChange(visibilityInfo: ViewportVisibility) {
+  console.log("🚀 ~ handleViewportChange ~ visibilityInfo:", visibilityInfo)
   visibility.value = visibilityInfo
   // 当根节点不可见时显示按钮
   showButton.value = !visibilityInfo.rootVisible

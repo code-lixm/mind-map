@@ -250,7 +250,6 @@ function insertChildNode() {
   })
 }
 
-const visitedNode = ref<any>(null)
 // 激活当前节点且移动当前节点到画布中间
 function onClick(nodeData: OutlineTreeNode) {
   notHandleDataChange.value = true
@@ -261,9 +260,8 @@ function onClick(nodeData: OutlineTreeNode) {
   props.mindMap.execCommand('GO_TARGET_NODE', nodeData.uid, (node) => {
     notHandleDataChange.value = false
     if (readonly) {
-      visitedNode.value?.closeHighlight()
+      props.mindMap.renderer.clearAllNodeHighlight()
       node.highlight()
-      visitedNode.value = node
     }
   })
 }
@@ -332,7 +330,7 @@ onMounted(() => {
 })
 
 onBeforeUnmount(() => {
-  visitedNode.value?.closeHighlight()
+  props.mindMap.renderer.clearAllNodeHighlight()
   window.removeEventListener('keydown', onKeyDown)
   if (eventBus) {
     eventBus.off('data_change', handleDataChange)

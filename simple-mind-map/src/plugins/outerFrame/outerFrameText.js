@@ -9,7 +9,7 @@ const OUTER_FRAME_TEXT_EDIT_WRAP = 'outer-frame-text-edit-warp'
 
 // 创建文字节点
 function createText(el, cur, range) {
-  const g = this.draw.group()
+  const g = this.textDraw.group()
   const setActive = () => {
     if (!this.activeOuterFrame || this.activeOuterFrame.el !== el) {
       this.setActiveOuterFrame(el, cur, range, g)

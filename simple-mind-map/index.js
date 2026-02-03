@@ -176,7 +176,26 @@ class MindMap {
     this.addCss()
 
     // 初始渲染
-    this.render(this.opt.fit ? () => this.view.fit() : () => { })
+    this.render(() => {
+      if (this.opt.fit) {
+        this.view.fit()
+      } else {
+        // 如果内容完全不在可视区域内，则自动适应画布
+        this.getElRectInfo()
+        const drawRect = this.draw.rbox()
+        const { left, top, right, bottom } = this.elRect
+        if (
+          drawRect.width > 0 &&
+          drawRect.height > 0 &&
+          (drawRect.x > right ||
+            drawRect.x2 < left ||
+            drawRect.y > bottom ||
+            drawRect.y2 < top)
+        ) {
+          this.view.fit()
+        }
+      }
+    })
 
     // 将初始数据添加到历史记录堆栈中
     if (this.opt.addHistoryOnInit && this.opt.data) {

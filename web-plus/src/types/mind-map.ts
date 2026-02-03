@@ -203,6 +203,7 @@ export interface MindMapInstance {
     findNodeByUid: (uid: string) => MindMapNode | null
     /** 将节点移动到画布中心 */
     moveNodeToCenter: (node: MindMapNode) => void
+    clearAllNodeHighlight: () => void
     [key: string]: unknown
   }
   /** 视图 */

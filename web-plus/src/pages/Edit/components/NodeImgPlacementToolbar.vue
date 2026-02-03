@@ -103,15 +103,23 @@ async function copyImage() {
           return
         }
       }
-
       // 将图片URL转换为blob并写入剪贴板
+      if (imageUrl.includes('./')) {
+        const baseUrl = (import.meta.env.VITE_APP_BASE_URL || '').replace(/\/$/, '')
+        imageUrl = baseUrl + imageUrl.replace('./', '/')
+      }
+      // 将图片URL转换为blob并写入剪贴板（仅安全上下文可用）
       const blob = await imgToDataUrl(imageUrl, true)
-      setImgToClipboard(blob)
-
-      // 显示成功消息
-      ElMessage.success(
-        localeText.value.contextmenu?.copySuccess || '复制成功',
-      )
+      const ok = await setImgToClipboard(blob)
+      if (ok) {
+        ElMessage.success(
+          localeText.value.contextmenu?.copySuccess || '复制成功',
+        )
+      } else {
+        ElMessage.error(
+          localeText.value.contextmenu?.copyFail || '复制失败',
+        )
+      }
     }
     catch (error) {
       console.error('Copy image failed:', error)

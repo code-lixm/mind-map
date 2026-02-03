@@ -72,6 +72,8 @@ class OuterFrame {
     this.draw.addClass('smm-outer-frame-container')
     this.draw.back() // 最底层
     this.draw.forward() // 连线层上面
+    this.textDraw = this.mindMap.draw.group()
+    this.textDraw.addClass('smm-outer-frame-text-container')
   }
 
   // 绑定事件

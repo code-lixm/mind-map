@@ -2619,6 +2619,15 @@ class Render {
     this.highlightBoxNode.remove()
   }
 
+  // 取消画布上所有节点的 smm-node-highlight 高亮状态（单次遍历）
+  // 需「单选高亮」时由调用方先调用本方法一次，再对目标节点调用 node.highlight()
+  clearAllNodeHighlight() {
+    if (!this.root) return
+    walk(this.root, null, node => {
+      node.closeHighlight()
+    })
+  }
+
   // 是否存在富文本插件
   hasRichTextPlugin() {
     return !!this.mindMap.richText

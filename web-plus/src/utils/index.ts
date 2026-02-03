@@ -56,35 +56,41 @@ export function fileToBuffer(file: File): Promise<ArrayBuffer> {
   })
 }
 
+import {
+  copyTextToClipboard as copyTextToClipboardImpl,
+  setImageToClipboard as setImageToClipboardImpl,
+} from './clipboard'
+
+export {
+  copyTextToClipboard,
+  isClipboardSecureContext,
+  isClipboardWriteTextAvailable,
+  isClipboardWriteAvailable,
+  isClipboardReadAvailable,
+} from './clipboard'
+
 /**
- * 复制文本到剪贴板（使用 textarea）
+ * 复制文本到剪贴板（使用 textarea + execCommand，兼容非 HTTPS）
+ * @deprecated 请使用 copyTextToClipboard(text) 获取 Promise 并做错误处理
  */
 export function copy(text: string) {
-  const input = document.createElement('textarea')
-  input.innerHTML = text
-  document.body.appendChild(input)
-  input.select()
-  document.execCommand('copy')
-  document.body.removeChild(input)
+  copyTextToClipboardImpl(text).catch(() => {})
 }
 
 /**
- * 复制文本到剪贴板（使用 Clipboard API）
+ * 复制文本到剪贴板（防御性：优先 Clipboard API，失败则 execCommand）
+ * @returns Promise<boolean> 是否成功
  */
-export function setDataToClipboard(data: string) {
-  if (navigator.clipboard && navigator.clipboard.writeText) {
-    navigator.clipboard.writeText(data)
-  }
+export function setDataToClipboard(data: string): Promise<boolean> {
+  return copyTextToClipboardImpl(data)
 }
 
 /**
- * 复制图片到剪贴板
+ * 复制图片到剪贴板（仅安全上下文可用，否则静默失败）
+ * @returns Promise<boolean> 是否成功
  */
-export function setImgToClipboard(img: Blob) {
-  if (navigator.clipboard && navigator.clipboard.write) {
-    const data = [new ClipboardItem({ 'image/png': img })]
-    navigator.clipboard.write(data)
-  }
+export function setImgToClipboard(img: Blob): Promise<boolean> {
+  return setImageToClipboardImpl(img)
 }
 
 /**

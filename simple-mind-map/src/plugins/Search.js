@@ -84,16 +84,8 @@ class Search {
   onModeChange(mode) {
     const isReadonly = mode === CONSTANTS.MODE.READONLY
     // 如果是由只读模式切换为非只读模式，需要清除只读模式下的节点高亮
-    if (
-      !isReadonly &&
-      this.isSearching &&
-      this.matchNodeList[this.currentIndex]
-    ) {
-      const currentNode = this.matchNodeList[this.currentIndex]
-      // 只有节点实例才有 closeHighlight 方法
-      if (this.isNodeInstance(currentNode)) {
-        currentNode.closeHighlight()
-      }
+    if (!isReadonly && this.isSearching) {
+      this.mindMap.renderer.clearAllNodeHighlight()
     }
   }
 
@@ -134,12 +126,8 @@ class Search {
   // 结束搜索
   endSearch() {
     if (!this.isSearching) return
-    if (this.mindMap.opt.readonly && this.matchNodeList[this.currentIndex]) {
-      const currentNode = this.matchNodeList[this.currentIndex]
-      // 只有节点实例才有 closeHighlight 方法
-      if (this.isNodeInstance(currentNode)) {
-        currentNode.closeHighlight()
-      }
+    if (this.mindMap.opt.readonly) {
+      this.mindMap.renderer.clearAllNodeHighlight()
     }
     this.searchText = ''
     this.updateMatchNodeList([])
@@ -453,11 +441,7 @@ class Search {
   clearHighlightOnReadonly() {
     const { readonly } = this.mindMap.opt
     if (readonly) {
-      this.matchNodeList.forEach(node => {
-        if (this.isNodeInstance(node)) {
-          node.closeHighlight()
-        }
-      })
+      this.mindMap.renderer.clearAllNodeHighlight()
     }
   }
 

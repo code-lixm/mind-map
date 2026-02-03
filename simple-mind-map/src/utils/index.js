@@ -1264,14 +1264,33 @@ export const isSameObject = (a, b) => {
   }
 }
 
-// 检查navigator.clipboard对象的读取是否可用
+// 是否处于安全上下文（HTTPS 或 localhost），Clipboard API 仅在此环境下可用
+const isSecureContext = () =>
+  typeof window !== 'undefined' && Boolean(window.isSecureContext)
+
+// 检查navigator.clipboard对象的读取是否可用（含安全上下文检测）
 export const checkClipboardReadEnable = () => {
-  return navigator.clipboard && typeof navigator.clipboard.read === 'function'
+  if (!isSecureContext()) return false
+  try {
+    return (
+      navigator.clipboard && typeof navigator.clipboard.read === 'function'
+    )
+  } catch {
+    return false
+  }
 }
 
-// 检查navigator.clipboard对象的写入是否可用
+// 检查navigator.clipboard对象的写入是否可用（含安全上下文检测）
 export const checkClipboardWriteEnable = () => {
-  return navigator.clipboard && typeof navigator.clipboard.writeText === 'function'
+  if (!isSecureContext()) return false
+  try {
+    return (
+      navigator.clipboard &&
+      typeof navigator.clipboard.writeText === 'function'
+    )
+  } catch {
+    return false
+  }
 }
 
 const supportClipboardImageMimeList = ['image/png', 'image/jpeg', 'image/jpg']

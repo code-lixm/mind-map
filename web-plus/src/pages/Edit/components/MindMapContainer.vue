@@ -938,6 +938,9 @@ defineExpose({
         <NodeOuterFrame
           v-if="mindMapInstance"
           :mind-map="mindMapInstance"
+          :active-sidebar="activeSidebar"
+          :is-dark="isDark"
+          @update:active-sidebar="(value) => editorStore.setActiveSidebar(value)"
         />
         <NodeTagStyle
           v-if="mindMapInstance"
@@ -1017,7 +1020,7 @@ defineExpose({
       <NodeImage />
       <NodeHyperlink />
       <NodeIcon />
-      <NodeNote />
+      <NodeNote :is-readonly="isReadonly" />
       <NodeTag />
 
       <!-- 拖拽遮罩 -->
@@ -1060,6 +1063,7 @@ defineExpose({
   width: 100%;
   height: 100%;
   position: relative;
+  overflow: hidden; /* 避免绝对定位侧边栏 right: -300px 撑出横向滚动条 */
 }
 
 .mind-map-container {
