@@ -239,10 +239,9 @@ export default class TextEdit {
     const { offsetLeft, offsetTop } = checkNodeOuter(this.mindMap, node)
     this.mindMap.view.translateXY(offsetLeft, offsetTop)
     const g = node._textData.node
-    // 需要先显示，不然宽高获取到的可能是0
-    if (openRealtimeRenderOnNodeTextEdit) {
-      g.show()
-    }
+    // 需要先确保元素可见，否则getBoundingClientRect()返回全零
+    // 无论是否开启实时渲染都需要show()，因为上一次实时编辑可能残留display:none
+    g.show()
     const rect = g.node.getBoundingClientRect()
     // 如果开启了大小实时更新，那么直接隐藏节点原文本
     if (openRealtimeRenderOnNodeTextEdit) {
@@ -271,8 +270,8 @@ export default class TextEdit {
     this.textEditNode.style.background = openRealtimeRenderOnNodeTextEdit
       ? 'transparent'
       : this.currentNode
-      ? this.getBackground(this.currentNode)
-      : ''
+        ? this.getBackground(this.currentNode)
+        : ''
     this.textEditNode.style.boxShadow = openRealtimeRenderOnNodeTextEdit
       ? 'none'
       : '0 0 20px rgba(0,0,0,.5)'
@@ -316,10 +315,9 @@ export default class TextEdit {
       this.textEditNode.style.cssText = `
         position: fixed;
         box-sizing: border-box;
-        ${
-          openRealtimeRenderOnNodeTextEdit
-            ? ''
-            : `box-shadow: 0 0 20px rgba(0,0,0,.5);`
+        ${openRealtimeRenderOnNodeTextEdit
+          ? ''
+          : `box-shadow: 0 0 20px rgba(0,0,0,.5);`
         }
         padding: ${this.textNodePaddingY}px ${this.textNodePaddingX}px;
         margin-left: -${this.textNodePaddingX}px;
@@ -388,9 +386,8 @@ export default class TextEdit {
     this.textEditNode.style.maxWidth = textAutoWrapWidth * scale + 'px'
     if (isMultiLine) {
       this.textEditNode.style.lineHeight = noneRichTextNodeLineHeight
-      this.textEditNode.style.transform = `translateY(${
-        (((noneRichTextNodeLineHeight - 1) * fontSize) / 2) * scale
-      }px)`
+      this.textEditNode.style.transform = `translateY(${(((noneRichTextNodeLineHeight - 1) * fontSize) / 2) * scale
+        }px)`
     } else {
       this.textEditNode.style.lineHeight = 'normal'
     }
@@ -489,11 +486,13 @@ export default class TextEdit {
     this.textEditNode.style.fontWeight = 'normal'
     this.textEditNode.style.transform = 'translateY(0)'
     this.setIsShowTextEdit(false)
+    // 实时渲染模式下，编辑中文本节点被hide()(display:none)且opacity被设为0
+    // 当文本未改变时渲染管线不会触发layout()，这些状态不会被自动恢复
+    if (this.mindMap.opt.openRealtimeRenderOnNodeTextEdit && currentNode._textData) {
+      currentNode._textData.node.show()
+      currentNode._textData.node.opacity(1)
+    }
     this.mindMap.execCommand('SET_NODE_TEXT', currentNode, text)
-    // if (currentNode.isGeneralization) {
-    //   // 概要节点
-    //   currentNode.generalizationBelongNode.updateGeneralization()
-    // }
     this.mindMap.render()
     this.mindMap.emit(
       'hide_text_edit',
