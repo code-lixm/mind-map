@@ -504,7 +504,7 @@ export default {
           openBlankMode: false
         },
         ...(config || {}),
-        addCustomContentToNode,
+        // addCustomContentToNode,
         iconList: [...icon],
         useLeftKeySelectionRightKeyDrag: this.useLeftKeySelectionRightKeyDrag,
         customInnerElsAppendTo: null,

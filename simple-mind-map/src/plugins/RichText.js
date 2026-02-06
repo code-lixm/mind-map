@@ -415,6 +415,12 @@ class RichText {
     this.mindMap.emit('rich_text_selection_change', false)
     this.node = null
     this.isInserting = false
+    // 实时渲染模式下，编辑中文本节点被hide()(display:none)且opacity被设为0
+    // 当文本未改变时渲染管线不会触发layout()，这些状态不会被自动恢复
+    if (this.mindMap.opt.openRealtimeRenderOnNodeTextEdit && node && node._textData) {
+      node._textData.node.show()
+      node._textData.node.opacity(1)
+    }
     list.forEach(node => {
       this.mindMap.execCommand('SET_NODE_TEXT', node, html, true)
       // if (node.isGeneralization) {

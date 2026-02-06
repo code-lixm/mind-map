@@ -366,13 +366,16 @@ class Base {
       node._generalizationList &&
       node._generalizationList.length > 0
     ) {
+      let maxWidth = 0
+      let maxHeight = 0
       node._generalizationList.forEach((item, index) => {
         const gNode = item.generalizationNode
-        const oldData = gNode.getData()
+        const oldDataSnapshot = gNode.nodeDataSnapshot
         const newData = generalizationList[index]
         if (
           isResizeSource ||
-          (newData && JSON.stringify(oldData) !== JSON.stringify(newData))
+          (newData &&
+            (!oldDataSnapshot || oldDataSnapshot !== JSON.stringify(newData)))
         ) {
           if (newData) {
             gNode.nodeData.data = newData
@@ -380,7 +383,11 @@ class Base {
           gNode.getSize()
           gNode.needLayout = true
         }
+        if (gNode.width > maxWidth) maxWidth = gNode.width
+        if (gNode.height > maxHeight) maxHeight = gNode.height
       })
+      node._generalizationNodeWidth = maxWidth
+      node._generalizationNodeHeight = maxHeight
     }
   }
 
